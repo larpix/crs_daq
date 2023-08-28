@@ -14,10 +14,12 @@ def datetime_now():
 	''' Return string with year, month, day, hour, minute '''
 	return time.strftime("%Y_%m_%d_%H_%M_%Z")
 
-def write_config_to_file(c, directory=asic_config_dir, chip_key=None):
-    
-    path='{}/asic_configs_{}'.format(directory, datetime_now())
-    os.mkdir(path)
+def write_config_to_file(c, path=None, chip_key=None, description='default'):
+   
+    if path is None:
+        path='{}/asic_configs_{}'.format(asic_config_dir, datetime_now())
+
+    if not os.path.isdir(path): os.mkdir(path)
 
     chips = []
 
@@ -32,6 +34,7 @@ def write_config_to_file(c, directory=asic_config_dir, chip_key=None):
             chip_dict['CHIP_KEY']=str(chip)
             chip_dict['ASIC_ID']='{}-{}-{}'.format(chip.io_group, utility_base.io_channel_to_tile(chip.io_channel), chip.chip_id)
             chip_dict['ASIC_VERSION'] = c[chip].asic_version
+            chip_dict['description'] = description
             json.dump( chip_dict , f, indent=4)
 
     return path
@@ -57,10 +60,10 @@ def parse_disabled_json(disabled_json):
     
     return channel_masks
 
-def load_config_from_directory(c, directory):
+def load_config_from_directory(c, directory, verbose=False):
     ''' Load into controller memory all ASIC configuration JSON Files from directory'''
     for file in os.listdir(directory):
-        print('loading file:', directory+'/'+file)
+        if verbose: print('loading file:', directory+'/'+file)
         if file[-5:]=='.json':
             c = load_config_from_file(c, directory+'/'+file)
    
@@ -100,7 +103,7 @@ def load_config_from_file_existing_network(c, config):
         if key=='ASIC_VERSION': continue
         if key in hydra_registers: continue 
         if key=='chip_id': continue
-
+        if key=='description': continue
         setattr(c[larpix.key.Key(new_id)].config, key, asic_config[key])
 
 
@@ -114,14 +117,15 @@ def load_config_from_file(c, config):
 
     chip_key = asic_config['CHIP_KEY']
     version = asic_config['ASIC_VERSION'] 
-    
-    c.add_chip(chip_key, version=version)
+   
+    print(version)
+    if not chip_key in c.chips: c.add_chip(chip_key, version=version)
 
     for key in asic_config.keys():
         if key=='CHIP_KEY': continue
         if key=='ASIC_ID': continue
         if key=='ASIC_VERSION': continue
-        
+        if key=='description': continue 
         #if key in hydra_registers: continue 
 
         setattr(c[chip_key].config, key, asic_config[key])

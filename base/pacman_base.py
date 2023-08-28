@@ -211,7 +211,6 @@ def power_readback(io, io_group, pacman_version, tile):
                   'VDDD: ',vddd,' mV  IDDD: ',abs(iddd>>12),' mA')
             readback[i]=[vdda, idda*0.1, vddd, iddd>>12]
         elif pacman_version=='v1rev3' or 'v1revS1':
-            print('reading power from {}'.format(pacman_version))
             vdda=io.get_reg(0x00024001+(i-1)*32+1, io_group=io_group)
             idda=io.get_reg(0x00024001+(i-1)*32, io_group=io_group)
             vddd=io.get_reg(0x00024001+(i-1)*32+17, io_group=io_group)

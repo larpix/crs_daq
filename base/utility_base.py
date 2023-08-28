@@ -13,6 +13,10 @@ global oldfilename
 
 _broadcast_disable_nwrite=3
 
+
+def now():
+    return time.strftime("%Y_%m_%d_%H_%M_%Z")
+
 def broadcast_disable(c, target_chips=None):
     broadcast_form = '{}-{}-255'
 
@@ -58,15 +62,24 @@ def flush_data(c, runtime=0.1, rate_limit=0., max_iterations=10):
             break
 
 
-def data(c, runtime, packet, runtype, LRS=False, record_configs=True):
+def data_filename(c, packet):
     now=time.strftime("%Y_%m_%d_%H_%M_%Z")
     if packet==True:
-        fname=runtype+'-packets-'+now+'.h5'
+        fname='packets-'+now+'.h5'
+    else:
+        fname='binary-'+now+'.h5'
+
+    return fname
+
+
+
+def data(c, runtime, packet, LRS=False, fname=None):
+    if packet==True:
+        if fname is None: fname='packets-'+now+'.h5'
         c.logger = larpix.logger.HDF5Logger(filename=fname)
         
         if LRS: 
             subprocess.call(["echo 1 > ~/.adc_watchdog_file"],shell=True)  #start LRS
-            print('starting LRS ...')
 
         print('filename: ',c.logger.filename)
         c.logger.enable()
@@ -76,20 +89,17 @@ def data(c, runtime, packet, runtype, LRS=False, record_configs=True):
         
         if LRS: 
             subprocess.call(["echo 0 > ~/.adc_watchdog_file"],shell=True) #stop LRS
-            print('stopping LRS ...')
             time.sleep(1)
         
     else:
         c.io.disable_packet_parsing = True
         c.io.enable_raw_file_writing = True
-        fname=runtype+'-binary-'+now+'.h5'
+        if fname is None: fname='binary-'+now+'.h5'
         c.io.raw_filename=fname
         c.io.join()
         rhdf5.to_rawfile(filename=c.io.raw_filename, \
                          io_version=pacman_msg_fmt.latest_version)
-        #if record_configs:
-        #    c.loggertempA = larpix.logger.HDF5Logger(c.io.raw_filename)
-        #    c.loggertempA.record_configs(list(c.chips.values()))
+        
         print('filename: ',c.io.raw_filename)
         run_start=time.time()
         c.start_listening()
@@ -120,8 +130,6 @@ def data(c, runtime, packet, runtype, LRS=False, record_configs=True):
             time.sleep(0.3)
         c.read()
         c.io.join()
-        if record_configs:
-            c.loggertempB = larpix.logger.HDF5Logger(c.io.raw_filename)
 
     return fname
 

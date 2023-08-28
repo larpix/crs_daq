@@ -8,6 +8,7 @@ from tqdm import tqdm
 from base import pacman_base
 from base import utility_base
 from base import enforce_parallel
+from base.utility_base import now
 
 _default_verbose=False
 
@@ -16,37 +17,56 @@ def main(verbose, \
     
         db = pickledb.load(env_db, True) 
 
+        #check DB file to ensure run conditions satisfy requirements
         for io_group in io_group_pacman_tile_.keys():
-            TILES_CONFIGURED = db.get('IO_GROUP_{}_TILES_NETWORKED'.format(io_group))
-            if not TILES_CONFIGURED:
-                raise RuntimeError('NO TILES  configured for io_group={}'.format(io_group))
-            if len(TILES_CONFIGURED)==0:
-                raise RuntimeError('NO TILES  configured for io_group={}'.format(io_group))
 
-        for io_group in io_group_pacman_tile_.keys():
+            #check that tiles are configured with hydra network
+            TILES_CONFIGURED = db.get('IO_GROUP_{}_TILES_NETWORKED'.format(io_group))
+            
+            if not TILES_CONFIGURED:
+                print('NO TILES  configured for io_group={}'.format(io_group))
+                return
+
+            if len(TILES_CONFIGURED)==0:
+                print('NO TILES  configured for io_group={}'.format(io_group))
+                return
+
+            #check pacman is properly configured 
             PACMAN_CONFIGURED = db.get('IO_GROUP_{}_PACMAN_CONFIGURED'.format(io_group))
             if not PACMAN_CONFIGURED:
-                raise RuntimeError('PACMAN not configured for io_group={}'.format(io_group))
+                print('PACMAN not configured for io_group={}'.format(io_group))
+                return
 
-        for io_group in io_group_pacman_tile_.keys():
+            #check network config exists
             NETWORK_CONFIG =  db.get('IO_GROUP_{}_NETWORK_CONFIG'.format(io_group))
             if not NETWORK_CONFIG:
-                raise RuntimeError('NO existing network file for io_group={}'.format(io_group))
+                print('NO existing network file for io_group={}'.format(io_group))
+                return
 
         c = larpix.Controller()
         c.io = larpix.io.PACMAN_IO(relaxed=True)
         
+        #list of network keys in order from root chip, for parallel configuration enforcement
         all_network_keys = []
        
         for io_group in io_group_pacman_tile_.keys():
-            CONFIG = db.get('IO_GROUP_{}_ASIC_CONFIGS'.format(io_group))
+            CONFIG=None
+            if asic_config is None:
+                print('Using existing config')
+                CONFIG = db.get('IO_GROUP_{}_ASIC_CONFIGS'.format(io_group))
+            else:
+                CONFIG=asic_config
+
             all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(db.get('IO_GROUP_{}_NETWORK_CONFIG'.format(io_group)) )  
             config_loader.load_config_from_directory(c, CONFIG) 
-        
+            
+            db.set('IO_GROUP_{}_ASIC_CONFIGS'.format(io_group), CONFIG)
+            db.set('LAST_UPDATE', now()) 
+        #ensure UARTs are enable on pacman to receive configuration packets
         for io_group in io_group_pacman_tile_.keys(): 
             pacman_base.enable_all_pacman_uart_from_io_group(c.io, io_group)
-    
 
+        #enforce all configurations in parallel (one chip per io channel per cycle)
         enforce_parallel.enforce_parallel(c, all_network_keys)
 
         return

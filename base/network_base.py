@@ -5,6 +5,7 @@ from base import asic_base
 import json
 import time
 from base import pacman_base
+import numpy as np
 #from timebudget import timebudget
 #import asyncio
 
@@ -13,6 +14,18 @@ i_tx_diff=0
 tx_slices=15
 r_term=2
 i_rx=8
+
+_default_clk_ctrl = 1
+_uart_phase = 2
+
+clk_ctrl_2_clk_ratio_map = {
+        0: 10,
+        1: 20,
+        2: 40,
+        3: 80
+        }
+
+
 
 #@timebudget
 def network_ext_node(c, io_group, io_channel, iochannel_root_map):
@@ -431,9 +444,6 @@ def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,\
         for chip_id in waitlist:
             potential_parents=find_potential_parents(chip_id, network, verbose)
             for parent in potential_parents:
-                # skip known bad I/O ASIC
-                if chip_id==19 and io_group==1 and \
-                   parent.io_channel in [29,30,31,32]: continue
                 daughter=larpix.key.Key(parent.io_group, parent.io_channel, \
                                         chip_id)
 
@@ -606,8 +616,8 @@ def network_v2b(controller_config, verbose=False, **kwargs):
     for io_group, io_channels in c.network.items():
         for io_channel in io_channels:
             c.init_network(io_group, io_channel, modify_mosi=False)
-      
-    #write tx, rx, etc configs
+    
+       #write tx, rx, etc configs
     for chip_key in c.chips.keys():
         c[chip_key].config.ref_current_trim=ref_current_trim
         c.write_configuration(chip_key,'ref_current_trim')
@@ -632,6 +642,10 @@ def network_v2b(controller_config, verbose=False, **kwargs):
     return c
 
 def network_v2a(controller_config, verbose=False, **kwargs):
+
+    c = larpix.Controller()
+    c.io = larpix.io.PACMAN_IO(relaxed=True)
+    
 
     if controller_config is None:
         raise RuntimeError('No controller config specified!')
@@ -658,13 +672,13 @@ def network_v2a(controller_config, verbose=False, **kwargs):
     for io_group, io_channels in c.network.items():
         for io_channel in io_channels:
             c.init_network(io_group, io_channel, modify_mosi=False)
-            
+    
     ###### set uart speed (v2a at 2.5 MHz transmit clock, v2b fine at 5 MHz transmit clock)
     for io_group, io_channels in c.network.items():
         for io_channel in io_channels:
             chip_keys = c.get_network_keys(io_group,io_channel,root_first_traversal=False)
             for chip_key in chip_keys:
-                c[chip_key].config.clk_ctrl = _default_clk_ctrl
+                c[chip_key].config.clk_ctrl = _default_clk_ctrl 
                 c.write_configuration(chip_key, 'clk_ctrl')
 
     for io_group, io_channels in c.network.items():

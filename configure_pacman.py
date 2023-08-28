@@ -5,16 +5,20 @@ import larpix.io
 import time
 from base import pacman_base
 import pickledb
+from base.utility_base import now
 
 _default_verbose=False
 
 def main(verbose):
     
+    #number of clock cycles to hold for hard reset of LArPix
     RESET_CYCLES=4096
  
     db=pickledb.load(env_db, True)
 
+    #initialize DB variables
     for io_group in io_group_pacman_tile_.keys():
+        db.set('LAST_UPDATED', now()) 
         db.set('IO_GROUP_{}_PACMAN_CONFIGURED'.format(io_group), False)
         db.set('IO_GROUP_{}_TILES_POWERED'.format(io_group), [])
 
@@ -22,7 +26,8 @@ def main(verbose):
     c.io = larpix.io.PACMAN_IO(relaxed=True)
 
     for io_group in io_group_pacman_tile_.keys():
-
+        print('Configuring IO Group {}'.format(io_group))
+        #read pacman information and metadata from RUNENV
         pacman_version = iog_pacman_version_[io_group]
         VDDD_DAC = iog_VDDD_DAC[io_group]
         VDDA_DAC = iog_VDDA_DAC[io_group]
@@ -43,7 +48,7 @@ def main(verbose):
             c.io.set_reg(0x24010+(PACMAN_TILE-1), 0, io_group=io_group)
             c.io.set_reg(0x24020+(PACMAN_TILE-1), 0, io_group=io_group)
             
-            time.sleep(0.1)
+            time.sleep(0.05)
 
             #set voltage dacs VDDD first 
             c.io.set_reg(0x24020+(PACMAN_TILE-1), VDDD_DAC, io_group=io_group)
@@ -83,10 +88,12 @@ def main(verbose):
         c.io.set_reg(0x1010, clk_ctrl|4, io_group=io_group)
         c.io.set_reg(0x1010, clk_ctrl, io_group=io_group)
         time.sleep(0.01)
-
         
         db.set('IO_GROUP_{}_PACMAN_CONFIGURED'.format(io_group), True)
         db.set('IO_GROUP_{}_TILES_POWERED'.format(io_group), io_group_pacman_tile_[io_group])
+        db.set('LAST_UPDATED', now())
+
+    return
 
 
 if __name__=='__main__':
