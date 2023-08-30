@@ -19,6 +19,7 @@ def enforce_parallel(c, network_keys):
     
     p_bar = tqdm(range(len(c.chips)))
     p_bar.refresh()
+    ok, diff = False, {}
     while True:
         current_chips = []
         ichip += 1
@@ -30,12 +31,16 @@ def enforce_parallel(c, network_keys):
     
         if not working: break
 
-        ok, diff = c.enforce_configuration(current_chips, timeout=0.01, connection_delay=0.01, n=3, n_verify=3)
+        ok, diff = c.enforce_configuration(current_chips, timeout=0.01, connection_delay=0.1, n=3, n_verify=3)
         
-        if not ok: print(diff)
+        if not ok: 
+            raise RuntimeError('Enforcing failed', diff)
+            return ok, diff
         p_bar.update(len(current_chips))
         p_bar.refresh()
 
     p_bar.close()
+
+    return ok, diff
 
 

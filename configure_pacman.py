@@ -8,6 +8,7 @@ import pickledb
 from base.utility_base import now
 
 _default_verbose=False
+skip_readback=False
 
 def main(verbose):
     
@@ -28,18 +29,24 @@ def main(verbose):
     for io_group in io_group_pacman_tile_.keys():
         print('Configuring IO Group {}'.format(io_group))
         #read pacman information and metadata from RUNENV
-        pacman_version = iog_pacman_version_[io_group]
+        pacman_version = iog_pacman_version[io_group]
         VDDD_DAC = iog_VDDD_DAC[io_group]
         VDDA_DAC = iog_VDDA_DAC[io_group]
 
+        if verbose:
+            print('disabling tile power and clock')
         # disable tile power, LARPIX clock
         c.io.set_reg(0x00000010, 0, io_group=io_group)
         c.io.set_reg(0x00000014, 0, io_group=io_group)
         
+        if verbose:
+            print('setting up mclk')       
         # set up mclk in pacman
         c.io.set_reg(0x101c, 0x4, io_group=io_group)
         time.sleep(0.5)
-    
+        
+        if verbose:
+            print('enabling power')  
         # enable pacman power
         c.io.set_reg(0x00000014, 1, io_group=io_group)
         
@@ -79,9 +86,7 @@ def main(verbose):
             pacman_base.invert_pacman_uart(c.io, io_group, io_group_asic_version_[io_group], \
                                        io_group_pacman_tile_[io_group]) 
 
-
-        readback=pacman_base.power_readback(c.io, io_group, pacman_version,io_group_pacman_tile_[io_group])
-
+        if not skip_readback: readback=pacman_base.power_readback(c.io, io_group, pacman_version,io_group_pacman_tile_[io_group])
         #   - toggle reset bit
         c.io.set_reg(0x1014,RESET_CYCLES,io_group=io_group)
         clk_ctrl = c.io.get_reg(0x1010, io_group=io_group)

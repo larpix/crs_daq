@@ -118,7 +118,6 @@ def load_config_from_file(c, config):
     chip_key = asic_config['CHIP_KEY']
     version = asic_config['ASIC_VERSION'] 
    
-    print(version)
     if not chip_key in c.chips: c.add_chip(chip_key, version=version)
 
     for key in asic_config.keys():

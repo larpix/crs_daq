@@ -301,9 +301,10 @@ def chip_key_to_io_channel(ck): return int(ck.split('-')[1])
 def chip_key_to_chip_id(ck): return int(ck.split('-')[-1])
 
 
-def iog_tile_to_iog_ioc_cid(io_group_pacman_tile, asic_version):
+def iog_tile_to_iog_ioc_cid(io_group_pacman_tile, asic_version, io_group=None):
     result=[]
     for iog in io_group_pacman_tile.keys():
+        if not (io_group is None or iog==io_group): continue 
         for tile in io_group_pacman_tile[iog]:
             io_channel=tile_to_io_channel([tile])
             ioc_root_map=io_channel_to_root_chip(io_channel, asic_version)

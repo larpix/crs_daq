@@ -60,12 +60,12 @@ def configure_chip_id(c, io_group, ioc, chip_id, asic_version):
     if setup_key not in c.chips: c.add_chip(setup_key, version=asic_version)
     c[setup_key].config.chip_id = chip_id
     c.write_configuration(setup_key,'chip_id')
+    c.write_configuration(setup_key,'chip_id')
     c.remove_chip(setup_key)
     chip_key=larpix.key.Key(io_group, ioc, chip_id)
     if chip_key not in c.chips: c.add_chip(chip_key, version=asic_version)
     c[chip_key].config.chip_id = chip_id
     return chip_key
-
 
 
 #@timebudget
@@ -81,10 +81,13 @@ def configure_root_chip(c, chip_key, asic_version, ref_current_trim, \
             setattr(c[chip_key].config,f'r_term{uart}', i_rx)
             registers.append(c[chip_key].config.register_map[f'r_term{uart}'])
         for reg in registers: c.write_configuration(chip_key, reg)
+        for reg in registers: c.write_configuration(chip_key, reg)
         c[chip_key].config.enable_posi=[0]*4
         c[chip_key].config.enable_posi[1]=1
         c.write_configuration(chip_key, 'enable_posi')
+        c.write_configuration(chip_key, 'enable_posi')
         c[chip_key].config.i_tx_diff0=tx_diff
+        c.write_configuration(chip_key, 'i_tx_diff0')
         c.write_configuration(chip_key, 'i_tx_diff0')
         c[chip_key].config.tx_slices0=tx_slice
         c.write_configuration(chip_key, 'tx_slices0')
@@ -94,20 +97,20 @@ def configure_root_chip(c, chip_key, asic_version, ref_current_trim, \
         c[chip_key].config.enable_piso_upstream=[0]*4        
         c.write_configuration(chip_key, 'enable_piso_upstream')
 
-
+    return
         
 #@timebudget
 def setup_root(c, io, io_group, io_channel, chip_id, verbose, asic_version, \
                ref_current_trim, tx_diff, tx_slice, r_term, i_rx):
-#    print('configuring chip id')
+    
     chip_key = configure_chip_id(c, io_group, io_channel, chip_id, asic_version)
-#    print('disabling CSA')
     asic_base.disable_chip_csa_trigger(c, chip_key)
-#    print('configure root')
     configure_root_chip(c, chip_key, asic_version, ref_current_trim, \
                         tx_diff, tx_slice, r_term, i_rx)
+    
     io.set_reg(0x18, 2**(io_channel-1), io_group=io_group)
-#    print('reconcile config')
+    print('reconcile config')
+    print(chip_key, 'downstream enabled:', c[chip_key].config.enable_piso_downstream)
     ok, diff = utility_base.reconcile_configuration(c, chip_key, verbose)
     if ok:
         if verbose: print(chip_key,' configured')
@@ -116,8 +119,6 @@ def setup_root(c, io, io_group, io_channel, chip_id, verbose, asic_version, \
     if not ok:
         if verbose: print(chip_key,' NOT configured')
         uart_base.reset_uarts(c, chip_key, verbose)
-        ok, diff = utility_base.reconcile_configuration(c, chip_key, \
-                                                            verbose)
         c.remove_chip(chip_key)
 #        io.set_reg(0x18, 0, io_group=io_group)
         return None
@@ -552,6 +553,7 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured, \
     c = configure_asic_network_links(c)
     d["network"]={}
     for iog in io_group_pacman_tile.keys():
+        if not iog in c.network.keys(): continue
         d["network"][iog]={}
         io_channels=utility_base.tile_to_io_channel(io_group_pacman_tile[iog])
         for ioc in io_channels:

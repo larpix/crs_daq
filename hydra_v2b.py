@@ -38,11 +38,7 @@ def main(io_group, file_prefix=_default_file_prefix, \
          tx_diff=_default_tx_diff, \
          tx_slice=_default_tx_slice, \
          r_term=_default_r_term, \
-         i_rx=_default_i_rx, \
-         controller_config=None,
-         asic_config=None,\
-         resume=False,
-         recheck=_default_recheck,
+         i_rx=_default_i_rx, 
          **kwargs):
    
     c = larpix.Controller()
@@ -53,13 +49,13 @@ def main(io_group, file_prefix=_default_file_prefix, \
     time.sleep(4096*4*1e-6)
 
 
-    if controller_config is None:
+    if True:
         now=time.strftime("%Y_%m_%d_%H_%M_%Z")
         config_name='controller-config-'+now+'.json'
 
     for iog in [io_group]:
        
-        iog_ioc_cid=utility_base.iog_tile_to_iog_ioc_cid(io_group_pacman_tile_, io_group_asic_version_[iog])
+        iog_ioc_cid=utility_base.iog_tile_to_iog_ioc_cid(io_group_pacman_tile_, io_group_asic_version_[iog], io_group=iog)
         
         #VERSION_SPECIFIC
         if io_group_asic_version_[iog]=='2b': 
@@ -70,16 +66,12 @@ def main(io_group, file_prefix=_default_file_prefix, \
     for g_c_id in iog_ioc_cid:
         network_base.network_ext_node_from_tuple(c, g_c_id)
     
-    print('setup software controller to root chips')
-   
-    print(iog_ioc_cid)
 
     for iog in [io_group]:
-        print('Configuring IO Group', iog)
+        print('Working on io_group={}'.format(iog))
         if io_group_asic_version_[iog]=='2b':
             root_keys=[]        
             for g_c_id in iog_ioc_cid:
-                print(g_c_id)
                 candidate_root = network_base.setup_root(c, c.io, g_c_id[0], \
                                                           g_c_id[1],\
                                                           g_c_id[2], verbose, \
@@ -99,7 +91,7 @@ def main(io_group, file_prefix=_default_file_prefix, \
                                              tx_diff, tx_slice, r_term, i_rx)
 
             unconfigured=[]
-            for iog in io_group_pacman_tile_.keys():
+            if True:
                 for tile in io_group_pacman_tile_[iog]:
                     out_of_network=network_base.iterate_waitlist(c, c.io, iog, \
                                                                  utility_base.tile_to_io_channel([tile]),
@@ -121,8 +113,6 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--io_group', default=None, \
                         type=int, help='''io group to network''')
-    parser.add_argument('--controller_config', default=None, \
-                        type=str, help='''Controller config for v2a tiles only''')
     parser.add_argument('--file_prefix', default=_default_file_prefix, \
                         type=str, help='''String prepended to filename''')
     parser.add_argument('--disable_logger', default=_default_disable_logger, \
@@ -149,8 +139,6 @@ if __name__=='__main__':
                         default=_default_i_rx, \
                         type=int, \
                         help='''Receiver bias current DAC''')
-    parser.add_argument('--recheck', default=_default_recheck, \
-                        action='store_true', help='''Flag to re-check all asic configs after initally enforcing them all ''')
     args = parser.parse_args()
     main(**vars(args))
 

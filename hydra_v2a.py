@@ -96,7 +96,12 @@ def get_initial_controller(io_group, io_channels, vdda=0, pacman_version='v1rev3
         
         for io_channel in io_channels:
             c.add_network_node(io_group, io_channel, c.network_names, 'ext', root=True)
-        
+       
+        for io_channel in io_channels:
+            c.io.set_uart_clock_ratio(io_channel, clk_ctrl_2_clk_ratio_map[0], io_group=io_group)
+
+
+
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         
         return c
