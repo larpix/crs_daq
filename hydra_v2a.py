@@ -11,6 +11,7 @@ from tqdm import tqdm
 import numpy as np
 import json
 from base.network_base import _default_clk_ctrl, clk_ctrl_2_clk_ratio_map
+from RUNENV import io_group_pacman_tile_
 arr = graphs.NumberedArrangement()
 
 def string_to_chips_list(string):
@@ -215,15 +216,15 @@ def test_network(c, io_group, io_channels, paths):
                         c.write_configuration(next_key, 'enable_miso_downstream')
                         c.write_configuration(next_key, 'enable_miso_downstream')
 
-                        ok, diff = c.enforce_registers([(next_key, reg) for reg in range(5,125)], timeout=0.01, n=3, n_verify=3)
+                        ok, diff = c.enforce_configuration(next_key, timeout=0.01, n=3, n_verify=3)
                         pbar.update(1)
                         if ok:
-                                arr.add_good_connection((path[step-1], path[step])) 
                                 continue
 
                         else:
                                 #planned path to traverse has been interrupted... restart with adding excluded link
                                 arr.add_onesided_excluded_link((prev_key.chip_id, next_key.chip_id))
+                                arr.add_onesided_excluded_link((next_key.chip_id, prev_key.chip_id))
                                 still_stepping[ipath] = False
                                 valid[ipath] = False
         pbar.close()
@@ -234,7 +235,8 @@ def main(pacman_tile, io_group, pacman_version, vdda=0, config_name=None, exclud
     
 
     d = {'_config_type' : 'controller', '_include':[]}
-    if isinstance(pacman_tile, list):
+    if isinstance(pacman_tile, list) or pacman_tile is None:
+        if pacman_tile is None: pacman_tile = io_group_pacman_tile_[io_group]
         if exclude is None: exclude = {t : None for t in pacman_tile}
         for tile in pacman_tile:
             if not tile in exclude.keys(): exclude[tile]=None
@@ -298,6 +300,7 @@ def hydra_chain(io_group, pacman_tile, pacman_version, vdda, exclude=None, first
                 existing_paths = [ [chip] for chip in root_chips  ]
 
                 #initial network
+                print(arr.excluded_links)
                 paths = arr.get_path(existing_paths)
                 print('path inlcuding', sum(  [len(path) for path in paths] ), 'chips' )
 
@@ -319,7 +322,7 @@ def hydra_chain(io_group, pacman_tile, pacman_version, vdda, exclude=None, first
 
 if __name__ == '__main__':
         parser = argparse.ArgumentParser()
-        parser.add_argument('--pacman_tile', default=1, type=int, help='''Pacman software tile number; 1-8  for Pacman v1rev3; 1 for Pacman v1rev2''')
+        parser.add_argument('--pacman_tile', default=None, type=int, help='''Pacman software tile number; 1-8  for Pacman v1rev3; 1 for Pacman v1rev2''')
         parser.add_argument('--pacman_version', default='v1rev3b', type=str, help='''Pacman version; v1rev2 for SingleCube; otherwise, v1rev3''')
         parser.add_argument('--vdda', default=0, type=float, help='''VDDA setting during test [V]''')
         parser.add_argument('--io_group', default=1, type=int, help='''IO group to perform test on''')
