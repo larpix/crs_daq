@@ -1,6 +1,8 @@
 import argparse
 import json
 
+v2a_nonrouted_channels = [6,7,8,9,22,23,24,25,38,39,40,54,55,56,57]
+
 def main(*files, disabled_list=None, **kwargs):
     disabled = {}
     if not disabled_list is None:
@@ -19,6 +21,12 @@ def main(*files, disabled_list=None, **kwargs):
                 for channel in disabled[asic_id]:
                     config['channel_mask'][channel]=1
                     config['csa_enable'][channel]=0
+
+            if config['ASIC_VERSION']==2:
+                for channel in v2a_nonrouted_channels:
+                    config['channel_mask'][channel]=1
+                    config['csa_enable'][channel]=0
+
 
             with open(file, 'w') as f: json.dump(config, f, indent=4)
 
