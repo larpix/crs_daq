@@ -277,6 +277,8 @@ def hydra_chain(io_group, pacman_tile, pacman_version, vdda, exclude=None, first
         print("get_initial_controller(",io_group,",",io_channels,",",vdda,",",pacman_version,")")
         c = get_initial_controller(io_group, io_channels, vdda, pacman_version)
 
+        
+        pacman_base.enable_all_pacman_uart_from_io_group(c.io, io_group) 
         root_chips, io_channels = get_good_roots(c, io_group, io_channels)
         print('found root chips:', root_chips)
         c = reset_board_get_controller(c, io_group, io_channels)

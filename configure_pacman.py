@@ -55,26 +55,35 @@ def main(verbose):
         
         VDDA_REG=None
         VDDD_REG=None
-
+        
         if pacman_version=='v1rev3' or pacman_version=='v1revS1':
             VDDD_REG=0x24131
             VDDA_REG=0x24130
+            for PACMAN_TILE in io_group_pacman_tile_[io_group]:
+                if verbose: print('powering pacman tile:', PACMAN_TILE, 'to', VDDD_DAC, VDDA_DAC) 
+                #set voltage dacs to 0V  
+                c.io.set_reg(VDDD_REG+2*(PACMAN_TILE-1), 0, io_group=io_group)
+                c.io.set_reg(VDDA_REG+2*(PACMAN_TILE-1), 0, io_group=io_group)
+                time.sleep(0.25)
+
+                #set voltage dacs VDDD first 
+                c.io.set_reg(VDDD_REG+2*(PACMAN_TILE-1), VDDD_DAC, io_group=io_group)
+                c.io.set_reg(VDDA_REG+2*(PACMAN_TILE-1), VDDA_DAC, io_group=io_group)
+        
         elif pacman_version=='v1rev4':
             VDDD_REG=0x24020
             VDDA_REG=0x24010
+            for PACMAN_TILE in io_group_pacman_tile_[io_group]:
+                if verbose: print('powering pacman tile:', PACMAN_TILE, 'to', VDDD_DAC, VDDA_DAC) 
+                #set voltage dacs to 0V  
+                c.io.set_reg(VDDD_REG+(PACMAN_TILE-1), 0, io_group=io_group)
+                c.io.set_reg(VDDA_REG+(PACMAN_TILE-1), 0, io_group=io_group)
+                time.sleep(0.25)
 
-        for PACMAN_TILE in io_group_pacman_tile_[io_group]:
-            if verbose: print('powering pacman tile:', PACMAN_TILE, 'to', VDDD_DAC, VDDA_DAC) 
-            #set voltage dacs to 0V  
-            c.io.set_reg(VDDD_REG+(PACMAN_TILE-1), 0, io_group=io_group)
-            c.io.set_reg(VDDA_REG+(PACMAN_TILE-1), 0, io_group=io_group)
-            
-            time.sleep(0.25)
+                #set voltage dacs VDDD first 
+                c.io.set_reg(VDDD_REG+(PACMAN_TILE-1), VDDD_DAC, io_group=io_group)
+                c.io.set_reg(VDDA_REG+(PACMAN_TILE-1), VDDA_DAC, io_group=io_group)
 
-            #set voltage dacs VDDD first 
-            c.io.set_reg(VDDD_REG+(PACMAN_TILE-1), VDDD_DAC, io_group=io_group)
-            c.io.set_reg(VDDA_REG+(PACMAN_TILE-1), VDDA_DAC, io_group=io_group)
-  
         if verbose:  print('reset larpix for n cycles',RESET_CYCLES)
         #   - set reset cycles
 
@@ -92,7 +101,7 @@ def main(verbose):
             tile_enable_sum = pow(2,PACMAN_TILE-1) + tile_enable_sum
             tile_enable_val=tile_enable_sum+0x0200  #enable one tile at a time    
             c.io.set_reg(0x00000010,tile_enable_val,io_group)
-            time.sleep(0.05)
+            time.sleep(0.25)
             if verbose: print('enabling tilereg 0x10: {0:b}'.format(tile_enable_val) )
         
         if io_group_asic_version_[io_group]=='2b':
