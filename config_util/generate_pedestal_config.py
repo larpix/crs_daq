@@ -4,9 +4,9 @@ import argparse
 import pickledb
 from tqdm import tqdm
 import os
-
+import json
 _default_verbose=False
-_default_periodic_trigger_cycles=200000
+_default_periodic_trigger_cycles=400000
 _default_periodic_reset_cycles=4096 #409600
 _default_vref_dac=185 ###cold 223 ### warm 185
 _default_vcm_dac=50 ### cold 68 ### warm 50
@@ -17,7 +17,7 @@ _default_r_term=2
 _default_i_rx=8
 
 
-def main(*input_files, verbose, \
+def main(input_files, verbose, \
          periodic_trigger_cycles=_default_periodic_trigger_cycles, \
          periodic_reset_cycles=_default_periodic_reset_cycles, \
          vref_dac=_default_vref_dac, \
@@ -84,4 +84,13 @@ if __name__=='__main__':
                         help='''Receiver bias current DAC''')
 
     args=parser.parse_args()
-    c = main(**vars(args))
+    c = main(args.input_files, verbose=args.verbose, \
+            periodic_trigger_cycles=args.periodic_trigger_cycles, \
+            periodic_reset_cycles=args.periodic_reset_cycles, \
+            vref_dac=args.vref_dac, \
+            vcm_dac=args.vcm_dac, \
+            ref_current_trim=args.ref_current_trim, \
+            tx_diff=args.tx_diff, \
+            tx_slice=args.tx_slice, \
+            r_term=args.r_term, \
+            i_rx=args.i_rx)

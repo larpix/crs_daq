@@ -89,7 +89,7 @@ def data(c, runtime, packet, LRS=False, fname=None):
         
         if LRS: 
             subprocess.call(["echo 0 > ~/.adc_watchdog_file"],shell=True) #stop LRS
-            time.sleep(1)
+            time.sleep(0.5)
         
     else:
         c.io.disable_packet_parsing = True
