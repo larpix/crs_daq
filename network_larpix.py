@@ -26,6 +26,7 @@ def main(verbose,\
         db.set('IO_GROUP_{}_ASIC_CONFIGS'.format(io_group), None)
         db.set('IO_GROUP_{}_NETWORK_CONFIG'.format(io_group), None)
         db.set('LAST_UPDATED', now())
+        db.set('DEFAULT_CONFIG_{}'.format(io_group), '')
 
         PACMAN_CONFIGURED = db.get('IO_GROUP_{}_PACMAN_CONFIGURED'.format(io_group))
         if not PACMAN_CONFIGURED:
@@ -67,6 +68,7 @@ def main(verbose,\
         
         config_path = config_loader.write_config_to_file(c, config_path) 
         db.set('IO_GROUP_{}_ASIC_CONFIGS'.format(io_group), config_path)        
+        db.set('DEFAULT_CONFIG_{}'.format(io_group), config_path)
         db.set('LAST_UPDATED', now())
 
     nc = larpix.Controller()

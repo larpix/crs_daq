@@ -89,7 +89,7 @@ def data(c, runtime, packet, LRS=False, fname=None):
         
         if LRS: 
             subprocess.call(["echo 0 > ~/.adc_watchdog_file"],shell=True) #stop LRS
-            time.sleep(0.5)
+            time.sleep(1)
         
     else:
         c.io.disable_packet_parsing = True
@@ -301,10 +301,9 @@ def chip_key_to_io_channel(ck): return int(ck.split('-')[1])
 def chip_key_to_chip_id(ck): return int(ck.split('-')[-1])
 
 
-def iog_tile_to_iog_ioc_cid(io_group_pacman_tile, asic_version, io_group=None):
+def iog_tile_to_iog_ioc_cid(io_group_pacman_tile, asic_version):
     result=[]
     for iog in io_group_pacman_tile.keys():
-        if not (io_group is None or iog==io_group): continue 
         for tile in io_group_pacman_tile[iog]:
             io_channel=tile_to_io_channel([tile])
             ioc_root_map=io_channel_to_root_chip(io_channel, asic_version)
@@ -326,7 +325,6 @@ def unique_to_chip_key(i):
         str(unique_to_io_channel(i))+'-'+ \
         str(unique_to_chip_id(i))
     return chip_key
-
 
 
 def io_channel_to_tile(io_channel):
@@ -372,14 +370,24 @@ def unique_channel_id(d):
     return ((d['io_group'].astype(int)*1000+d['io_channel'].astype(int))*1000 \
             + d['chip_id'].astype(int))*100 + d['channel_id'].astype(int)
 
+def unique_channel_id_args(io_group, io_channel, chip_id, channel_id):
+    return ((io_group*1000+io_channel)*1000 \
+            + chip_id)*100 + channel_id
+
+def unique_to_chip_key(i):
+    chip_key=str(unique_to_io_group(i))+'-'+ \
+        str(unique_to_io_channel(i))+'-'+ \
+        str(unique_to_chip_id(i))
+    return chip_key
+
 def unique_to_channel_id(unique):
-    return unique % 100
+    return int(unique % 100)
 
 def unique_to_chip_id(unique):
-    return (unique// 100) % 1000
+    return int((unique// 100) % 1000)
 
 def unique_to_io_channel(unique):
-    return(unique//(100*1000)) % 1000
+    return int((unique//(100*1000)) % 1000)
 
 def unique_to_io_group(unique):
-    return(unique // (100*1000*1000)) % 1000
+    return int((unique // (100*1000*1000)) % 1000)

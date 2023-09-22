@@ -9,6 +9,8 @@ import argparse
 import time
 import math
 import asyncio
+from RUNENV import *
+
 #from timebudget import timebudget
 #from base.v2a_base import *
 ##########################################################################
@@ -39,9 +41,12 @@ def enable_pacman_uart_from_io_channel(io, io_group, io_channel):
     io.set_reg(0x18, int("".join(bits),2), io_group=io_group)
     return
 
-def enable_all_pacman_uart_from_io_group(io, io_group):
+def enable_all_pacman_uart_from_io_group(io, io_group, true_all=False):
     bits=list('111111111111111111111111111111')
-    io.set_reg(0x18, int("".join(bits),2), io_group=io_group)
+    if not true_all:
+        enable_pacman_uart_from_tile(io, io_group, io_group_pacman_tile_[io_group])
+    else:
+        io.set_reg(0x18, int("".join(bits),2), io_group=io_group)
     return
 
 
