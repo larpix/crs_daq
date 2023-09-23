@@ -391,3 +391,8 @@ def unique_to_io_channel(unique):
 
 def unique_to_io_group(unique):
     return int((unique // (100*1000*1000)) % 1000)
+
+def chip_key_to_asic_id(chip_key):
+    args = str(chip_key).split('-')
+    return '{}-{}-{}'.format(args[0], io_channel_to_tile(int(args[1])), args[2])
+

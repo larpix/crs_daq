@@ -9,19 +9,24 @@ from tqdm import tqdm
 from base import pacman_base
 from base import utility_base
 from base import enforce_parallel
-from base.utility_base import now
+from base.utility_base import now, chip_key_to_asic_id
 import time
 import record_data
 import threading
+import json
 
 _default_verbose=False
 _default_runtime=0.25
+_default_disabled_list=None
+
 v2a_nonrouted_channels = [6,7,8,9,22,23,24,25,38,39,40,54,55,56,57]
 
 def main(verbose, \
         threshold,
-        runtime):
-    
+        runtime,
+        disabled_list):
+        
+        
         db = pickledb.load(env_db, True) 
         rundb = pickledb.load(run_db, True)
         #check DB file to ensure run conditions satisfy requirements
@@ -75,6 +80,10 @@ def main(verbose, \
         # 2) measure trigger rate
         # 3) disable channels with excessive rate
         
+        disabled = {}
+        if not disabled_list is None:
+            with open(disabled_list, 'r') as f:
+                disabled = json.load(f)
     
         ichip = -1 
 
@@ -100,6 +109,13 @@ def main(verbose, \
                 c[chip].config.enable_hit_veto = 0
                 if c[chip].asic_version==2: 
                     for channel in v2a_nonrouted_channels: c[chip].config.channel_mask[channel]=1
+                
+                asic_id = chip_key_to_asic_id(chip)
+
+                if asic_id in disabled:
+                    for channel in disabled[asic_id]: 
+                        c[chip].config.channel_mask[channel] = 1
+                        c[chip].config.csa_enable[channel]   = 0
 
             c.multi_write_configuration( [(chip, (range(c[chip].config.num_registers))) for chip in current_chips]  )
             time.sleep(runtime)
@@ -124,6 +140,7 @@ if __name__=='__main__':
     parser.add_argument('--verbose', '-v', action='store_true',  default=_default_verbose) 
     parser.add_argument('--threshold', type=int, default=128, help='Value to set for threshold_global register for test')
     parser.add_argument('--runtime', type=int, default=_default_runtime, help='Sample time for data rate for each iteration')
+    parser.add_argument('--disabled_list', type=str, default=_default_disabled_list, help='JSON with asic_id : list of disabled channels')
     args=parser.parse_args()
     c = main(**vars(args))
 

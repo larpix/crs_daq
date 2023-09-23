@@ -21,7 +21,7 @@ _default_controller_config=None
 _default_pedestal_file=None
 _default_trim_sigma_file='channel_scale_factor.json'
 _default_disabled_list=None
-_default_noise_cut=10.
+_default_noise_cut=2.
 _default_null_sample_time= 1. #0.5 #1 #0.25
 _default_disable_rate=20.
 _default_set_rate=2.
@@ -69,6 +69,7 @@ def measure_background_rate_disable_csa(c, extreme_edge_chip_keys, csa_disable,
         print('FIFO full flags {} half {}'.format(sum(fifo_flags), sum(fifo_half_full_flags)))
         count = 0
         for chip_key, channel in set(map(tuple,triggered_channels)):
+            asic_id = chip_key_to_asic_id(chip_key)
             rate = triggered_channels.count([chip_key,channel])/null_sample_time
             if rate > disable_rate:
                 count += 1
@@ -82,7 +83,9 @@ def measure_background_rate_disable_csa(c, extreme_edge_chip_keys, csa_disable,
                 c.write_configuration(chip_key,'csa_enable')
                 c.write_configuration(chip_key,'channel_mask')
                 c.write_configuration(chip_key,'channel_mask')
-                csa_disable[chip_key].append(channel)
+                
+                if not asic_id in csa_disable: csa_disable[asic_id]=[]
+                csa_disable[asic_id].append(channel)
         c.reads = []
         if count == 0: flag = False
         #else:
@@ -107,13 +110,12 @@ def disable_multiple_channels(c, csa_disable):
     c.multi_write_configuration(chip_register_pairs)
     return
 
-def find_pedestal(pedestal_file, noise_cut, c, verbose):
+def find_pedestal(pedestal_file, c, verbose):
     count_noisy = 0
     f = h5py.File(pedestal_file,'r')
     data_mask = f['packets'][:]['packet_type']==0
     valid_parity_mask = f['packets'][data_mask]['valid_parity']==1
-    good_data = (f['packets'][data_mask])[valid_parity_mask][:int(len(data_mask/3)) ]
-    print('USING ONLY 1/3 OF DATA TO SPEED UP DEBUGGING... REMOVE ME')
+    good_data = (f['packets'][data_mask])[valid_parity_mask]
     io_group = good_data['io_group'].astype(np.uint64)
     io_channel = good_data['io_channel'].astype(np.uint64)
     chip_id = good_data['chip_id'].astype(np.uint64)
@@ -121,17 +123,23 @@ def find_pedestal(pedestal_file, noise_cut, c, verbose):
     unique_channels = set(unique_channel_id_args(io_group, io_channel, chip_id, channel_id))
 
     pedestal_channel, csa_disable = [{} for i in range(2)]
+    for chip in c.chips:
+        asic_id = chip_key_to_asic_id(chip)
+        if asic_id not in csa_disable: csa_disable[asic_id] = []
+        if c[chip].asic_version==2: 
+            csa_disable[asic_id] += nonrouted_channels
+            csa_disable[asic_id] = list(set(csa_disable[asic_id]))
+     
     for unique in sorted(unique_channels):
         channel_mask = unique_channel_id_args(io_group, io_channel, chip_id, channel_id) == unique
 
-        if unique_to_channel_id(unique) in nonrouted_channels:
-            continue
-        
         chip_key = unique_to_chip_key(unique)
         adc = good_data[channel_mask]['dataword']
-        if len(adc) < 2 or np.mean(adc)>200. or np.std(adc)>noise_cut or np.mean(adc)==0:
-            if chip_key not in csa_disable: csa_disable[chip_key] = []
-            csa_disable[chip_key].append(unique_to_channel_id(unique))
+        asic_id = chip_key_to_asic_id(chip_key)
+
+        if len(adc) < 2 or np.mean(adc)>200. or np.std(adc)==0:
+            if asic_id not in csa_disable: csa_disable[asic_id] = []
+            csa_disable[asic_id].append(unique_to_channel_id(unique))
             count_noisy += 1 
             continue
 
@@ -153,7 +161,11 @@ def find_pedestal(pedestal_file, noise_cut, c, verbose):
                                         median = np.median(temp_mu[chip_key]),
                                         std = np.mean(temp_std[chip_key]) )
 
-    print('!!!!! ',count_noisy,' NOISY CHANNELS TO DISABLE !!!!!')
+    print('!!!!! ',count_noisy,'ADDITIONAL NOISY CHANNELS TO DISABLE !!!!!')
+    
+    for key in csa_disable.keys():
+        print(key, csa_disable[key])
+
     return pedestal_channel, pedestal_chip, csa_disable
 
 def disable_from_file(c, disabled_list, csa_disable):
@@ -163,17 +175,22 @@ def disable_from_file(c, disabled_list, csa_disable):
         with open(disabled_list,'r') as f: disable_input=json.load(f)
     else:
         print('No disabled list provided. Default disabled list applied.')
-        disable_input["All"]=[6,7,8,9,22,23,24,25,38,39,40,54,55,56,57] # channels NOT routed out to pixel pads for LArPix-v2
+        for chip_key in c.chips:
+            if c[chip_key].asic_version==2:
+                asic_id = chip_key_to_asic_id(chip_key)
+                disable_input[asic_id]=[6,7,8,9,22,23,24,25,38,39,40,54,55,56,57] # channels NOT routed out to pixel pads for LArPix-v2
 
     chip_register_pairs = []
     for chip_key in c.chips:
+        asic_id = chip_key_to_asic_id(chip_key)
         chip_register_pairs.append( (chip_key, list(range(66,74)) ) )
         for key in disable_input:
-            if key==chip_key or key=='All':
+            if key==asic_id or key=='All':
                 for channel in disable_input[key]:
                     c[chip_key].config.csa_enable[channel] = 0
                     if chip_key not in csa_disable: csa_disable[chip_key] = []
-                    csa_disable[chip_key].append(channel)
+                    if not asic_id in csa_disable.keys(): csa_disable[asic_id]=[]
+                    csa_disable[asic_id].append(channel)
     c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
     c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
     return csa_disable
@@ -189,7 +206,6 @@ def find_mode(l):
     return a.most_common(1)
     
 def enable_frontend(c, channels, csa_disable, config, all_network_keys):
-    print('in enable front end')
     ichip=-1
     chip_reg_pairs_list = []
     while True:
@@ -204,10 +220,12 @@ def enable_frontend(c, channels, csa_disable, config, all_network_keys):
     
         if not working: break
         for chip_key in current_chips: 
+                asic_id = chip_key_to_asic_id(chip_key)
                 chip_register_pairs.append( (chip_key, list(range(131,139))+list(range(66,74))) )
                 for channel in range(64):
-                    if chip_key in csa_disable:
-                        if channel in csa_disable[chip_key]:
+                    if asic_id in csa_disable:
+                        #print(chip_key, asic_id, csa_disable[asic_id])
+                        if channel in csa_disable[asic_id]:
                             c[chip_key].config.channel_mask[channel] = 1
                             c[chip_key].config.csa_enable[channel] = 0
                             continue
@@ -258,13 +276,14 @@ def enable_frontend(c, channels, csa_disable, config, all_network_keys):
                     #   c.write_configuration(pair[0], 'load_config_defaults')
                     #   c[pair[0]].config.load_config_defaults = 0
                     #   print('---- ISSURING A SOFTWARE RESET ----')
-                    c[pair[0]].config.threshold_global += 1
+                    if c[pair[0]].config.threshold_global < 255:
+                        c[pair[0]].config.threshold_global += 1
                     registers = [123, 64]
                     c.write_configuration(pair[0], registers)
                     c.write_configuration(pair[0], registers)
                 else:
                     high_rate = False
-                ok,diff = c.enforce_registers([pair], timeout=0.1, n=3, n_verify=3)
+                ok,diff = c.enforce_registers([pair], timeout=0.1, n=20, n_verify=2)
                 if not ok:
                     #print('config error:', diff)
                     raise RuntimeError(diff,'\nconfig error on chips',list(diff.keys()))
@@ -277,8 +296,8 @@ def enable_frontend(c, channels, csa_disable, config, all_network_keys):
 
 def find_global_dac_seed(c, pedestal_chip, normalization, cryo, vdda, verbose):
     global_dac_lsb = vdda/256.
-    offset = 210 # [mV] at 300 K
-    if cryo: offset = 390 # [mV] at 88 K
+    offset = 235 # [mV] at 300 K
+    if cryo: offset = 365 # [mV] at 88 K
     print('PEDESTAL OFFSET: ',offset)
     chip_register_pairs = []
     for chip_key in pedestal_chip.keys():
@@ -315,10 +334,10 @@ def find_trim_dac_seed(c, channels, cryo, vdda,
                        pedestal_channel, pedestal_chip, trim_sigma):
     global_dac_lsb = vdda/256.
     trim_scale = 1.45 # [mV] at 300 K
-    offset = 210 # [mV] at 300 K
+    offset = 235 # [mV] at 300 K
     if cryo:
         trim_scale = 2.34 # [mV] at 88 K
-        offset = 465 # [mV] at 88 K
+        offset = 365 # [mV] at 88 K
 
     chip_register_pairs = []
     for i in pedestal_channel.keys():
@@ -470,12 +489,15 @@ def toggle_trim(c, channels, csa_disable, extreme_edge_chip_keys,
               null_sample_time, set_rate, verbose):
     status = {}
     for chip_key in c.chips:
+        asic_id = chip_key_to_asic_id(chip_key)
         l = list(c[chip_key].config.pixel_trim_dac)
         status[chip_key] = dict( pixel_trim=l, active=[True]*64, disable=[False]*64)
-        for channel in range(64):
-            if channel in csa_disable[chip_key]:
-                status[chip_key]['active'][channel] = False
-                status[chip_key]['disable'][channel] = True
+        
+        if asic_id in csa_disable.keys():
+            for channel in range(64):
+                if channel in csa_disable[asic_id]:
+                    status[chip_key]['active'][channel] = False
+                    status[chip_key]['disable'][channel] = True
 
     iter_ctr = 0
     flag = True
@@ -500,7 +522,7 @@ def toggle_trim(c, channels, csa_disable, extreme_edge_chip_keys,
                     status[chip_key]['pixel_trim'][channel] = 31
                     status[chip_key]['disable'][channel] = True
                     status[chip_key]['active'][channel] = False
-                    csa_disable[chip_key].append(channel)
+                    csa_disable[asic_id].append(channel)
                     if verbose: print(chip_key,' channel ',channel,'pixel trim maxed out below noise floor!!! -- channel CSA disabled')
                 else:
                     status[chip_key]['active'][channel] = False
@@ -513,6 +535,7 @@ def toggle_trim(c, channels, csa_disable, extreme_edge_chip_keys,
                     if verbose: print('pixel trim bottomed out above noise floor!!!')
 
         for chip_key in c.chips:
+            asic_id = chip_key_to_asic_id(chip_key)
             if status[chip_key]['active'] == [False]*64: continue
             for channel in channels:
                 if status[chip_key]['active'][channel] == False: continue
@@ -556,7 +579,7 @@ def main(controller_config=_default_controller_config,
          pedestal_file=_default_pedestal_file,
          trim_sigma_file=_default_trim_sigma_file,
          disabled_list=_default_disabled_list,
-         noise_cut=_default_noise_cut,
+         #noise_cut=_default_noise_cut,
          null_sample_time=_default_null_sample_time,
          disable_rate=_default_disable_rate,
          set_rate=_default_set_rate,
@@ -615,6 +638,9 @@ def main(controller_config=_default_controller_config,
         #ensure UARTs are enable on pacman to receive configuration packets
         for io_group in io_group_pacman_tile_.keys(): 
             pacman_base.enable_all_pacman_uart_from_io_group(c.io, io_group)
+        
+    #enforce original config
+    enforce_parallel.enforce_parallel(c, all_network_keys)
 
     print('START THRESHOLDING\n')
 
@@ -629,15 +655,15 @@ def main(controller_config=_default_controller_config,
     read_extreme_edge = [(key,0) for key in extreme_edge_chip_keys]
 
     timeStart = time.time()
-    pedestal_channel, pedestal_chip, csa_disable = find_pedestal(pedestal_file, noise_cut, c, verbose)
+    pedestal_channel, pedestal_chip, csa_disable = find_pedestal(pedestal_file, c, verbose)
     timeEnd = time.time()-timeStart
     print('==> %.3f seconds --- pedestal evaluation \n\n'%timeEnd)
-
+#
     timeStart = time.time()
     csa_disable = disable_from_file(c, disabled_list, csa_disable)
     timeEnd = time.time()-timeStart
     print('==> %.3f seconds --- disable channels from input list'%timeEnd)
-
+#
     timeStart = time.time()
     find_global_dac_seed(c, pedestal_chip, normalization, cryo, vdda, verbose)
     timeEnd = time.time()-timeStart
@@ -647,7 +673,7 @@ def main(controller_config=_default_controller_config,
     enable_frontend(c, channels, csa_disable, controller_config, all_network_keys)
     timeEnd  = time.time()-timeStart
     print('==> %.3f seconds --- enable frontend \n\n'%timeEnd)
-
+#
     timeStart = time.time()
     dr = disable_rate*50
     csa_disable = measure_background_rate_disable_csa(c, extreme_edge_chip_keys, csa_disable, null_sample_time, dr, verbose)
@@ -658,13 +684,13 @@ def main(controller_config=_default_controller_config,
     csa_disable = measure_background_rate_disable_csa(c, extreme_edge_chip_keys, csa_disable, null_sample_time, dr, verbose)
     timeEnd = time.time() - timeStart
     print('==> %.3f seconds --- measured background rate with seeded global DAC & trim DAC maxed out\n --> silence channels that exceed rate\n\n'%timeEnd)
-
+#
     timeStart = time.time()
     dr = disable_rate*0.5
     csa_disable = measure_background_rate_disable_csa(c, extreme_edge_chip_keys, csa_disable, null_sample_time, dr, verbose)
     timeEnd = time.time() - timeStart
     print('==> %.3f seconds --- measured background rate with seeded global DAC & trim DAC maxed out\n --> silence channels that exceed rate\n\n'%timeEnd)
-
+#
     ###timeStart = time.time()
     ###trim_sigma = load_trim_sigma(trim_sigma_file)
     ###timeEnd = time.time() - timeStart
@@ -695,7 +721,7 @@ def main(controller_config=_default_controller_config,
                 null_sample_time, set_rate, verbose)
     timeEnd = time.time() - timeStart
     print('==> %.3f seconds --- toggle trim DACs'%timeEnd)
-
+#
     save_config_to_file(c, chip_keys, csa_disable, verbose)
     timeEnd = time.time()-timeStart
     print('==> %.3f seconds --- saving to json config file \n'%timeEnd)
@@ -718,10 +744,10 @@ if __name__ == '__main__':
                         default=_default_disabled_list,
                         type=str,
                         help='''File containing json-formatted dict of <chip key>:[<channels>] to disable''')
-    parser.add_argument('--noise_cut',
-                        default=_default_noise_cut,
-                        type=float,
-                        help='''Disable channel CSA if pedestal ADC RMS exceeds this value''')
+    #parser.add_argument('--noise_cut',
+    #                    default=_default_noise_cut,
+    #                    type=float,
+    #                    help='''Disable channel CSA if pedestal ADC RMS exceeds this value''')
     parser.add_argument('--null_sample_time',
                         default=_default_null_sample_time,
                         type=float,

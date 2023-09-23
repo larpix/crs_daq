@@ -11,7 +11,7 @@ from matplotlib.colors import Normalize
 
 _default_filename=None
 
-_default_geometry_yaml='../../layout-2.4.0.yaml'
+_default_geometry_yaml='analysis/layout-2.4.0.yaml'
 
 _default_metric='mean'
 
