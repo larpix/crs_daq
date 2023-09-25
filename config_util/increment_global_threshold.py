@@ -1,5 +1,4 @@
 import argparse
-from base import config_loader
 import json
 
 def main(*files, inc=0, **kwargs):
