@@ -65,7 +65,7 @@ def datetime_now():
 	''' Return string with year, month, day, hour, minute '''
 	return time.strftime("%Y_%m_%d_%H_%M_%Z")
 
-def main(file_count, runtime, message, packet, LRS, **args):
+def main(file_count, runtime, message, packet, LRS, filename, **args):
 
     rundb = pickledb.load(run_db, True)
     envdb = pickledb.load(env_db, True)
@@ -73,7 +73,9 @@ def main(file_count, runtime, message, packet, LRS, **args):
     rundb.set('RUN_COUNT', runID)
     rundb.set('LAST_UPDATED', now())
 
- 
+    if not filename is None and file_count > 1:
+        raise RuntimeError('All files will have same filename and will be overwritten')
+
     #copy current ASIC config 
     path='{}/asic_configs_{}'.format(asic_config_dir, datetime_now())
    
@@ -103,7 +105,7 @@ def main(file_count, runtime, message, packet, LRS, **args):
 
         run_start = datetime_now()
 
-        filename = utility_base.data_filename(c, packet) 
+        if filename is None: filename = utility_base.data_filename(c, packet) 
         
         rundb.set('CURRENT_DATA_FILE', filename)
         rundb.set('CURRENT_RUN_START', run_start )
@@ -156,5 +158,7 @@ if __name__=='__main__':
     parser.add_argument('--packet', action='store_true', default=False,\
                         help='''Generate packet file (default binary)''')
 
+    parser.add_argument('--filename', '-f', default=None, \
+                        type=str,  help='''Specifiy a file name''')
     args=parser.parse_args()
     c = main(**vars(args))
