@@ -221,7 +221,7 @@ def enable_frontend(c, channels, csa_disable, config, all_network_keys):
         if not working: break
         for chip_key in current_chips: 
                 asic_id = chip_key_to_asic_id(chip_key)
-                chip_register_pairs.append( (chip_key, list(range(131,139))+list(range(66,74))) )
+                chip_register_pairs.append( (chip_key, list(range(0,235)))) 
                 for channel in range(64):
                     if asic_id in csa_disable:
                         #print(chip_key, asic_id, csa_disable[asic_id])
@@ -231,13 +231,13 @@ def enable_frontend(c, channels, csa_disable, config, all_network_keys):
                             continue
                     c[chip_key].config.channel_mask[channel] = 0
                     c[chip_key].config.csa_enable[channel] = 1
-        
+                print(chip_key, c[chip_key].config.csa_enable)        
         chip_reg_pairs_list.append(chip_register_pairs)
-    
+
     for io_group in io_group_pacman_tile_.keys():
         pacman_base.enable_all_pacman_uart_from_io_group( c.io, io_group  )
     for chip_register_pairs in chip_reg_pairs_list:
-        ok,diff = c.enforce_registers(chip_register_pairs, timeout=0.05, n=5, n_verify=3)
+        ok,diff = c.enforce_registers(chip_register_pairs, timeout=0.05, n=10, n_verify=3)
         if not ok: print('Unable to enforce config to enable frontend')
         high_rate = True
         runtime = 0.5 #1
@@ -297,7 +297,7 @@ def enable_frontend(c, channels, csa_disable, config, all_network_keys):
 def find_global_dac_seed(c, pedestal_chip, normalization, cryo, vdda, verbose):
     global_dac_lsb = vdda/256.
     offset = 235 # [mV] at 300 K
-    if cryo: offset = 365 # [mV] at 88 K
+    if cryo: offset = 525 # [mV] at 88 K
     print('PEDESTAL OFFSET: ',offset)
     chip_register_pairs = []
     for chip_key in pedestal_chip.keys():
@@ -337,7 +337,7 @@ def find_trim_dac_seed(c, channels, cryo, vdda,
     offset = 235 # [mV] at 300 K
     if cryo:
         trim_scale = 2.34 # [mV] at 88 K
-        offset = 365 # [mV] at 88 K
+        offset = 525 # [mV] at 88 K
 
     chip_register_pairs = []
     for i in pedestal_channel.keys():
@@ -506,7 +506,7 @@ def toggle_trim(c, channels, csa_disable, extreme_edge_chip_keys,
         iter_ctr += 1
         c.multi_read_configuration(extreme_edge_chip_keys, timeout=null_sample_time,message='rate check')
         triggered_channels = c.reads[-1].extract('chip_key','channel_id',packet_type=0)
-        print('total rate={}Hz'.format(len(triggered_channels)/null_sample_time))
+        print('total packets={}, total data rate={}Hz'.format(len(c.reads[-1]), len(triggered_channels)/null_sample_time))
         fired_channels = {}
         for chip_key, channel in set(map(tuple,triggered_channels)):
             if chip_key not in fired_channels: fired_channels[chip_key] = []
@@ -640,7 +640,7 @@ def main(controller_config=_default_controller_config,
             pacman_base.enable_all_pacman_uart_from_io_group(c.io, io_group)
         
     #enforce original config
-    enforce_parallel.enforce_parallel(c, all_network_keys)
+#    enforce_parallel.enforce_parallel(c, all_network_keys)
 
     print('START THRESHOLDING\n')
 

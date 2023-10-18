@@ -60,6 +60,37 @@ def main(verbose, \
             all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(db.get('IO_GROUP_{}_NETWORK_CONFIG'.format(io_group)) )  
             config_loader.load_config_from_directory(c, CONFIG) 
             
+            #make the network keys io channel agnostic
+            remove = [] 
+            for i in range(len(all_network_keys)):
+                for j in range(len(all_network_keys[i])):
+                    if not all_network_keys[i][j] in c.chips:
+                        
+                        found=False
+                        chip = all_network_keys[i][j]
+                        tile =  utility_base.io_channel_to_tile(chip.io_channel)
+                        io_channels = [ 1 + 4*(tile - 1) + n for n in range(4)]
+                        
+                        for io_channel in io_channels:
+                            chip_key = '{}-{}-{}'.format(chip.io_group, io_channel, chip.chip_id)
+                            if chip_key in c.chips:
+                                all_network_keys[i][j] = chip_key
+                                found=True
+                                break
+
+                        if not found:
+                            remove.append(chip)
+
+
+            for chip in remove:
+
+                for i in range(len(all_network_keys)):
+                    if chip in all_network_keys[i]:\
+                            all_network_keys[i].remove(chip)
+
+
+
+
             db.set('IO_GROUP_{}_ASIC_CONFIGS'.format(io_group), CONFIG)
             db.set('LAST_UPDATE', now()) 
         #ensure UARTs are enable on pacman to receive configuration packets

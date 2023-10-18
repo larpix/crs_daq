@@ -29,7 +29,7 @@ def main(verbose):
     for io_group in io_group_pacman_tile_.keys():
         print('Configuring IO Group {}'.format(io_group))
         #read pacman information and metadata from RUNENV
-        pacman_version = iog_pacman_version[io_group]
+        pacman_version = iog_pacman_version_[io_group]
         VDDD_DAC = iog_VDDD_DAC[io_group]
         VDDA_DAC = iog_VDDA_DAC[io_group]
 
@@ -51,7 +51,7 @@ def main(verbose):
         # enable pacman power
         c.io.set_reg(0x00000014, 1, io_group=io_group)
         
-        pacman_version = iog_pacman_version[io_group]
+        pacman_version = iog_pacman_version_[io_group]
         
         VDDA_REG=None
         VDDD_REG=None
@@ -115,6 +115,8 @@ def main(verbose):
         clk_ctrl = c.io.get_reg(0x1010, io_group=io_group)
         c.io.set_reg(0x1010, clk_ctrl|4, io_group=io_group)
         c.io.set_reg(0x1010, clk_ctrl, io_group=io_group)
+        #disable trigger forwarding
+        c.io.set_reg(0x2014, 0xffffffff, io_group=io_group)
         time.sleep(0.01)
         
         db.set('IO_GROUP_{}_PACMAN_CONFIGURED'.format(io_group), True)

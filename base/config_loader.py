@@ -7,8 +7,8 @@ import os
 from base import utility_base
 from RUNENV import asic_config_dir
 
-hydra_registers = ['enable_piso_downstream', 'enable_piso_upstream', 'enable_posi', 'enable_miso_downstream', 'enable_miso_upstream', 'enable_mosi']
 
+hydra_registers = ['enable_piso_downstream', 'enable_piso_upstream', 'enable_posi', 'enable_miso_downstream', 'enable_miso_upstream', 'enable_mosi']
 
 def datetime_now():
 	''' Return string with year, month, day, hour, minute '''

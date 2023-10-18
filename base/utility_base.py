@@ -112,8 +112,9 @@ def data(c, runtime, packet, LRS=False, fname=None):
         oldfilename=c.io.raw_filename
         while True:
             c.read()
+            time.sleep(0.1)
             now=time.time()
-            if now-data_rate_start>data_rate_refresh:
+            if now-data_rate_start>data_rate_refresh and False:
                 if c.io.raw_filename and os.path.isfile(c.io.raw_filename):
                     counter = rhdf5.len_rawfile(c.io.raw_filename, attempts=0)
                     print('average message rate: {:0.2f} Hz\r'.format( (counter-last_counter)/data_rate_refresh ),end='') 

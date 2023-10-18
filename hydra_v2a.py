@@ -216,7 +216,7 @@ def test_network(c, io_group, io_channels, paths):
                         c.write_configuration(next_key, 'enable_miso_downstream')
                         c.write_configuration(next_key, 'enable_miso_downstream')
 
-                        ok, diff = c.enforce_configuration(next_key, timeout=0.01, n=3, n_verify=3)
+                        ok, diff = c.enforce_configuration(next_key, timeout=0.01, n=5, n_verify=3)
                         pbar.update(1)
                         if ok:
                                 continue
@@ -272,7 +272,7 @@ def hydra_chain(io_group, pacman_tile, pacman_version, vdda, exclude=None, first
             else:
                 for chip in exclude: arr.add_excluded_chip(chip)
         io_channels = [ 1 + 4*(pacman_tile - 1) + n for n in range(4)]
-        #io_channels = [9,10,12]
+        #io_channels = [17, 18, 19, 20]
         print("--------------------------------------------")
         print("get_initial_controller(",io_group,",",io_channels,",",vdda,",",pacman_version,")")
         c = get_initial_controller(io_group, io_channels, vdda, pacman_version)
