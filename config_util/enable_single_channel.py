@@ -30,5 +30,4 @@ if __name__=='__main__':
     
     args=parser.parse_args()
     c = main(args.input_files, \
-            register=args.register, \
-            value   =args.value)
+            channel=args.channel)
