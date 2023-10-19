@@ -63,7 +63,7 @@ def ctrlc_handler(signal_received, frame):
 
 def datetime_now():
 	''' Return string with year, month, day, hour, minute '''
-	return time.strftime("%Y_%m_%d_%H_%M_%Z")
+	return time.strftime("%Y_%m_%d_%H_%M_%Z_%S")
 
 def main(file_count, runtime, message, packet, LRS, filename, **args):
 
