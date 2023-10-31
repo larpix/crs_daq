@@ -55,7 +55,7 @@ def main(io_group, file_prefix=_default_file_prefix, \
 
     for iog in [io_group]:
        
-        iog_ioc_cid=utility_base.iog_tile_to_iog_ioc_cid(io_group_pacman_tile_, io_group_asic_version_[iog], io_group=iog)
+        iog_ioc_cid=utility_base.iog_tile_to_iog_ioc_cid(io_group_pacman_tile_, io_group_asic_version_[iog])
         
         #VERSION_SPECIFIC
         if io_group_asic_version_[iog]=='2b': 
