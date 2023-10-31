@@ -339,7 +339,7 @@ def io_channel_list_to_tile(io_channel):
 
 def io_channel_to_root_chip(io_channel, asic_version):
     root_chips=[11,41,71,101]
-    if asic_version=='2b': root_chips=[21,41,61,91]
+    if asic_version=='2b': root_chips=[21,41,71,91]
     mapping={}
     for i in range(4, len(io_channel)+1, 4):
         ioc=io_channel[i-4:i]
