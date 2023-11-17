@@ -20,8 +20,11 @@ def main(verbose):
         # disable tile power, LARPIX clock
         c.io.set_reg(0x00000010, 0, io_group=io_group)
         c.io.set_reg(0x00000014, 0, io_group=io_group)
-        
-    os.remove(env_db)
+   
+    try:     
+        os.remove(env_db)
+    except:
+        pass
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()

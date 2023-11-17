@@ -8,8 +8,8 @@ import json
 _default_verbose=False
 _default_periodic_trigger_cycles=400000
 _default_periodic_reset_cycles=4096 #409600
-_default_vref_dac=185 ###cold 223 ### warm 185
-_default_vcm_dac=50 ### cold 68 ### warm 50
+_default_vref_dac=None ###cold 223 ### warm 185
+_default_vcm_dac=None ### cold 68 ### warm 50
 _default_ref_current_trim=0
 _default_tx_diff=0
 _default_tx_slice=15
@@ -40,8 +40,8 @@ def main(input_files, verbose, \
             config['enable_periodic_trigger_veto']=0
             config['periodic_trigger_mask']=[0]*64
             config['threshold_global'] = 255
-            config['vcm_dac'] = vcm_dac
-            config['vref_dac'] = vref_dac
+            if not vcm_dac is None:  config['vcm_dac'] = vcm_dac
+            if not vref_dac is None: config['vref_dac'] = vref_dac
             config['periodic_trigger_cycles'] = periodic_trigger_cycles
             config['periodic_reset_cycles'] = periodic_reset_cycles
 

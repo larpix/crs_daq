@@ -13,13 +13,13 @@ run_db = 'run.db' #data log
 ######################################################
 ## Parameters for automatic file transfer to data drive 
 ## SHOULD END with /'
-destination_dir_='/path/to/data/storage/directory/'
-current_dir_='/path/to/current/directory/'
+destination_dir_='/Users/lsuter/CRS_CTRL/crs_daq/checkout_nov_2023/'
+current_dir_='/Users/lsuter/CRS_CTRL/crs_daq/'
 ##3###################################################
 
 #####################################################
 ## Mappings of io_group-->pacman version and io_group/tile-->ASIC version
-io_group_pacman_tile_={1:[1]}#, 2:[2]}
+io_group_pacman_tile_={1:[1, 2, 3, 4, 5, 6, 7, 8]}#, 2:[2]}
 iog_pacman_version_={1: 'v1rev3'}#, 2:'v1rev4'}
 io_group_asic_version_={1:'lightpix-1'}
 #####################################################
@@ -31,7 +31,7 @@ iog_exclude={1:{} }
 ####################################################
 
 ###################################################
-asic_config_dir='asic_configs'
+asic_config_dir='asic_configs/'
 ##################################################
 
 ###################################################
