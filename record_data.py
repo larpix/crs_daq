@@ -105,7 +105,7 @@ def main(file_count, runtime, message, packet, LRS, filename, **args):
 
         run_start = datetime_now()
 
-        if filename is None: filename = utility_base.data_filename(c, packet) 
+        filename = utility_base.data_filename(c, packet) 
         
         rundb.set('CURRENT_DATA_FILE', filename)
         rundb.set('CURRENT_RUN_START', run_start )

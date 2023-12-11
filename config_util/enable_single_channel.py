@@ -15,7 +15,7 @@ def main(input_files, channel, \
             config['channel_mask']=[1]*64
             config['channel_mask'][channel]=0
 
-            config['csa_enable']=[0]*64
+            #config['csa_enable']=[0]*64
             config['csa_enable'][channel]=1
 
 

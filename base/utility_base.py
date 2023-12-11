@@ -63,7 +63,7 @@ def flush_data(c, runtime=0.1, rate_limit=0., max_iterations=10):
 
 
 def data_filename(c, packet):
-    now=time.strftime("%Y_%m_%d_%H_%M_%Z")
+    now=time.strftime("%Y_%m_%d_%H_%M_%S_%Z")
     if packet==True:
         fname='packets-'+now+'.h5'
     else:
@@ -87,6 +87,8 @@ def data(c, runtime, packet, LRS=False, fname=None):
         c.logger.flush()
         c.logger.disable()
         
+        c.reads.clear()
+
         if LRS: 
             subprocess.call(["echo 0 > ~/.adc_watchdog_file"],shell=True) #stop LRS
             time.sleep(1)

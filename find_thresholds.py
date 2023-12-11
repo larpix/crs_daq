@@ -26,10 +26,11 @@ _default_null_sample_time= 1. #0.5 #1 #0.25
 _default_disable_rate=20.
 _default_set_rate=2.
 _default_cryo=False
-_default_vdda=1800
+_default_vdda=1700
 _default_normalization=1.
 _default_verbose=False
-
+vref_dac = 223
+vcm_dac  = 68
 nonrouted_channels=[6,7,8,9,22,23,24,25,38,39,40,54,55,56,57]
 
 def measure_background_rate_increase_trim(c, extreme_edge_chip_keys, null_sample_time, set_rate, verbose):
@@ -196,8 +197,8 @@ def disable_from_file(c, disabled_list, csa_disable):
     return csa_disable
 
 def from_ADC_to_mV(c, chip_key, adc, flag, vdda):
-    vref = vdda * (c[chip_key].config.vref_dac/256.)
-    vcm = vdda * (c[chip_key].config.vcm_dac/256.)
+    vref = vdda * (vref_dac/256.)
+    vcm = vdda *  (vcm_dac/256.)
     if flag==True: return adc * ( (vref - vcm) / 256. ) + vcm
     else: return adc * ( (vref - vcm) / 256. )
 
@@ -297,7 +298,7 @@ def enable_frontend(c, channels, csa_disable, config, all_network_keys):
 def find_global_dac_seed(c, pedestal_chip, normalization, cryo, vdda, verbose):
     global_dac_lsb = vdda/256.
     offset = 235 # [mV] at 300 K
-    if cryo: offset = 525 # [mV] at 88 K
+    if cryo: offset = 350 # [mV] at 88 K
     print('PEDESTAL OFFSET: ',offset)
     chip_register_pairs = []
     for chip_key in pedestal_chip.keys():
@@ -337,7 +338,7 @@ def find_trim_dac_seed(c, channels, cryo, vdda,
     offset = 235 # [mV] at 300 K
     if cryo:
         trim_scale = 2.34 # [mV] at 88 K
-        offset = 525 # [mV] at 88 K
+        offset = 350 # [mV] at 88 K
 
     chip_register_pairs = []
     for i in pedestal_channel.keys():
