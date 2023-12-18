@@ -47,12 +47,13 @@ def enforce_parallel(c, network_keys, unmask_last=True):
 
     p_bar.close()
 
-    N_WRITE_UNMASK=5    
+    N_WRITE_UNMASK=10 
 
     if unmask_last:
-        for chip in masks.keys():
+        for chip in reversed(list(masks.keys())):
             c[chip].config.channel_mask = masks[chip]
-        c.enforce_registers( [ (chip, range(131, 139)) for chip in c.chips ], n_verify=1, n=N_WRITE_UNMASK, timeout=0.001 )
+        for __ in range(N_WRITE_UNMASK):
+            c.multi_write_configuration( [ (chip, range(131, 139)) for chip in c.chips ], connection_delay=0.001 )
 
     return ok, diff
 
