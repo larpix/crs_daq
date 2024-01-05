@@ -73,7 +73,7 @@ def data_filename(c, packet):
 
 
 
-def data(c, runtime, packet, LRS=False, fname=None):
+def data(c, runtime, packet, LRS=False, fname=None, writedir=None):
     if packet==True:
         if fname is None: fname='packets-'+now+'.h5'
         c.logger = larpix.logger.HDF5Logger(filename=fname)
@@ -97,7 +97,7 @@ def data(c, runtime, packet, LRS=False, fname=None):
         c.io.disable_packet_parsing = True
         c.io.enable_raw_file_writing = True
         if fname is None: fname='binary-'+now+'.h5'
-        c.io.raw_filename=fname
+        c.io.raw_filename=writedir+'/'+fname
         c.io.join()
         rhdf5.to_rawfile(filename=c.io.raw_filename, \
                          io_version=pacman_msg_fmt.latest_version)

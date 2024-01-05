@@ -116,7 +116,7 @@ def main(file_count, runtime, message, packet, LRS, filename, **args):
         rundb.set('LAST_UPDATED', now())
         print('Run ID {}: {}'.format(runID, filename))
 
-        utility_base.data(c, runtime, packet, LRS, filename)
+        utility_base.data(c, runtime, packet, LRS, filename, writedir='/data/commission/Nov2023/')
         metadata = {
                 'filename'   : filename,
                 'run_start'  : run_start,
@@ -129,9 +129,9 @@ def main(file_count, runtime, message, packet, LRS, filename, **args):
         rundb.set('RUN_COUNT', rundb.get('RUN_COUNT') + 1)
         rundb.set('LAST_UPDATED', now())
         
-        time.sleep(0.1) 
-        shutil.move(current_dir_+filename, destination_dir_+filename)
-        ctr+=1
+        #time.sleep(0.1) 
+        #shutil.move(current_dir_+filename, destination_dir_+filename)
+        #ctr+=1
     
     rundb.set('CURRENT_DATA_FILE', None)
     rundb.set('CURRENT_RUN_START', None )

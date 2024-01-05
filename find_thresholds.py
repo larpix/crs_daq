@@ -173,11 +173,10 @@ def disable_from_file(c, disabled_list, csa_disable):
         with open(disabled_list,'r') as f: disable_input=json.load(f)
     else:
         print('No disabled list provided. Default disabled list applied.')
-        for chip_key in c.chips:
-            if c[chip_key].asic_version==2:
-                asic_id = chip_key_to_asic_id(chip_key)
-                disable_input[asic_id]=[6,7,8,9,22,23,24,25,38,39,40,54,55,56,57] # channels NOT routed out to pixel pads for LArPix-v2
-
+    for chip_key in c.chips:
+        if c[chip_key].asic_version==2:
+            asic_id = chip_key_to_asic_id(chip_key)
+            disable_input[asic_id]=[6,7,8,9,22,23,24,25,38,39,40,54,55,56,57] # channels NOT routed out to pixel pads for LArPix-v2
     chip_register_pairs = []
     for chip_key in c.chips:
         asic_id = chip_key_to_asic_id(chip_key)
@@ -202,7 +201,10 @@ def from_ADC_to_mV(c, chip_key, adc, flag, vdda):
 def find_mode(l):
     a = Counter(l)
     return a.most_common(1)
-    
+
+def get_chip_key(packet):
+    return '{}-{}-{}'.format(packet.io_group, packet.io_channel, packet.chip_id)
+
 def enable_frontend(c, channels, csa_disable, config, all_network_keys):
     ichip=-1
     chip_reg_pairs_list = []
@@ -220,6 +222,7 @@ def enable_frontend(c, channels, csa_disable, config, all_network_keys):
         for chip_key in current_chips: 
                 asic_id = chip_key_to_asic_id(chip_key)
                 chip_register_pairs.append( (chip_key, list(range(0,235)))) 
+                c[chip_key].config.adc_hold_delay=15
                 for channel in range(64):
                     if asic_id in csa_disable:
                         #print(chip_key, asic_id, csa_disable[asic_id])
@@ -240,59 +243,86 @@ def enable_frontend(c, channels, csa_disable, config, all_network_keys):
         c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)       
         c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
         high_rate = True
-        runtime = 0.25 #1
+        runtime = 0.1 #1
+        ihr_it = 0
         while high_rate:
+            ihr_it+=1 
             c.reads.clear()
             c.run(runtime,'check rate')
-            for pair in chip_register_pairs:
-                chip_triggers = c.reads[-1].extract('chip_id',chip_key=pair[0])
-                channel_triggers = c.reads[-1].extract('channel_id',chip_key=pair[0])
-                #chip_triggers = c.reads[-1].extract('chip_id',chip_key=pair[0],packet_type=0)
-            
-                #fifo_half = c.reads[-1].extract('shared_fifo_half',packet_type=0)
-                #fifo_full = c.reads[-1].extract('shared_fifo_full',packet_type=0)
-                #print('\t\tfifo half full {} fifo full {}'.format(sum(fifo_half), sum(fifo_full)))
-                print('total packets {}\t{} {}'.format(len(c.reads[-1]),pair[0], len(chip_triggers)))
-                offending_channel_pair_list = find_mode(channel_triggers) 
-                print('offending channel, triggers: {}'.format(offending_channel_pair_list))
-                if len(offending_channel_pair_list) == 0: 
-                    high_rate=False
+            all_packets = np.array(c.reads[-1])
+            high_rate=False
+            #if all_packets.shape[0]/runtime > 10 and all_packets.shape[0]/runtime < 2000:
+            #    high_rate=False
+            #    continue
+            if all_packets.shape[0]==0:
+                packets=np.array([])
+            else:
+                packets = all_packets[np.vectorize(lambda x: x.packet_type)(all_packets)==0]
+            # Find which chips, channels are firing
+            if packets.shape[0]>0:
+                iog_triggers = np.vectorize(lambda x: x.io_group)(packets).astype(int)
+                ioch_triggers = np.vectorize(lambda x: x.io_channel)(packets).astype(int)
+                chip_triggers = np.vectorize(lambda x: x.chip_id)(packets).astype(int)
+                channel_triggers = np.vectorize(lambda x: x.channel_id)(packets).astype(int)
+                chip_keys = np.vectorize(get_chip_key)(packets)
+                triggered_chips = set(chip_keys)
+            else:
+                print('Total packets {}. Lowering threshold on all chips'.format(packets.shape[0]))
+                high_rate=True
+                for pair in chip_register_pairs:
+                    c[pair[0]].config.threshold_global -= 1
+                for _ in range(10): 
+                    c.multi_write_configuration([ (chip, [64])], connection_delay=0.001)                     	
+                
+            ntrig = chip_triggers.shape[0]
+            print('______Iteration: {}\ttotal packets: {}______'.format(ihr_it, ntrig))
+            for chip in triggered_chips:
+                ids = np.array(chip.split('-')).astype(int)
+                mask = np.logical_and( iog_triggers==ids[0], ioch_triggers==ids[1] )
+                mask = np.logical_and(mask, chip_triggers==ids[2])
+                channels = channel_triggers[mask]
+                set_channels = set(channels)
+                
+                disabled_channels = False 
+                for channel in set_channels:
+                    ntrig_ch = np.sum(channel==channels)
+                    if ntrig_ch/runtime > 1000:
+                        print('Very high rate channel disabled!\t{}-{}:\trate={}Hz'.format(chip, channel, ntrig_ch/runtime))
+                        c[chip].config.channel_mask[int(channel)]=1
+                        c[chip].config.csa_enable[int(channel)]=0
+                        disabled_channels=True
+
+		#write channel mask
+                if disabled_channels:
+                    high_rate=True
+                    for _ in range(10): c.multi_write_configuration([ (chip, list(range(66, 74))+list(range(131, 140)))], connection_delay=0.001)       
                     continue
-                offending_channel_pair = offending_channel_pair_list[0]
-                if offending_channel_pair[1] > 5000:
-                    print('rate too high!! disabling channel', pair[0], offending_channel_pair[0])
-                    c[pair[0]].config.csa_enable[offending_channel_pair[0]] = 0
-                    c[pair[0]].config.channel_mask[offending_channel_pair[0]] = 1
-                    for __ in range(10):
-                        c.multi_write_configuration([pair], connection_delay=0.001)
-                    continue
- 
-                if len(chip_triggers)/runtime > 2000:
+
+                ntrig_chip = np.sum(mask) 
+                change_thresh=False
+                if ntrig/runtime < 10:
+                    print('Rate too low on chip {}! Lower global threshold'.format(chip))
+                    c[chip].config.threshold_global -= 1
+                    change_thresh=True
+                    
+                if ntrig_chip/runtime > 2000:
                     #print('\t\thigh rate channels! issue soft reset and raise global threshold {}'.format(
-                    print('\t\thigh rate channels! raise global threshold {}'.format(
+                    print('\t\thigh rate channels on chip {}! raise global threshold {}'.format(chip,
                         #c[pair[0]].config.threshold_global + 1))
-                        c[pair[0]].config.threshold_global + 1))
+                        c[chip].config.threshold_global + 1))
                     #if sum(fifo_half)!=0:
                     #   c[pair[0]].config.load_config_defaults = 1
                     #   c.write_configuration(pair[0], 'load_config_defaults')
                     #   c.write_configuration(pair[0], 'load_config_defaults')
                     #   c[pair[0]].config.load_config_defaults = 0
                     #   print('---- ISSURING A SOFTWARE RESET ----')
-                    if c[pair[0]].config.threshold_global < 255:
-                        c[pair[0]].config.threshold_global += 1
-                    registers = [123, 64]
-                    c.write_configuration(pair[0], registers)
-                    c.write_configuration(pair[0], registers)
-                else:
-                    high_rate = False
-                for __ in range(20):
-                    c.multi_write_configuration([pair], connection_delay=0.001)
-    #c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
-    #c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
-    #print('verifying config')
-    #for chip_key in c.chips:
-    #   ok,diff = c.enforce_registers([(chip_key, list(range(131, 139))+list(range(66,74)))], timeout=0.1, n=3, n_verify=3)
-    #   if not ok: print('config error:', diff)
+                    if c[chip].config.threshold_global < 255:
+                        c[chip].config.threshold_global += 1
+                        change_thresh=True
+                
+                #write global threshold
+                if change_thresh:
+                    for _ in range(10): c.multi_write_configuration([ (chip, [64])], connection_delay=0.001)       
 
 def find_global_dac_seed(c, pedestal_chip, normalization, cryo, vdda, verbose):
     global_dac_lsb = vdda/256.
@@ -563,6 +593,8 @@ def save_config_to_file(c, chip_keys, csa_disable, verbose):
     for chip_key in chip_keys:
         c[chip_key].config.csa_enable = [1]*64
         c[chip_key].config.channel_mask= [0]*64
+        c[chip_key].config.vref_dac = vref_dac
+        c[chip_key].config.vcm_dac = vcm_dac
         if chip_key in csa_disable:
             for channel in csa_disable[chip_key]:
                 c[chip_key].config.csa_enable[channel] = 0

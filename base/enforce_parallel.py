@@ -37,7 +37,7 @@ def enforce_parallel(c, network_keys, unmask_last=True):
 
         if not working: break
 
-        ok, diff = c.enforce_configuration(current_chips, timeout=0.01, connection_delay=0.1, n=20, n_verify=5)
+        ok, diff = c.enforce_configuration(current_chips, timeout=0.01, connection_delay=0.001, n=30, n_verify=3)
         
         if not ok: 
             raise RuntimeError('Enforcing failed', diff)
