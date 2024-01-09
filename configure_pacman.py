@@ -106,8 +106,8 @@ def main(verbose):
         
         if io_group_asic_version_[io_group]=='2b':
             if verbose: print('Inverting PACMAN UARTs on io_group={}'.format(io_group))
-            pacman_base.invert_pacman_uart(c.io, io_group, io_group_asic_version_[io_group], \
-                                       io_group_pacman_tile_[io_group]) 
+            #pacman_base.invert_pacman_uart(c.io, io_group, io_group_asic_version_[io_group], \
+            #                           io_group_pacman_tile_[io_group]) 
 
         if not skip_readback: readback=pacman_base.power_readback(c.io, io_group, pacman_version,io_group_pacman_tile_[io_group])
         #   - toggle reset bit

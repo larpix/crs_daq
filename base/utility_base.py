@@ -304,12 +304,12 @@ def chip_key_to_io_channel(ck): return int(ck.split('-')[1])
 def chip_key_to_chip_id(ck): return int(ck.split('-')[-1])
 
 
-def iog_tile_to_iog_ioc_cid(io_group_pacman_tile, asic_version):
+def iog_tile_to_iog_ioc_cid(io_group_pacman_tile, asic_version, isFSDtile = False):
     result=[]
     for iog in io_group_pacman_tile.keys():
         for tile in io_group_pacman_tile[iog]:
             io_channel=tile_to_io_channel([tile])
-            ioc_root_map=io_channel_to_root_chip(io_channel, asic_version)
+            ioc_root_map=io_channel_to_root_chip(io_channel, asic_version, isFSDtile)
             for ioc in ioc_root_map.keys():
                 result.append( (iog, ioc, ioc_root_map[ioc]) )
     return result
@@ -339,9 +339,10 @@ def io_channel_list_to_tile(io_channel):
 
 
 
-def io_channel_to_root_chip(io_channel, asic_version):
+def io_channel_to_root_chip(io_channel, asic_version, isFSDtile = False):
     root_chips=[11,41,71,101]
     if asic_version=='2b': root_chips=[21,41,71,91]
+    if isFSDtile: root_chips=[21,61,101,151]
     mapping={}
     for i in range(4, len(io_channel)+1, 4):
         ioc=io_channel[i-4:i]

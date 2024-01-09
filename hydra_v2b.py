@@ -7,7 +7,7 @@
 import larpix
 import larpix.io
 from base import pacman_base
-from base import network_base
+from base import network_base_FSD
 from base import utility_base
 from base import generate_config
 import argparse
@@ -22,7 +22,7 @@ from RUNENV import io_group_asic_version_, io_group_pacman_tile_
 
 _default_file_prefix=None
 _default_disable_logger=True
-_default_verbose=False
+_default_verbose=True
 _default_ref_current_trim=0
 _default_tx_diff=0
 _default_tx_slice=15
@@ -54,25 +54,24 @@ def main(io_group, file_prefix=_default_file_prefix, \
         config_name='controller-config-'+now+'.json'
 
     for iog in [io_group]:
-       
-        iog_ioc_cid=utility_base.iog_tile_to_iog_ioc_cid(io_group_pacman_tile_, io_group_asic_version_[iog])
-        
+        iog_ioc_cid=utility_base.iog_tile_to_iog_ioc_cid(io_group_pacman_tile_, io_group_asic_version_[iog],isFSDtile=True)
+
+        # fixed in FSD tile PCB
         #VERSION_SPECIFIC
-        if io_group_asic_version_[iog]=='2b': 
-            print('inverting io group {} tiles {}'.format(iog, io_group_pacman_tile_[iog]))
-            pacman_base.invert_pacman_uart(c.io, iog, io_group_asic_version_[iog], \
-                                       io_group_pacman_tile_[iog]) 
+        #if io_group_asic_version_[iog]=='2b': 
+        #    print('inverting io group {} tiles {}'.format(iog, io_group_pacman_tile_[iog]))
+        #    pacman_base.invert_pacman_uart(c.io, iog, io_group_asic_version_[iog], \
+        #                               io_group_pacman_tile_[iog]) 
     
     for g_c_id in iog_ioc_cid:
-        network_base.network_ext_node_from_tuple(c, g_c_id)
-    
+        network_base_FSD.network_ext_node_from_tuple(c, g_c_id)
 
     for iog in [io_group]:
         print('Working on io_group={}'.format(iog))
         if io_group_asic_version_[iog]=='2b':
-            root_keys=[]        
+            root_keys=[]
             for g_c_id in iog_ioc_cid:
-                candidate_root = network_base.setup_root(c, c.io, g_c_id[0], \
+                candidate_root = network_base_FSD.setup_root(c, c.io, g_c_id[0], \
                                                           g_c_id[1],\
                                                           g_c_id[2], verbose, \
                                                           io_group_asic_version_[iog], \
@@ -84,7 +83,7 @@ def main(io_group, file_prefix=_default_file_prefix, \
             iog_tile_to_root_keys=utility_base.partition_chip_keys_by_io_group_tile(root_keys)
 
             for iog_tile in iog_tile_to_root_keys.keys():
-                network_base.initial_network(c, c.io, iog_tile[0], \
+                network_base_FSD.initial_network(c, c.io, iog_tile[0], \
                                              iog_tile_to_root_keys[iog_tile], \
                                              verbose, \
                                              io_group_asic_version_[iog], ref_current_trim, \
@@ -93,7 +92,7 @@ def main(io_group, file_prefix=_default_file_prefix, \
             unconfigured=[]
             if True:
                 for tile in io_group_pacman_tile_[iog]:
-                    out_of_network=network_base.iterate_waitlist(c, c.io, iog, \
+                    out_of_network=network_base_FSD.iterate_waitlist(c, c.io, iog, \
                                                                  utility_base.tile_to_io_channel([tile]),
                                                                  verbose, \
                                                                  io_group_asic_version_[iog], \
@@ -102,7 +101,7 @@ def main(io_group, file_prefix=_default_file_prefix, \
                                                                  r_term, i_rx)
                     unconfigured.extend(out_of_network)
             
-            network_file = network_base.write_network_to_file(c, file_prefix, io_group_pacman_tile_,\
+            network_file = network_base_FSD.write_network_to_file(c, file_prefix, io_group_pacman_tile_,\
                                        unconfigured)
 
             return c, c.io

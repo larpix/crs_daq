@@ -52,8 +52,8 @@ def setup_daughter(c, io, parent, daughter, verbose, asic_version,\
 def enable_parent_piso_us(c, parent, daughter, verbose, tx_diff, tx_slice):
     if parent.chip_id - daughter.chip_id == 10: piso=3
     if parent.chip_id - daughter.chip_id == -10: piso=1
-    if parent.chip_id - daughter.chip_id == -1: piso=2
-    if parent.chip_id - daughter.chip_id == 1: piso=0
+    if parent.chip_id - daughter.chip_id == -1: piso=0
+    if parent.chip_id - daughter.chip_id == 1: piso=2
     if verbose: print('PARENT ',parent,'\tDAUGHTER ',daughter,\
                       '==>\t enable PISO US ',piso)
     registers_to_write=[]
@@ -73,8 +73,8 @@ def enable_parent_piso_us(c, parent, daughter, verbose, tx_diff, tx_slice):
 def disable_parent_piso_us(c, parent, daughter, verbose, tx_diff, tx_slice):
     if parent.chip_id - daughter.chip_id == 10: piso=3
     if parent.chip_id - daughter.chip_id == -10: piso=1
-    if parent.chip_id - daughter.chip_id == -1: piso=2
-    if parent.chip_id - daughter.chip_id == 1: piso=0
+    if parent.chip_id - daughter.chip_id == -1: piso=0
+    if parent.chip_id - daughter.chip_id == 1: piso=2
     if verbose: print('PARENT ',parent,'\tDAUGHTER ',daughter,\
                       '==>\t disable PISO US ',piso)
     c[parent].config.enable_piso_upstream[piso]=0
@@ -93,8 +93,8 @@ def disable_parent_piso_us(c, parent, daughter, verbose, tx_diff, tx_slice):
 def enable_parent_posi(c, parent, daughter, verbose, r_term, i_rx):
     if parent.chip_id - daughter.chip_id == 10: posi=0
     if parent.chip_id - daughter.chip_id == -10: posi=2
-    if parent.chip_id - daughter.chip_id == -1: posi=3
-    if parent.chip_id - daughter.chip_id == 1: posi=1
+    if parent.chip_id - daughter.chip_id == -1: posi=1
+    if parent.chip_id - daughter.chip_id == 1: posi=3
     if verbose: print('PARENT ',parent,'\tdaughter ',\
                       daughter,'==>\t enable POSI ', posi)
     if verbose: print(c[parent].config.enable_posi)
@@ -114,8 +114,8 @@ def enable_parent_posi(c, parent, daughter, verbose, r_term, i_rx):
 def enable_daughter_posi(c, parent, daughter, verbose, r_term, i_rx):
     if parent.chip_id - daughter.chip_id == 10: posi=2
     if parent.chip_id - daughter.chip_id == -10: posi=0
-    if parent.chip_id - daughter.chip_id == -1: posi=1
-    if parent.chip_id - daughter.chip_id == 1: posi=3
+    if parent.chip_id - daughter.chip_id == -1: posi=3
+    if parent.chip_id - daughter.chip_id == 1: posi=1
     if verbose: print('PARENT ',parent,'\tDAUGHTER ',daughter,\
                       '==>\t enable POSI ',posi)
     registers_to_write=[]
@@ -136,8 +136,8 @@ def enable_daughter_posi(c, parent, daughter, verbose, r_term, i_rx):
 def disable_parent_posi(c, parent, daughter, verbose):
     if parent.chip_id - daughter.chip_id == 10: posi=0
     if parent.chip_id - daughter.chip_id == -10: posi=2
-    if parent.chip_id - daughter.chip_id == -1: posi=3
-    if parent.chip_id - daughter.chip_id == 1: posi=1
+    if parent.chip_id - daughter.chip_id == -1: posi=1
+    if parent.chip_id - daughter.chip_id == 1: posi=3
     if verbose: print('PARENT ',parent,'\tdaughter ',\
                       daughter,'==>\t disable POSI ', posi)
     posi_list = c[parent].config.enable_posi # !!!!                
@@ -158,8 +158,8 @@ def enable_daughter_piso(c, parent, daughter, verbose, tx_diff, tx_slice):
     c.write_configuration(daughter, 'enable_piso_upstream')
     if parent.chip_id - daughter.chip_id == 10: piso=1
     if parent.chip_id - daughter.chip_id == -10: piso=3
-    if parent.chip_id - daughter.chip_id == -1: piso=0
-    if parent.chip_id - daughter.chip_id == 1: piso=2
+    if parent.chip_id - daughter.chip_id == -1: piso=2
+    if parent.chip_id - daughter.chip_id == 1: piso=0
     if verbose: print('parent ',parent,'\tDAUGHTER ',daughter,\
                       '==>\t PISO DS ', piso)
     registers_to_write=[]

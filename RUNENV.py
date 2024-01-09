@@ -13,15 +13,15 @@ run_db = 'run.db' #data log
 ######################################################
 ## Parameters for automatic file transfer to data drive 
 ## SHOULD END with /'
-destination_dir_='/Users/lsuter/CRS_CTRL/crs_daq/checkout_nov_2023/'
-current_dir_='/Users/lsuter/CRS_CTRL/crs_daq/'
+destination_dir_='/home/kwood/larpix/FSD_tile_checkout/crs_daq/data/'
+current_dir_='/home/kwood/larpix/FSD_tile_checkout/crs_daq'
 ##3###################################################
 
 #####################################################
 ## Mappings of io_group-->pacman version and io_group/tile-->ASIC version
-io_group_pacman_tile_={1:[1, 2, 3, 4, 5, 6, 7, 8]}#, 2:[2]}
-iog_pacman_version_={1: 'v1rev3'}#, 2:'v1rev4'}
-io_group_asic_version_={1:'lightpix-1'}
+io_group_pacman_tile_={1:[1]}#, 2:[2]}
+iog_pacman_version_={1: 'v1rev4'}#, 2:'v1rev4'}
+io_group_asic_version_={1:'2b'}
 #####################################################
 
 #####################################################
@@ -35,7 +35,7 @@ asic_config_dir='asic_configs/'
 ##################################################
 
 ###################################################
-iog_VDDD_DAC = {1 : 42000}
-iog_VDDA_DAC = {1 : 46500}
+iog_VDDD_DAC = {1 : 28500}
+iog_VDDA_DAC = {1 : 44500}
 ###################################################
 
