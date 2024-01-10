@@ -69,13 +69,13 @@ def start_end(chipID, uart, chipid_pos):
 
 
 def chip_to_ioc(chipID, ioc_chip):
-    for ioc in ioc_chip.keys():
-        if chipID in ioc_chip[ioc]:
-            return int(ioc)
+    for ioc in range(4, 0, -1):
+        if chipID in ioc_chip[str(ioc)]:
+            return (ioc)
     return
 
 
-def plot_hydra_network(geometry_yaml, chipID_uart, missingIO, root_chips, tile_id, pacman_tile, io_group, ioc_chip):
+def plot_hydra_network(geometry_yaml, chipID_uart, missingIO, root_chips, filename, io_group, ioc_chip):
     with open(geometry_yaml) as fi:
         geo = yaml.full_load(fi)
     chip_pix = dict([(chip_id+1, pix) for chip_id, pix in geo['chips']])
@@ -83,6 +83,7 @@ def plot_hydra_network(geometry_yaml, chipID_uart, missingIO, root_chips, tile_i
     horizontal_lines = np.linspace(-1*(geo['height']/2), geo['height']/2, 11)
 
     fig, ax = plt.subplots(figsize=(16, 10))
+    ax.set_aspect('equal')
     ax.set_xlabel('X Position [mm]')
     ax.set_ylabel('Y Position [mm]')
     ax.set_xticks(vertical_lines)
@@ -156,10 +157,10 @@ def plot_hydra_network(geometry_yaml, chipID_uart, missingIO, root_chips, tile_i
                           color='b', alpha=0.2)
             plt.gca().add_patch(r)
 
-    plt.title('Tile ID '+str(tile_id)+'\n (PACMAN tile ' +
-              str(pacman_tile)+', IO group '+str(io_group)+')')
-    plt.savefig('hydra-network-tile-id-'+str(tile_id)+'.png')
-    print('Saved to: ', 'hydra-network-tile-id-'+str(tile_id)+'.png')
+    plt.title(filename)
+    plt.tight_layout()
+    plt.savefig(filename+'.png')
+    print('Saved to: ', filename+'.png')
 
 
 def main(controller_config=_default_controller_config, geometry_yaml=_default_geometry_yaml, io_group=_default_io_group, **kwargs):
@@ -167,18 +168,18 @@ def main(controller_config=_default_controller_config, geometry_yaml=_default_ge
         print('Hydra network JSON configuration file missing.\n',
               '==> Specify with --controller_config <filename> commandline argument')
         return
-    tile_id = controller_config.split('-')[2]
-    pacman_tile = controller_config.split('-')[5]
+    filename = controller_config.split('.')[0]
+
 
     chipID_uart, missingIO, root_chips, ioc_chip = parse_hydra_network(
         controller_config, io_group)
-
+    print(ioc_chip)
     if len(missingIO) > 0:
         if missingIO[0] == "no test performed":
             missingIO = {}
 
     plot_hydra_network(geometry_yaml, chipID_uart, missingIO, root_chips,
-                       tile_id, pacman_tile, io_group, ioc_chip)
+                       filename, io_group, ioc_chip)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,8 @@
 {
     "_config_type": "controller",
-    "layout": "2.5.0",
+    "name": null,
+    "asic_version": "2b",
+    "layout": "2.5.1",
     "network": {
         "1": {
             "1": {
@@ -11,12 +13,12 @@
                             null,
                             null,
                             null,
-                            11
+                            21
                         ],
                         "root": true
                     },
                     {
-                        "chip_id": 11,
+                        "chip_id": 21,
                         "miso_us": [
                             null,
                             null,
@@ -45,12 +47,5 @@
             0,
             1
         ]
-    },
-    "name": "iog-1-pacman-tile-1-hydra-network.json",
-    "asic_version": "lightpix-1",
-    "larpix-scripts-version": "v1.0.3",
-    "bad_uart_links": [
-        "no test performed"
-    ],
-    "excluded_chips": []
+    }
 }
