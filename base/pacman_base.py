@@ -13,11 +13,11 @@ from RUNENV import *
 
 #from timebudget import timebudget
 #from base.v2a_base import *
+
+
 ##########################################################################
 #---------------PACMAN UART INVERSION/DISABLE/ENABLE---------------------#
 ##########################################################################
-
-
 
 def invert_pacman_uart(io, io_group, asic_version, tile):
     if asic_version!='2b': return

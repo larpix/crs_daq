@@ -16,8 +16,42 @@ from base.utility_base import now
 _default_verbose = False
 _default_controller_config = None
 
+print('UPDATES NEEDED:')
+print('Currently, tiles which have no error and are not fully configured are skipped if there is an error on a new tile')
+
+
+def enforce_iterative(nc, all_network_keys, n=3, configs=None):
+    ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys)
+    if ok: return ok, diff, unconfigured
+    elif n==0: 
+        return ok, diff, unconfigured 
+    else:
+        all_keys = list(diff.keys())
+        for net in unconfigured:
+            all_keys += list(net)
+
+        all_network_keys = []
+        io_group_tiles = {}
+        for chip_key in diff.keys():
+            if not chip_key.io_group in io_group_tiles.keys(): io_group_tiles[chip_key.io_group] = set()
+            io_group_tiles[chip_key.io_group].add(utility_base.io_channel_to_tile(chip_key.io_channel))  
+
+        for io_group in io_group_tiles.keys():
+            tiles = io_group_tiles[io_group]
+            config = configs[str(io_group)]
+            if io_group_asic_version_[io_group]=='2b':
+                c =  network_base.network_v2b(config, tiles=tiles, io_group=io_group)
+
+            elif io_group_asic_version_[io_group] in [2, 'lightpix-1']:
+                c = network_base.network_v2a(config, tiles=tiles, io_group=io_group)
+           
+            all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(config, use_keys=all_keys)
+
+        return enforce_iterative(nc, all_network_keys, n=n-1, configs=configs)
+
 def main(verbose,\
-        controller_config):
+        controller_config, \
+        io_group_tiles=None):
     
     db = pickledb.load(env_db, True) 
 
@@ -40,29 +74,33 @@ def main(verbose,\
     with open(controller_config, 'r') as f:
         configs = json.load(f)
   
-    # for each io_group, perform networking
-
-    
+    # for each io_group, perform networking 
     config_path = None
+    
     for io_group in io_group_pacman_tile_.keys():
        
-        print('Configuring io_group={}'.format(io_group))
+        tiles=None
+        if not io_group_tiles is None:
+            if not io_group in io_group_tiles.keys(): continue
+            else:
+                tiles = io_group_tiles[io_group]
+
+        if verbose: print('Configuring io_group={}'.format(io_group))
         c = None
 
         config = configs[str(io_group)]
-            
         if io_group_asic_version_[io_group]=='2b':
-            c =  network_base.network_v2b(config)
+            c =  network_base.network_v2b(config, tiles=tiles, io_group=io_group)
         
         elif io_group_asic_version_[io_group] in [2, 'lightpix-1']:
-            c = network_base.network_v2a(config) 
+           c = network_base.network_v2a(config, tiles=tiles, io_group=io_group) 
         
-        all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(config)
-
-        tiles = []
-        for _, io_channels in c.network.items(): tiles += utility_base.io_channel_list_to_tile(list(io_channels.keys()) )
+        all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(config, tiles)
         
-        db.set('IO_GROUP_{}_TILES_NETWORKED'.format(io_group), list(set([int(t) for t in tiles] )) )
+        _tiles = []
+        for _, io_channels in c.network.items(): _tiles += utility_base.io_channel_list_to_tile(list(io_channels.keys()) )
+        
+        db.set('IO_GROUP_{}_TILES_NETWORKED'.format(io_group), list(set([int(t) for t in _tiles] )) )
         db.set('IO_GROUP_{}_NETWORK_CONFIG'.format(io_group), config)
         if verbose: print('Setting {} to {}'.format('IO_GROUP_{}_ASIC_CONFIGS'.format(io_group), db.get('IO_GROUP_{}_ASIC_CONFIGS'.format(io_group))))
         
@@ -78,9 +116,11 @@ def main(verbose,\
         pacman_base.enable_all_pacman_uart_from_io_group(nc.io, io_group)
  
     config_loader.load_config_from_directory(nc, config_path)
-    if  True:
-        enforce_parallel.enforce_parallel(nc, all_network_keys) 
-       # time.sleep(0.3)
+    if True:
+        ok, diff, unconfigured = enforce_iterative(nc, all_network_keys, configs=configs)
+        if not ok:
+            raise RuntimeError('Unconfigured chips!', diff)
+    return c
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()

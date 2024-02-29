@@ -25,8 +25,6 @@ clk_ctrl_2_clk_ratio_map = {
         3: 80
         }
 
-
-
 #@timebudget
 def network_ext_node(c, io_group, io_channel, iochannel_root_map):
     for ioc in io_channel:
@@ -596,7 +594,7 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured, \
 
     return fname
 
-def network_v2b(controller_config, verbose=False, **kwargs):
+def network_v2b(controller_config, tiles=None, io_group=None, verbose=False, **kwargs):
 
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True)
@@ -605,22 +603,33 @@ def network_v2b(controller_config, verbose=False, **kwargs):
         raise RuntimeError('No controller config specified!')
     else:
         c.load(controller_config)
- 
+    
     for io_group, io_channels in c.network.items():
-        if True:    
+        if tiles is None :    
             if verbose: print('resetting io group:', io_group)
             c.io.reset_larpix(length=2048, io_group=io_group)
             time.sleep(2048*(1/(10e6)))
             c.io.reset_larpix(length=2048, io_group=io_group)
             time.sleep(2048*(1/(10e6)))
+        else:
+            if verbose: print('resetting tiles {} on io group:'.format(tiles), io_group)
+            c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
+            time.sleep(2048*(1/(10e6)))
+            c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
+            time.sleep(2048*(1/(10e6)))
          
     c.io.group_packets_by_io_group = False # throttle the data rate to insure no FIFO collisions
     for io_group, io_channels in c.network.items():
         for io_channel in io_channels:
+            if not tiles is None:
+                if not utility_base.io_channel_to_tile(io_channel) in tiles: continue
+
             c.init_network(io_group, io_channel, modify_mosi=False)
     
        #write tx, rx, etc configs
     for chip_key in c.chips.keys():
+        if not tiles is None:
+            if not utility_base.io_channel_to_tile(chip_key.io_channel) in tiles: continue
         c[chip_key].config.ref_current_trim=ref_current_trim
         c.write_configuration(chip_key,'ref_current_trim')
         registers=[]
@@ -643,41 +652,48 @@ def network_v2b(controller_config, verbose=False, **kwargs):
 
     return c
 
-def network_v2a(controller_config, verbose=False, **kwargs):
+def network_v2a(controller_config, tiles=None, io_group=None, verbose=True,  **kwargs):
 
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True)
-    
 
     if controller_config is None:
         raise RuntimeError('No controller config specified!')
     else:
         c.load(controller_config)
 
-    for io_group in c.network.keys():
-        io_channels = np.array(list(c.network[io_group].keys())).astype(int)
-        tiles= utility_base.io_channel_list_to_tile(io_channels)
-
     for io_group, io_channels in c.network.items():
-        if True:    
+        if tiles is None :    
             if verbose: print('resetting io group:', io_group)
             c.io.reset_larpix(length=2048, io_group=io_group)
             time.sleep(2048*(1/(10e6)))
             c.io.reset_larpix(length=2048, io_group=io_group)
             time.sleep(2048*(1/(10e6)))
-     
+        else:
+            if verbose: print('resetting tiles {} on io group:'.format(tiles), io_group)
+            c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
+            time.sleep(2048*(1/(10e6)))
+            c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
+            time.sleep(2048*(1/(10e6)))
+        
         for io_channel in io_channels:
+            if not tiles is None:
+                if not utility_base.io_channel_to_tile(io_channel) in tiles: continue
             c.io.set_uart_clock_ratio(io_channel, clk_ctrl_2_clk_ratio_map[0], io_group=io_group)
 
     
     c.io.group_packets_by_io_group = False # throttle the data rate to insure no FIFO collisions
     for io_group, io_channels in c.network.items():
         for io_channel in io_channels:
+            if not tiles is None:
+                if not utility_base.io_channel_to_tile(io_channel) in tiles: continue
             c.init_network(io_group, io_channel, modify_mosi=False)
     
     ###### set uart speed (v2a at 2.5 MHz transmit clock, v2b fine at 5 MHz transmit clock)
     for io_group, io_channels in c.network.items():
         for io_channel in io_channels:
+            if not tiles is None:
+                if not utility_base.io_channel_to_tile(io_channel) in tiles: continue
             chip_keys = c.get_network_keys(io_group,io_channel,root_first_traversal=False)
             for chip_key in chip_keys:
                 c[chip_key].config.clk_ctrl = _default_clk_ctrl 
@@ -685,6 +701,8 @@ def network_v2a(controller_config, verbose=False, **kwargs):
 
     for io_group, io_channels in c.network.items():
         for io_channel in io_channels:
+            if not tiles is None:
+                if not utility_base.io_channel_to_tile(io_channel) in tiles: continue
             c.io.set_uart_clock_ratio(io_channel, clk_ctrl_2_clk_ratio_map[_default_clk_ctrl], io_group=io_group)
 
     ##### issue soft reset (resets state machines, configuration memory untouched)

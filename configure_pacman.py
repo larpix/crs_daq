@@ -56,7 +56,7 @@ def main(verbose):
         VDDA_REG=None
         VDDD_REG=None
         
-        if pacman_version=='v1rev3' or pacman_version=='v1revS1':
+        if pacman_version=='v1rev3' or pacman_version=='v1revS1' or pacman_version=='v1rev3b':
             VDDD_REG=0x24131
             VDDA_REG=0x24130
             for PACMAN_TILE in io_group_pacman_tile_[io_group]:
@@ -64,7 +64,7 @@ def main(verbose):
                 #set voltage dacs to 0V  
                 c.io.set_reg(VDDD_REG+2*(PACMAN_TILE-1), 0, io_group=io_group)
                 c.io.set_reg(VDDA_REG+2*(PACMAN_TILE-1), 0, io_group=io_group)
-                time.sleep(0.25)
+                time.sleep(0.5)
 
                 #set voltage dacs VDDD first 
                 c.io.set_reg(VDDD_REG+2*(PACMAN_TILE-1), VDDD_DAC, io_group=io_group)

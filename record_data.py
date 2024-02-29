@@ -45,11 +45,6 @@ def ctrlc_handler(signal_received, frame):
     rundb.set('RUN_{}'.format(runID), metadata )
     rundb.set('RUN_COUNT', rundb.get('RUN_COUNT') + 1)
     
-    try:
-        shutil.move(current_dir_+filename, destination_dir_+filename)
-    except:
-        pass
-
     rundb.set('CURRENT_DATA_FILE', None)
     rundb.set('CURRENT_RUN_START', None )
     rundb.set('CURRENT_LRS_RUNNING', None)
@@ -116,7 +111,7 @@ def main(file_count, runtime, message, packet, LRS, filename, **args):
         rundb.set('LAST_UPDATED', now())
         print('Run ID {}: {}'.format(runID, filename))
 
-        utility_base.data(c, runtime, packet, LRS, filename, writedir='/data/commission/Nov2023/')
+        utility_base.data(c, runtime, packet, LRS, filename, writedir=destination_dir_)
         metadata = {
                 'filename'   : filename,
                 'run_start'  : run_start,
@@ -129,9 +124,7 @@ def main(file_count, runtime, message, packet, LRS, filename, **args):
         rundb.set('RUN_COUNT', rundb.get('RUN_COUNT') + 1)
         rundb.set('LAST_UPDATED', now())
         
-        #time.sleep(0.1) 
-        #shutil.move(current_dir_+filename, destination_dir_+filename)
-        #ctr+=1
+        ctr+=1
     
     rundb.set('CURRENT_DATA_FILE', None)
     rundb.set('CURRENT_RUN_START', None )

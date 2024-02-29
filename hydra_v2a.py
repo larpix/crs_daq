@@ -11,7 +11,7 @@ from tqdm import tqdm
 import numpy as np
 import json
 from base.network_base import _default_clk_ctrl, clk_ctrl_2_clk_ratio_map
-from RUNENV import io_group_pacman_tile_
+from RUNENV import io_group_pacman_tile_, iog_pacman_version_, iog_exclude
 arr = graphs.NumberedArrangement()
 
 def string_to_chips_list(string):
@@ -175,6 +175,7 @@ def init_initial_network(c, io_group, io_channels, paths):
                         c.write_configuration(key, 'enable_miso_upstream')
                         c[key].config.clk_ctrl = _default_clk_ctrl
                         c.write_configuration(key, 'clk_ctrl')
+                
                 c.io.set_uart_clock_ratio(io_channels[ipath], clk_ctrl_2_clk_ratio_map[_default_clk_ctrl], io_group=io_group)
 
         return True
@@ -229,18 +230,23 @@ def test_network(c, io_group, io_channels, paths):
         pbar.close()
         return all(valid)
 
-def main(pacman_tile, io_group, pacman_version, vdda=0, config_name=None, exclude=None, exclude_roots=None):
+def main(pacman_tile, io_group, pacman_version, vdda=0, config_name=None, exclude=iog_exclude, exclude_roots=None):
     
     d = {'_config_type' : 'controller', '_include':[]}
+    print(exclude)
+    exclude = exclude[io_group] if io_group in exclude.keys() else None
     if isinstance(pacman_tile, list) or pacman_tile is None:
         if pacman_tile is None: pacman_tile = io_group_pacman_tile_[io_group]
         if exclude is None: exclude = {t : None for t in pacman_tile}
         if exclude_roots is None: exclude_roots = {t : None for t in pacman_tile}
         for tile in pacman_tile:
             if not tile in exclude.keys(): exclude[tile]=None
+            print('excluding chips {} on tile {}'.format(exclude[tile], tile))
             d['_include'].append(hydra_chain(io_group, tile, pacman_version, vdda, exclude[tile], first=True, exclude_roots=exclude_roots[tile]))
     if isinstance(pacman_tile, int):
-        d['_include'].append(hydra_chain(io_group, pacman_tile, pacman_version, vdda, exclude, first=True, exclude_roots=exclude_roots))
+        print(exclude)
+        print('excluding chips {} on tile {}'.format(exclude[pacman_tile], pacman_tile))
+        d['_include'].append(hydra_chain(io_group, pacman_tile, pacman_version, vdda, exclude[pacman_tile], first=True, exclude_roots=exclude_roots))
     
     fname=config_name
 
@@ -278,9 +284,11 @@ def hydra_chain(io_group, pacman_tile, pacman_version, vdda, exclude=None, first
                 arr.add_excluded_chip(exclude)
                 if exlude in root_chips: root_chips.remove(exclude) 
             else:
-                for chip in exclude: 
+                print(exclude)
+                for chip in exclude:
+                    print('Excluding chip: {}'.format(chip))
                     arr.add_excluded_chip(chip)
-                    if chip in root_chips: root_chips.exlude(chip)
+                    if chip in root_chips: root_chips.remove(chip)
 
         if not exclude_roots is None:
             if type(exclude_roots)==int: 
@@ -347,7 +355,6 @@ if __name__ == '__main__':
         parser.add_argument('--vdda', default=0, type=float, help='''VDDA setting during test [V]''')
         parser.add_argument('--io_group', default=1, type=int, help='''IO group to perform test on''')
         parser.add_argument('--exclude_roots', default=None, type=str, help='''Chips to exclude chip from root chips chip_id_1,chip_id_2,...''')
-        parser.add_argument('--exclude', default=None, type=str, help='''Chips to exclude chip from test and networks, formatted chip_id_1,chip_id_2,...''')
         args = parser.parse_args()
         c = main(**vars(args))
         ###### disable tile power
