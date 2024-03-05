@@ -17,6 +17,7 @@ _default_filename = None
 
 # _default_geometry_yaml = 'layout-2.4.0.yaml'
 _default_geometry_yaml = 'analysis/multi_tile_layout-2.3.16.yaml'
+_default_geometry_yaml_mod2 = 'analysis/multi_tile_layout-2.5.16.yaml'
 
 _default_metric = 'mean'
 
@@ -70,7 +71,8 @@ def parse_file(filename, max_entries):
     adc = f['packets']['dataword'][mask][:max_entries]
     unique_id = unique_channel_id(f['packets'][mask][:max_entries])
     unique_id_set = np.unique(unique_id)
-    print("number of packets in parsed files =", len(unique_id))
+
+    print("Number of packets in parsed files =", len(unique_id))
     for i in tqdm.tqdm(unique_id_set):
         id_mask = unique_id == i
         masked_adc = adc[id_mask]
@@ -124,7 +126,7 @@ def plot_1d(d, metric):
                 plt.savefig('tile-id-'+str(tile_id)+'-1d-rate.png')
 
 
-def plot_xy(d, metric, geometry_yaml, normalization):
+def plot_xy(d, metric, geometry_yaml, geometry_yaml_mod2, normalization):
 
     cmap = cm.hot_r
     pixel_pitch = _default_pixel_pitch
@@ -132,8 +134,13 @@ def plot_xy(d, metric, geometry_yaml, normalization):
     with open(geometry_yaml) as fi:
         geo = yaml.full_load(fi)
 
+    with open(geometry_yaml_mod2) as fi2:
+        geo_mod2 = yaml.full_load(fi2)
+
     if 'multitile_layout_version' in geo.keys():
         # Adapted from: https://github.com/larpix/larpix-v2-testing-scripts/blob/master/event-display/evd_lib.py
+
+        # Module 1, 3, 4 layout
         pixel_pitch = geo['pixel_pitch']
 
         chip_channel_to_position = geo['chip_channel_to_position']
@@ -203,10 +210,73 @@ def plot_xy(d, metric, geometry_yaml, normalization):
         routed_v2a_channels = [i for i in range(
             64) if i not in nonrouted_v2a_channels]
 
-        io_groups = set(unique_to_io_group(np.array(list(d.keys()))))
-        tiles = set(unique_to_tiles(np.array(list(d.keys()))))
+        # Module 2 layout
+        pixel_pitch_mod2 = geo_mod2['pixel_pitch']
 
-        fig, ax = plt.subplots(2, 4, figsize=(40, 30))
+        chip_channel_to_position_mod2 = geo_mod2['chip_channel_to_position']
+        tile_orientations_mod2 = geo_mod2['tile_orientations']
+        tile_positions_mod2 = geo_mod2['tile_positions']
+        tpc_centers_mod2 = geo['tpc_centers']
+        tile_indeces_mod2 = geo_mod2['tile_indeces']
+        xs_mod2 = np.array(list(chip_channel_to_position_mod2.values()))[
+            :, 0] * pixel_pitch_mod2
+        ys_mod2 = np.array(list(chip_channel_to_position_mod2.values()))[
+            :, 1] * pixel_pitch_mod2
+        x_size_mod2 = max(xs_mod2)-min(xs_mod2)+pixel_pitch_mod2
+        y_size_mod2 = max(ys_mod2)-min(ys_mod2)+pixel_pitch_mod2
+
+        tile_geometry_mod2 = defaultdict(int)
+        io_group_io_channel_to_tile_mod2 = {}
+        geometry_mod2 = defaultdict(_default_pxy)
+
+        for tile in geo_mod2['tile_chip_to_io']:
+            tile_orientation_mod2 = tile_orientations_mod2[tile]
+            tile_geometry_mod2[tile] = tile_positions_mod2[tile], tile_orientations_mod2[tile]
+            for chip in geo_mod2['tile_chip_to_io'][tile]:
+                io_group_io_channel = geo_mod2['tile_chip_to_io'][tile][chip]
+                io_group = io_group_io_channel//1000
+                io_channel = io_group_io_channel % 1000
+                io_group_io_channel_to_tile_mod2[(
+                    io_group, io_channel)] = tile
+
+            for chip_channel in geo_mod2['chip_channel_to_position']:
+                chip = chip_channel // 1000
+                channel = chip_channel % 1000
+                try:
+                    io_group_io_channel = geo_mod2['tile_chip_to_io'][tile][chip]
+                except KeyError:
+                    print("Chip %i on tile %i not present in Module 2 network" %
+                          (chip, tile))
+                    continue
+
+                io_group = io_group_io_channel // 1000
+                io_channel = io_group_io_channel % 1000
+                x = chip_channel_to_position_mod2[chip_channel][0] * \
+                    pixel_pitch_mod2 + pixel_pitch_mod2 / 2 - x_size_mod2 / 2
+                y = chip_channel_to_position_mod2[chip_channel][1] * \
+                    pixel_pitch_mod2 + pixel_pitch_mod2 / 2 - y_size_mod2 / 2
+
+                x, y = _rotate_pixel((x, y), tile_orientation_mod2)
+                x += tile_positions_mod2[tile][2] + \
+                    tpc_centers_mod2[tile_indeces_mod2[tile][0]][0]
+                y += tile_positions_mod2[tile][1] + \
+                    tpc_centers_mod2[tile_indeces_mod2[tile][0]][1]
+
+                geometry_mod2[(io_group, io_group_io_channel_to_tile_mod2[(
+                    io_group, io_channel)], chip, channel)] = x, y
+
+        xmin_mod2 = min(np.array(list(geometry_mod2.values()))
+                        [:, 0])-pixel_pitch_mod2/2
+        xmax_mod2 = max(np.array(list(geometry_mod2.values()))
+                        [:, 0])+pixel_pitch_mod2/2
+        ymin_mod2 = min(np.array(list(geometry_mod2.values()))
+                        [:, 1])-pixel_pitch_mod2/2
+        ymax_mod2 = max(np.array(list(geometry_mod2.values()))
+                        [:, 1])+pixel_pitch_mod2/2
+
+        # Plot metrics
+
+        fig, ax = plt.subplots(2, 4, figsize=(40*3, 30*3))
 
         for io_group in range(1, 9):
 
@@ -214,49 +284,115 @@ def plot_xy(d, metric, geometry_yaml, normalization):
 
             print('Getting {} for io_group {}'.format(metric, io_group))
             d_keys = np.array(list(d.keys()))[mask]
-            print(len(d_keys))
+            print('\tNumber of channels: ', len(d_keys))
 
             ax[(io_group-1) % 2, (io_group-1)//2].set_xlabel('X Position [mm]')
             ax[(io_group-1) % 2, (io_group-1)//2].set_ylabel('Y Position [mm]')
 
-            ax[(io_group-1) % 2, (io_group-1)//2].set_xlim(xmin*1.05, xmax*1.05)
-            ax[(io_group-1) % 2, (io_group-1)//2].set_ylim(ymin*1.05, ymax*1.05)
+            if io_group == 5 or io_group == 6:
+                # Module 2
+                ax[(io_group-1) % 2, (io_group-1) //
+                    2].set_xlim(xmin_mod2*1.05, xmax_mod2*1.05)
+                ax[(io_group-1) % 2, (io_group-1) //
+                    2].set_ylim(ymin_mod2*1.05, ymax_mod2*1.05)
+
+                padding = np.min(
+                    np.abs(np.array(list(geometry_mod2.values()))[:, 0]))
+
+                tile_vertical_lines_mod2 = [
+                    xmin_mod2, -padding+pixel_pitch_mod2/2, padding-pixel_pitch_mod2/2, xmax_mod2]
+                chip_vertical_lines_mod2 = np.concatenate([np.linspace(xmin_mod2, -padding+pixel_pitch_mod2/2, 11),
+                                                           np.linspace(padding-pixel_pitch_mod2/2, xmax_mod2, 11)])
+
+                tile_horizontal_lines_mod2_temp = [-padding+pixel_pitch_mod2/2, -padding+pixel_pitch_mod2/2 - 8*10 *
+                                                   pixel_pitch_mod2, -2*padding - 8*10*pixel_pitch_mod2,
+                                                   -2*padding - 2*8*10*pixel_pitch_mod2]
+                tile_horizontal_lines_mod2_temp2 = [padding-pixel_pitch_mod2/2, padding-pixel_pitch_mod2/2 + 8*10 * pixel_pitch_mod2, 2*padding + 8*10*pixel_pitch_mod2 - pixel_pitch_mod2/4,
+                                                    2*padding + 2*8*10*pixel_pitch_mod2 - pixel_pitch_mod2/4]
+                tile_horizontal_lines_mod2 = np.concatenate([np.array(
+                    tile_horizontal_lines_mod2_temp), np.array(tile_horizontal_lines_mod2_temp2)])
+
+                chip_horizontal_lines_mod2_temp = np.concatenate([np.linspace(-padding+pixel_pitch_mod2/2, -padding+pixel_pitch_mod2/2 - 8*10 * pixel_pitch_mod2, 11),
+                                                                  np.linspace(
+                                                                      -2*padding - 8*10*pixel_pitch_mod2, -2*padding - 2*8*10*pixel_pitch_mod2, 11),
+                                                                  ])
+                chip_horizontal_lines_mod2_temp2 = np.concatenate([np.linspace(padding-pixel_pitch_mod2/2, padding-pixel_pitch_mod2/2 + 8*10 * pixel_pitch_mod2, 11),
+                                                                   np.linspace(
+                                                                       2*padding + 8*10*pixel_pitch_mod2 - pixel_pitch_mod2/4, 2*padding + 2*8*10*pixel_pitch_mod2 - pixel_pitch_mod2/4, 11),
+                                                                   ])
+
+                chip_horizontal_lines_mod2 = np.concatenate([np.array(
+                    chip_horizontal_lines_mod2_temp), np.array(chip_horizontal_lines_mod2_temp2)])
+
+                for vl in tile_vertical_lines_mod2:
+                    ax[(io_group-1) % 2, (io_group-1)//2].vlines(x=vl, ymin=ymin_mod2, ymax=ymax_mod2,
+                                                                 colors=['k'], linestyle='dashed')
+                for hl in tile_horizontal_lines_mod2:
+                    ax[(io_group-1) % 2, (io_group-1)//2].hlines(y=hl, xmin=xmin_mod2, xmax=xmax_mod2,
+                                                                 colors=['k'], linestyle='dashed')
+                for vl in chip_vertical_lines_mod2:
+                    ax[(io_group-1) % 2, (io_group-1)//2].vlines(x=vl, ymin=ymin_mod2, ymax=ymax_mod2,
+                                                                 colors=['k'], linestyle='dotted')
+                for hl in chip_horizontal_lines_mod2:
+                    ax[(io_group-1) % 2, (io_group-1)//2].hlines(y=hl, xmin=xmin_mod2, xmax=xmax_mod2,
+                                                                 colors=['k'], linestyle='dotted')
+            else:
+                # Modules 1, 3, 4
+                ax[(io_group-1) % 2, (io_group-1) //
+                    2].set_xlim(xmin*1.05, xmax*1.05)
+                ax[(io_group-1) % 2, (io_group-1) //
+                    2].set_ylim(ymin*1.05, ymax*1.05)
+
+                for vl in tile_vertical_lines:
+                    ax[(io_group-1) % 2, (io_group-1)//2].vlines(x=vl, ymin=ymin, ymax=ymax,
+                                                                 colors=['k'], linestyle='dashed')
+                for hl in tile_horizontal_lines:
+                    ax[(io_group-1) % 2, (io_group-1)//2].hlines(y=hl, xmin=xmin, xmax=xmax,
+                                                                 colors=['k'], linestyle='dashed')
+                for vl in chip_vertical_lines:
+                    ax[(io_group-1) % 2, (io_group-1)//2].vlines(x=vl, ymin=ymin, ymax=ymax,
+                                                                 colors=['k'], linestyle='dotted')
+                for hl in chip_horizontal_lines:
+                    ax[(io_group-1) % 2, (io_group-1)//2].hlines(y=hl, xmin=xmin, xmax=xmax,
+                                                                 colors=['k'], linestyle='dotted')
+
             ax[(io_group-1) % 2, (io_group-1)//2].set_aspect('equal')
 
-            for vl in tile_vertical_lines:
-                ax[(io_group-1) % 2, (io_group-1)//2].vlines(x=vl, ymin=ymin, ymax=ymax,
-                                                             colors=['k'], linestyle='dashed')
-            for hl in tile_horizontal_lines:
-                ax[(io_group-1) % 2, (io_group-1)//2].hlines(y=hl, xmin=xmin, xmax=xmax,
-                                                             colors=['k'], linestyle='dashed')
-            for vl in chip_vertical_lines:
-                ax[(io_group-1) % 2, (io_group-1)//2].vlines(x=vl, ymin=ymin, ymax=ymax,
-                                                             colors=['k'], linestyle='dotted')
-            for hl in chip_horizontal_lines:
-                ax[(io_group-1) % 2, (io_group-1)//2].hlines(y=hl, xmin=xmin, xmax=xmax,
-                                                             colors=['k'], linestyle='dotted')
             plt.text(0.95, 1.01, 'LArPix', ha='center',
                      va='center', transform=ax[(io_group-1) % 2, (io_group-1)//2].transAxes)
 
             for key in d_keys:
                 channel_id = unique_to_channel_id(key)
                 chip_id = unique_to_chip_id(key)
-                tile = unique_to_tiles(key)
-                io_group = unique_to_io_group(key)
+                tile = unique_to_tiles(key) + 8 * (1 - (io_group % 2))
+
                 if chip_id not in range(11, 111):
                     continue
-                if channel_id in nonrouted_v2a_channels:
+                if io_group != 5 and io_group != 6 and channel_id in nonrouted_v2a_channels:
+                    # Modules 1, 3, 4 with v2a
                     continue
                 if channel_id not in range(64):
                     continue
 
-                x, y = geometry[(io_group, (io_group-1)*8 +
-                                 tile, chip_id, channel_id)]
+                x, y = 0., 0.
+                pitch = pixel_pitch
+
+                if io_group == 5 or io_group == 6:
+                    # print((2 - (io_group % 2), tile, chip_id, channel_id))
+                    x, y = geometry_mod2[(2 - (io_group % 2),
+                                          tile, chip_id, channel_id)]
+                    pitch = pixel_pitch_mod2
+                else:
+                    x, y = geometry[(2 - (io_group % 2), tile,
+                                     chip_id, channel_id)]
+                    pitch = pixel_pitch
+
                 weight = d[key][metric]/normalization
+
                 if weight > 1.0:
                     weight = 1.0
-                r = Rectangle((x-(pixel_pitch/2.), y-(pixel_pitch/2.)),
-                              pixel_pitch, pixel_pitch, color=cmap(weight))
+                r = Rectangle((x-(pitch/2.), y-(pitch/2.)),
+                              pitch, pitch, color=cmap(weight))
                 ax[(io_group-1) % 2, (io_group-1)//2].add_patch(r)
 
             colorbar = fig.colorbar(cm.ScalarMappable(norm=Normalize(
@@ -269,109 +405,15 @@ def plot_xy(d, metric, geometry_yaml, normalization):
                 colorbar.set_label('[ADC]')
             if metric == 'rate':
                 colorbar.set_label('[Hz]')
-
+        print('Saving...')
         plt.savefig('2x2-xy-'+metric+'.png')
         plt.close()
-    else:
-        chip_pix = dict([(chip_id, pix) for chip_id, pix in geo['chips']])
-        vertical_lines = np.linspace(-1*(geo['width']/2), geo['width']/2, 11)
-        horizontal_lines = np.linspace(-1 *
-                                       (geo['height']/2), geo['height']/2, 11)
-
-        nonrouted_v2a_channels = [6, 7, 8, 9, 22,
-                                  23, 24, 25, 38, 39, 40, 54, 55, 56, 57]
-        routed_v2a_channels = [i for i in range(
-            64) if i not in nonrouted_v2a_channels]
-
-        io_groups = set(unique_to_io_group(np.array(list(d.keys()))))
-        tiles = set(unique_to_tiles(np.array(list(d.keys()))))
-
-        for io_group in io_groups:
-            for tile in tiles:
-                tile_id = '{}-{}'.format(io_group, tile)
-                mask = unique_to_io_group(np.array(list(d.keys()))) == io_group
-                mask = np.logical_and(mask, unique_to_tiles(
-                    np.array(list(d.keys()))) == tile)
-
-                if not np.any(mask):
-                    continue
-
-                print('Getting {} for tile {}'.format(metric, tile_id))
-                d_keys = np.array(list(d.keys()))[mask]
-                print(len(d_keys))
-
-                fig, ax = plt.subplots(figsize=(10, 8))
-                ax.set_xlabel('X Position [mm]')
-                ax.set_ylabel('Y Position [mm]')
-                ax.set_xticks(vertical_lines)
-                ax.set_yticks(horizontal_lines)
-                ax.set_xlim(vertical_lines[0]*1.1, vertical_lines[-1]*1.1)
-                ax.set_ylim(horizontal_lines[0]*1.1, horizontal_lines[-1]*1.1)
-                for vl in vertical_lines:
-                    ax.vlines(
-                        x=vl, ymin=horizontal_lines[0], ymax=horizontal_lines[-1], colors=['k'], linestyle='dotted')
-                for hl in horizontal_lines:
-                    ax.hlines(
-                        y=hl, xmin=vertical_lines[0], xmax=vertical_lines[-1], colors=['k'], linestyle='dotted')
-                plt.text(0.95, 1.01, 'LArPix', ha='center',
-                         va='center', transform=ax.transAxes)
-
-                chipid_pos = dict()
-                for chipid in chip_pix.keys():
-                    x, y = [[] for i in range(2)]
-                    for channelid in routed_v2a_channels:
-                        x.append(geo['pixels'][chip_pix[chipid][channelid]][1])
-                        y.append(geo['pixels'][chip_pix[chipid][channelid]][2])
-                    avgX = (max(x)+min(x))/2.
-                    avgY = (max(y)+min(y))/2.
-                    chipid_pos[chipid] = dict(minX=min(x), maxX=max(
-                        x), avgX=avgX, minY=min(y), maxY=max(y), avgY=avgY)
-                    plt.annotate(
-                        str(chipid), [avgX, avgY], ha='center', va='center')
-
-                for key in d_keys:
-                    channel_id = unique_to_channel_id(key)
-                    chip_id = unique_to_chip_id(key)
-                    if chip_id not in range(11, 111):
-                        continue
-                    if channel_id in nonrouted_v2a_channels:
-                        continue
-                    if channel_id not in range(64):
-                        continue
-                    x = geo['pixels'][chip_pix[chip_id][channel_id]][1]
-                    y = geo['pixels'][chip_pix[chip_id][channel_id]][2]
-                    weight = d[key][metric]/normalization
-                    if weight > 1.0:
-                        weight = 1.0
-                    r = Rectangle((x-(pixel_pitch/2.), y-(pixel_pitch/2.)),
-                                  pixel_pitch, pixel_pitch, color='k', alpha=weight)
-                    plt.gca().add_patch(r)
-
-                colorbar = fig.colorbar(cm.ScalarMappable(norm=Normalize(
-                    vmin=0, vmax=normalization), cmap='Greys'), ax=ax)
-
-                if metric == 'mean':
-                    ax.set_title('Tile ID '+tile_id+'\nADC Mean')
-                    colorbar.set_label('[ADC]')
-                    plt.tight_layout()
-                    plt.savefig('tile-id-'+str(tile_id)+'-xy-mean.png')
-                    plt.close()
-                if metric == 'std':
-                    ax.set_title('Tile ID '+tile_id+'\nADC RMS')
-                    colorbar.set_label('[ADC]')
-                    plt.tight_layout()
-                    plt.savefig('tile-id-'+str(tile_id)+'-xy-std.png')
-                    plt.close()
-                if metric == 'rate':
-                    ax.set_title('Tile ID '+tile_id+'\nTrigger Rate')
-                    colorbar.set_label('[Hz]')
-                    plt.tight_layout()
-                    plt.savefig('tile-id-'+str(tile_id)+'-xy-rate.png')
-                    plt.close()
+        print('Saved to: 2x2-xy-'+metric+'.png')
 
 
 def main(filename=_default_filename,
          geometry_yaml=_default_geometry_yaml,
+         geometry_yaml_mod2=_default_geometry_yaml_mod2,
          metric=_default_metric,
          max=_default_max_entries,
          ** kwargs):
@@ -380,18 +422,18 @@ def main(filename=_default_filename,
 
     if "mean" in metric:
         normalization = 50
-        plot_xy(d, "mean", geometry_yaml, normalization)
-        plot_1d(d, "mean")
+        plot_xy(d, "mean", geometry_yaml, geometry_yaml_mod2, normalization)
+        # plot_1d(d, "mean")
 
     if "std" in metric:
         normalization = 5
-        plot_xy(d, "std", geometry_yaml, normalization)
-        plot_1d(d, "std")
+        plot_xy(d, "std", geometry_yaml, geometry_yaml_mod2, normalization)
+        # plot_1d(d, "std")
 
     if "rate" in metric:
         normalization = 10
-        plot_xy(d, "rate", geometry_yaml, normalization)
-        plot_1d(d, "rate")
+        plot_xy(d, "rate", geometry_yaml, geometry_yaml_mod2, normalization)
+        # plot_1d(d, "rate")
 
 
 if __name__ == '__main__':
@@ -400,6 +442,8 @@ if __name__ == '__main__':
                         type=str, help='''HDF5 fielname''')
     parser.add_argument('--geometry_yaml', default=_default_geometry_yaml, type=str,
                         help='''geometry yaml file (layout 2.4.0 for LArPix-v2a 10x10 tile)''')
+    parser.add_argument('--geometry_yaml_mod2', default=_default_geometry_yaml_mod2, type=str,
+                        help='''geometry yaml file for Module 2''')
     parser.add_argument('--metric', default=_default_metric, type=str,
                         help='''metric to plot; options: 'mean', 'std', 'rate', or any combination e.g. 'mean,std' ''')
     parser.add_argument('--max', default=_default_max_entries, type=int,
