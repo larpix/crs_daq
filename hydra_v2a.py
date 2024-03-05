@@ -10,6 +10,7 @@ from base import pacman_base
 from tqdm import tqdm
 import numpy as np
 import json
+from base import utility_base
 from base.network_base import _default_clk_ctrl, clk_ctrl_2_clk_ratio_map
 from RUNENV import io_group_pacman_tile_, iog_pacman_version_, iog_exclude
 arr = graphs.NumberedArrangement()
@@ -94,6 +95,16 @@ def get_initial_controller(io_group, io_channels, vdda=0, pacman_version='v1rev3
         c.io.double_send_packets = True
         print('getting initial controller')
         
+        tiles = set()
+        for io_channel in io_channels:
+            tiles.add( utility_base.io_channel_to_tile(io_channel) )
+        tiles=list(tiles)
+        #resetting larpix
+        c.io.reset_tiles(tiles=tiles, length=10240, io_group=io_group)
+        time.sleep(10240*1e-6)
+        c.io.reset_tiles(tiles=tiles, length=10240, io_group=io_group)
+        time.sleep(10240*1e-6)
+        
         for io_channel in io_channels:
             c.add_network_node(io_group, io_channel, c.network_names, 'ext', root=True)
        
@@ -107,10 +118,14 @@ def get_initial_controller(io_group, io_channels, vdda=0, pacman_version='v1rev3
         return c
 
 def reset_board_get_controller(c, io_group, io_channels):
+        tiles = set()
+        for io_channel in io_channels:
+            tiles.add( utility_base.io_channel_to_tile(io_channel) )
+        tiles=list(tiles)
         #resetting larpix
-        c.io.reset_larpix(length=10240)
+        c.io.reset_tiles(tiles=tiles, length=10240, io_group=io_group)
         time.sleep(10240*1e-6)
-        c.io.reset_larpix(length=10240)
+        c.io.reset_tiles(tiles=tiles, length=10240, io_group=io_group)
         time.sleep(10240*1e-6)
         
         for io_channel in io_channels:

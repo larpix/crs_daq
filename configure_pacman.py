@@ -44,7 +44,7 @@ def main(verbose):
             print('setting up mclk')       
         # set up mclk in pacman
         c.io.set_reg(0x101c, 0x4, io_group=io_group)
-        time.sleep(0.5)
+        time.sleep(0.1)
         
         if verbose:
             print('enabling power')  
@@ -64,7 +64,7 @@ def main(verbose):
                 #set voltage dacs to 0V  
                 c.io.set_reg(VDDD_REG+2*(PACMAN_TILE-1), 0, io_group=io_group)
                 c.io.set_reg(VDDA_REG+2*(PACMAN_TILE-1), 0, io_group=io_group)
-                time.sleep(0.5)
+                time.sleep(0.1)
 
                 #set voltage dacs VDDD first 
                 c.io.set_reg(VDDD_REG+2*(PACMAN_TILE-1), VDDD_DAC, io_group=io_group)
@@ -78,7 +78,7 @@ def main(verbose):
                 #set voltage dacs to 0V  
                 c.io.set_reg(VDDD_REG+(PACMAN_TILE-1), 0, io_group=io_group)
                 c.io.set_reg(VDDA_REG+(PACMAN_TILE-1), 0, io_group=io_group)
-                time.sleep(0.25)
+                time.sleep(0.1)
 
                 #set voltage dacs VDDD first 
                 c.io.set_reg(VDDD_REG+(PACMAN_TILE-1), VDDD_DAC, io_group=io_group)
@@ -101,7 +101,7 @@ def main(verbose):
             tile_enable_sum = pow(2,PACMAN_TILE-1) + tile_enable_sum
             tile_enable_val=tile_enable_sum+0x0200  #enable one tile at a time    
             c.io.set_reg(0x00000010,tile_enable_val,io_group)
-            time.sleep(0.25)
+            time.sleep(0.1)
             if verbose: print('enabling tilereg 0x10: {0:b}'.format(tile_enable_val) )
         
         if io_group_asic_version_[io_group]=='2b':

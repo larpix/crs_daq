@@ -552,6 +552,7 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured, \
     d["network"]={}
     for iog in io_group_pacman_tile.keys():
         if not iog in c.network.keys(): continue
+        if not io_group_asic_version_[iog]==asic_version: continue
         d["network"][iog]={}
         io_channels=utility_base.tile_to_io_channel(io_group_pacman_tile[iog])
         for ioc in io_channels:
@@ -652,7 +653,7 @@ def network_v2b(controller_config, tiles=None, io_group=None, verbose=False, **k
 
     return c
 
-def network_v2a(controller_config, tiles=None, io_group=None, verbose=True,  **kwargs):
+def network_v2a(controller_config, tiles=None, io_group=None, verbose=False,  **kwargs):
 
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True)

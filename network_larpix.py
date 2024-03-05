@@ -16,11 +16,7 @@ from base.utility_base import now
 _default_verbose = False
 _default_controller_config = None
 
-print('UPDATES NEEDED:')
-print('Currently, tiles which have no error and are not fully configured are skipped if there is an error on a new tile')
-
-
-def enforce_iterative(nc, all_network_keys, n=3, configs=None):
+def enforce_iterative(nc, all_network_keys, n=5, configs=None):
     ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys)
     if ok: return ok, diff, unconfigured
     elif n==0: 
@@ -36,8 +32,13 @@ def enforce_iterative(nc, all_network_keys, n=3, configs=None):
             if not chip_key.io_group in io_group_tiles.keys(): io_group_tiles[chip_key.io_group] = set()
             io_group_tiles[chip_key.io_group].add(utility_base.io_channel_to_tile(chip_key.io_channel))  
 
+        for chip_key in all_keys:
+            if not chip_key.io_group in io_group_tiles: io_group_tiles[chip_key.io_group] = None
+
         for io_group in io_group_tiles.keys():
+            print(io_group)
             tiles = io_group_tiles[io_group]
+            print(tiles)
             config = configs[str(io_group)]
             if io_group_asic_version_[io_group]=='2b':
                 c =  network_base.network_v2b(config, tiles=tiles, io_group=io_group)
