@@ -5,13 +5,12 @@ import argparse
 import json
 from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
-from RUNENV import *
 from collections import defaultdict
 
 plt.rcParams.update({'font.size': 20})
 
 _default_io_group = 1
-_default_geometry_yaml = 'multi_tile_layout-2.3.16.yaml'
+_default_geometry_yaml = 'analysis/multi_tile_layout-2.3.16.yaml'
 
 colors = ['c', 'm', 'orange', 'g']
 
