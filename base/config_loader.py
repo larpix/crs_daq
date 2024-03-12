@@ -15,7 +15,7 @@ def datetime_now():
 	return time.strftime("%Y_%m_%d_%H_%M_%Z")
 
 def write_config_to_file(c, path=None, chip_key=None, description='default'):
-   
+
     if path is None:
         path='{}/asic_configs_{}'.format(asic_config_dir, datetime_now())
 

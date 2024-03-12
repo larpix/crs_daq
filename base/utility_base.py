@@ -14,6 +14,23 @@ global oldfilename
 _broadcast_disable_nwrite=3
 
 
+def get_from_json(file,key,meta_field='configs'):
+    d={}
+    with open(file, 'r') as f:
+        d = json.load(f)
+    return d[meta_field][str(key)]
+
+def update_json(file,key, data,meta_field='configs'):
+    d={}
+    with open(file, 'r') as f:
+        d = json.load(f)
+
+    d[meta_field][str(key)]=data
+    with open(file, 'w') as f:
+        json.dump(d,f,indent=4)
+
+    return d
+
 def now():
     return time.strftime("%Y_%m_%d_%H_%M_%Z")
 

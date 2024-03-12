@@ -29,14 +29,16 @@ def get_chips_by_io_group_io_channel(network_config, tiles=None, use_keys=None):
 
     return all_keys
 
-def enforce_parallel(c, network_keys, unmask_last=True):
+def enforce_parallel(c, network_keys, unmask_last=True, pbar_position=0, pbar_desc='configuring...'):
     
     ichip = -1  
     nchip = sum([len(net) for net in network_keys])
-    p_bar = tqdm(range(nchip))
+    p_bar = tqdm(range(nchip), position=pbar_position, desc=pbar_desc, maxinterval=0.25, leave=False)
     p_bar.refresh()
     ok, diff = False, {}
     masks={}
+    csas={}
+    ptmasks={}
    
     unconfigured = deepcopy(network_keys)
 
@@ -54,10 +56,16 @@ def enforce_parallel(c, network_keys, unmask_last=True):
             for chip in current_chips:
                 masks[str(chip)] = c[chip].config.channel_mask
                 c[chip].config.channel_mask = [1]*64
+               
+                ptmasks[str(chip)] = c[chip].config.periodic_trigger_mask
+                c[chip].config.periodic_trigger_mask = [1]*64
+
+                csas[str(chip)] = c[chip].config.csa_enable
+                c[chip].config.csa_enable = [0]*64
 
         if not working: break
 
-        ok, diff = c.enforce_configuration(current_chips, timeout=0.01, connection_delay=0.001, n=12, n_verify=4)
+        ok, diff = c.enforce_configuration(current_chips, timeout=0.015, connection_delay=0.015, n=50, n_verify=5)
         
         if not ok: 
             p_bar.update(len(current_chips) - len(diff.keys()))
@@ -75,12 +83,14 @@ def enforce_parallel(c, network_keys, unmask_last=True):
     if unmask_last:
         for chip in reversed(list(masks.keys())):
             c[chip].config.channel_mask = masks[chip]
+            c[chip].config.csa_enable = csas[chip]
+            c[chip].config.periodic_trigger_mask = ptmasks[chip]
             if send==False:
                 if np.any( np.logical_not(masks[chip])): send=True
         
         if send:
             for __ in range(N_WRITE_UNMASK):
-                c.multi_write_configuration( [ (chip, range(131, 139)) for chip in c.chips ], connection_delay=0.001 )
+                c.multi_write_configuration( [ (chip, list(range(131, 139))+list(range(66, 74))+list(range(155,163))) for chip in c.chips ], connection_delay=0.001 )
 
     return ok, diff, unconfigured
 

@@ -1,32 +1,40 @@
+import warnings
+warnings.filterwarnings("ignore")
 from RUNENV import *
 import larpix
 import argparse
 import larpix.io
 import time
 from base import pacman_base
-import pickledb
 from base.utility_base import now
+import json
+import logging
 
 _default_verbose=False
 skip_readback=False
 
-def main(verbose):
-    
+
+def main(verbose, pacman_config):
     #number of clock cycles to hold for hard reset of LArPix
     RESET_CYCLES=4096
  
-    db=pickledb.load(env_db, True)
-
-    #initialize DB variables
-    for io_group in io_group_pacman_tile_.keys():
-        db.set('LAST_UPDATED', now()) 
-        db.set('IO_GROUP_{}_PACMAN_CONFIGURED'.format(io_group), False)
-        db.set('IO_GROUP_{}_TILES_POWERED'.format(io_group), [])
-
+    pacman_configs = {}
+    with open(pacman_config, 'r') as f:
+        pacman_configs = json.load(f)
+    
     c = larpix.Controller()
-    c.io = larpix.io.PACMAN_IO(relaxed=True)
+    c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
 
-    for io_group in io_group_pacman_tile_.keys():
+    pacman_configs = {}
+    with open(pacman_config, 'r') as f:
+        pacman_configs = json.load(f)
+
+    print(pacman_configs)
+    # for each io_group, perform networking 
+    config_path = None
+    
+    for io_group_ip_pair in pacman_configs['io_group']:
+        io_group = io_group_ip_pair[0]
         print('Configuring IO Group {}'.format(io_group))
         #read pacman information and metadata from RUNENV
         pacman_version = iog_pacman_version_[io_group]
@@ -78,7 +86,7 @@ def main(verbose):
                 #set voltage dacs to 0V  
                 c.io.set_reg(VDDD_REG+(PACMAN_TILE-1), 0, io_group=io_group)
                 c.io.set_reg(VDDA_REG+(PACMAN_TILE-1), 0, io_group=io_group)
-                time.sleep(0.1)
+                time.sleep(0.2)
 
                 #set voltage dacs VDDD first 
                 c.io.set_reg(VDDD_REG+(PACMAN_TILE-1), VDDD_DAC, io_group=io_group)
@@ -119,15 +127,13 @@ def main(verbose):
         c.io.set_reg(0x2014, 0xffffffff, io_group=io_group)
         time.sleep(0.01)
         
-        db.set('IO_GROUP_{}_PACMAN_CONFIGURED'.format(io_group), True)
-        db.set('IO_GROUP_{}_TILES_POWERED'.format(io_group), io_group_pacman_tile_[io_group])
-        db.set('LAST_UPDATED', now())
-
     return
 
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--pacman_config', default="io/pacman.json", \
+                        type=str, help='''Config specifying PACMANs''')
     parser.add_argument('--verbose', '-v', action='store_true', \
                         default=_default_verbose)
     args=parser.parse_args()

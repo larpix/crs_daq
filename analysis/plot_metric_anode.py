@@ -71,15 +71,20 @@ def parse_file(filename, max_entries):
     adc = f['packets']['dataword'][mask][:max_entries]
     unique_id = unique_channel_id(f['packets'][mask][:max_entries])
     unique_id_set = np.unique(unique_id)
+    io_groups = f['packets']['io_group'][mask][:max_entries]
 
     print("Number of packets in parsed files =", len(unique_id))
-    for i in tqdm.tqdm(unique_id_set):
-        id_mask = unique_id == i
-        masked_adc = adc[id_mask]
-        d[i] = dict(
-            mean=np.mean(masked_adc),
-            std=np.std(masked_adc),
-            rate=len(masked_adc) / (livetime + 1e-9))
+    for io_group in set(io_groups):
+        _iomask = io_groups==io_group
+        _adc = adc[_iomask]
+        _unique_id = unique_id[_iomask]
+        for i in tqdm.tqdm(set(_unique_id), desc='io_group={}'.format(io_group)):
+            id_mask = _unique_id == i
+            masked_adc = _adc[id_mask]
+            d[i] = dict(
+                mean=np.mean(masked_adc),
+                std=np.std(masked_adc),
+                rate=len(masked_adc) / (livetime + 1e-9))
     return d
 
 

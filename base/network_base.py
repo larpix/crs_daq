@@ -8,7 +8,7 @@ from base import pacman_base
 import numpy as np
 #from timebudget import timebudget
 #import asyncio
-
+from RUNENV import io_group_asic_version_
 ref_current_trim=0
 i_tx_diff=0
 tx_slices=15
@@ -204,7 +204,7 @@ def find_daughter_id(parent_piso, parent_chip_id, parent_io_channel):
 
 #@timebudget
 def initial_network(c, io, io_group, root_keys, verbose, asic_version,\
-                          ref_current_trim, tx_diff, tx_slice, r_term, i_rx):
+                          ref_current_trim, tx_diff, tx_slice, r_term, i_rx, exclude=None):
     root_ioc=[rk.io_channel for rk in root_keys]
     waitlist=set()
     cnt_configured, cnt_unconfigured=0,0
@@ -233,10 +233,15 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,\
         last_daughter=[]
         while last_chip_id<=root.chip_id+9:
             if bail==True: break
+            excluded=False
             for parent_piso_us in [3,1,2]:
                 if bail==True: break                                  
                 daughter_id = find_daughter_id(parent_piso_us, last_chip_id, \
                                                root.io_channel)
+                if daughter_id in exclude[utility_base.io_channel_to_tile(root.io_channel)]: 
+                    print('bailing due to excluded chip!')
+                    bail=True
+                    excluded=True
                 # UGLY HACK
                 if (last_chip_id, daughter_id) not in last_daughter:
                     last_daughter.append( (last_chip_id, daughter_id) )
@@ -263,7 +268,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,\
                 ok, diff = uart_base.setup_parent_piso(c, io, parent, \
                                                        daughter, verbose, \
                                                        tx_diff, tx_slice)
-                if not ok:
+                if not ok or excluded:
                     print('\t\t==> PARENT PISO US ', parent, \
                           'failed to configure')
                     uart_base.disable_parent_piso_us(c, parent, daughter, \
@@ -432,7 +437,7 @@ def find_potential_parents(chip_id, network, verbose):
 
 #@timebudget
 def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,\
-                     ref_current_trim, tx_diff, tx_slice, r_term, i_rx):
+                     ref_current_trim, tx_diff, tx_slice, r_term, i_rx, exclude):
     print('\n\n----- Iterating waitlist ----\n')
     flag=True; outstanding=[]
     while flag==True:
@@ -446,6 +451,7 @@ def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,\
                 daughter=larpix.key.Key(parent.io_group, parent.io_channel, \
                                         chip_id)
 
+                if chip_id in exclude[utility_base.io_channel_to_tile(parent.io_channel)]: continue
                 ok, diff = uart_base.setup_parent_piso(c, io, parent, \
                                                        daughter, verbose, \
                                                        tx_diff, tx_slice)

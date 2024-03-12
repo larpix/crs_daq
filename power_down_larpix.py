@@ -4,19 +4,23 @@ import argparse
 import larpix.io
 import time
 from base import pacman_base
-
+import json
 import os
 
 _default_verbose=False
 
-def main(verbose):
+def main(verbose, pacman_config):
      
 
     c = larpix.Controller()
-    c.io = larpix.io.PACMAN_IO(relaxed=True)
+    c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
 
-    for io_group in io_group_pacman_tile_.keys():
+    pacman_configs = {}
+    with open(pacman_config, 'r') as f:
+        pacman_configs = json.load(f)
 
+    for io_group_ip_pair in pacman_configs['io_group']:
+        io_group = io_group_ip_pair[0]
         # disable tile power, LARPIX clock
         c.io.set_reg(0x00000010, 0, io_group=io_group)
         c.io.set_reg(0x00000014, 0, io_group=io_group)
@@ -28,6 +32,8 @@ def main(verbose):
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--pacman_config', default="io/pacman.json", \
+                        type=str, help='''Config specifying PACMANs''')
     parser.add_argument('--verbose', '-v', action='store_true', \
                         default=_default_verbose)
     args=parser.parse_args()

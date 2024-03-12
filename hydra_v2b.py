@@ -18,7 +18,7 @@ import shutil
 from base import config_loader
 from tqdm import tqdm
 
-from RUNENV import io_group_asic_version_, io_group_pacman_tile_
+from RUNENV import io_group_asic_version_, io_group_pacman_tile_, iog_exclude
 
 _default_file_prefix=None
 _default_disable_logger=True
@@ -42,7 +42,7 @@ def main(io_group, file_prefix=_default_file_prefix, \
          **kwargs):
    
     c = larpix.Controller()
-    c.io = larpix.io.PACMAN_IO(relaxed=True)
+    c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath='io/pacman_m2.json')
     c.io.reset_larpix(length=4096*4, io_group=io_group) #2048 
     time.sleep(4096*4*1e-6)
     c.io.reset_larpix(length=4096*4, io_group=io_group) #2048 
@@ -54,7 +54,6 @@ def main(io_group, file_prefix=_default_file_prefix, \
         config_name='controller-config-'+now+'.json'
 
     for iog in [io_group]:
-       
         iog_ioc_cid=utility_base.iog_tile_to_iog_ioc_cid(io_group_pacman_tile_, io_group_asic_version_[iog])
         
         #VERSION_SPECIFIC
@@ -72,13 +71,14 @@ def main(io_group, file_prefix=_default_file_prefix, \
         if io_group_asic_version_[iog]=='2b':
             root_keys=[]        
             for g_c_id in iog_ioc_cid:
+                if not g_c_id[0]==iog: continue
                 candidate_root = network_base.setup_root(c, c.io, g_c_id[0], \
                                                           g_c_id[1],\
                                                           g_c_id[2], verbose, \
                                                           io_group_asic_version_[iog], \
                                                           0, 0, 15, 2, 8)
                 if candidate_root!=None: root_keys.append(candidate_root)
-            
+           
             print('ROOT KEYS: ',root_keys)
 
             iog_tile_to_root_keys=utility_base.partition_chip_keys_by_io_group_tile(root_keys)
@@ -88,7 +88,7 @@ def main(io_group, file_prefix=_default_file_prefix, \
                                              iog_tile_to_root_keys[iog_tile], \
                                              verbose, \
                                              io_group_asic_version_[iog], ref_current_trim, \
-                                             tx_diff, tx_slice, r_term, i_rx)
+                                             tx_diff, tx_slice, r_term, i_rx, exclude=iog_exclude[iog])
 
             unconfigured=[]
             if True:
@@ -99,7 +99,7 @@ def main(io_group, file_prefix=_default_file_prefix, \
                                                                  io_group_asic_version_[iog], \
                                                                  ref_current_trim,\
                                                                  tx_diff, tx_slice, \
-                                                                 r_term, i_rx)
+                                                                 r_term, i_rx, exclude=iog_exclude[iog])
                     unconfigured.extend(out_of_network)
             
             network_file = network_base.write_network_to_file(c, file_prefix, io_group_pacman_tile_,\

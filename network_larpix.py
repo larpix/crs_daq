@@ -1,9 +1,10 @@
+import warnings
+warnings.filterwarnings("ignore")
 import larpix
 import time
 import larpix.io
 from RUNENV import *
 import argparse
-import pickledb
 from base import config_loader
 from base import network_base
 from tqdm import tqdm
@@ -12,12 +13,15 @@ from base import utility_base
 from base import enforce_parallel
 import json
 from base.utility_base import now
+import logging
 
 _default_verbose = False
 _default_controller_config = None
 
-def enforce_iterative(nc, all_network_keys, n=5, configs=None):
-    ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys)
+logging.basicConfig(filename=sup_log_, encoding='utf-8',format='%(asctime)s: %(message)s', datefmt='%Y/%m/%d-%I:%M:%S %Z', level=logging.DEBUG )
+
+def enforce_iterative(nc, all_network_keys, n=4, configs=None, pbar_desc='p', pbar_position=0):
+    ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys, pbar_desc=pbar_desc, pbar_position=pbar_position)
     if ok: return ok, diff, unconfigured
     elif n==0: 
         return ok, diff, unconfigured 
@@ -36,9 +40,7 @@ def enforce_iterative(nc, all_network_keys, n=5, configs=None):
             if not chip_key.io_group in io_group_tiles: io_group_tiles[chip_key.io_group] = None
 
         for io_group in io_group_tiles.keys():
-            print(io_group)
             tiles = io_group_tiles[io_group]
-            print(tiles)
             config = configs[str(io_group)]
             if io_group_asic_version_[io_group]=='2b':
                 c =  network_base.network_v2b(config, tiles=tiles, io_group=io_group)
@@ -48,38 +50,28 @@ def enforce_iterative(nc, all_network_keys, n=5, configs=None):
            
             all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(config, use_keys=all_keys)
 
-        return enforce_iterative(nc, all_network_keys, n=n-1, configs=configs)
+        return enforce_iterative(nc, all_network_keys, n=n-1, configs=configs, pbar_desc=pbar_desc, pbar_position=pbar_position)
 
 def main(verbose,\
         controller_config, \
-        io_group_tiles=None):
+        io_group_tiles=None,
+        pacman_config=None,
+        config_path=None):
     
-    db = pickledb.load(env_db, True) 
 
-    for io_group in io_group_pacman_tile_.keys():
-        db.set('IO_GROUP_{}_TILES_NETWORKED'.format(io_group), [])
-        db.set('IO_GROUP_{}_ASIC_CONFIGS'.format(io_group), None)
-        db.set('IO_GROUP_{}_NETWORK_CONFIG'.format(io_group), None)
-        db.set('LAST_UPDATED', now())
-        db.set('DEFAULT_CONFIG_{}'.format(io_group), '')
-
-        PACMAN_CONFIGURED = db.get('IO_GROUP_{}_PACMAN_CONFIGURED'.format(io_group))
-        if not PACMAN_CONFIGURED:
-            print('PACMAN not configured for io_group={}'.format(io_group))
-            return
-
+    pacman_configs = {}
+    with open(pacman_config, 'r') as f:
+        pacman_configs = json.load(f)
     
-    all_network_keys = []
-
+    logging.info(pacman_configs['io_group'])
     configs = {}
     with open(controller_config, 'r') as f:
         configs = json.load(f)
-  
-    # for each io_group, perform networking 
-    config_path = None
-    
-    for io_group in io_group_pacman_tile_.keys():
-       
+ 
+    # for each io_group, perform networking     
+    all_network_keys = []
+    for io_group_ip_pair in pacman_configs['io_group']:
+        io_group = io_group_ip_pair[0]
         tiles=None
         if not io_group_tiles is None:
             if not io_group in io_group_tiles.keys(): continue
@@ -90,35 +82,37 @@ def main(verbose,\
         c = None
 
         config = configs[str(io_group)]
+        dd=utility_base.update_json(network_config_paths_file_, io_group, config)
+
         if io_group_asic_version_[io_group]=='2b':
+            if verbose: print('loading network_v2b') 
             c =  network_base.network_v2b(config, tiles=tiles, io_group=io_group)
         
         elif io_group_asic_version_[io_group] in [2, 'lightpix-1']:
-           c = network_base.network_v2a(config, tiles=tiles, io_group=io_group) 
-        
+            if verbose: print('loading network_v2a')
+            c = network_base.network_v2a(config, tiles=tiles, io_group=io_group) 
+            if verbose: print('done') 
         all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(config, tiles)
         
         _tiles = []
         for _, io_channels in c.network.items(): _tiles += utility_base.io_channel_list_to_tile(list(io_channels.keys()) )
         
-        db.set('IO_GROUP_{}_TILES_NETWORKED'.format(io_group), list(set([int(t) for t in _tiles] )) )
-        db.set('IO_GROUP_{}_NETWORK_CONFIG'.format(io_group), config)
-        if verbose: print('Setting {} to {}'.format('IO_GROUP_{}_ASIC_CONFIGS'.format(io_group), db.get('IO_GROUP_{}_ASIC_CONFIGS'.format(io_group))))
-        
-        config_path = config_loader.write_config_to_file(c, config_path) 
-        db.set('IO_GROUP_{}_ASIC_CONFIGS'.format(io_group), config_path)        
-        db.set('DEFAULT_CONFIG_{}'.format(io_group), config_path)
-        db.set('LAST_UPDATED', now())
+        config_path = config_loader.write_config_to_file(c, config_path)
+
+        dd=utility_base.update_json(asic_config_paths_file_, io_group, config_path)
 
     nc = larpix.Controller()
-    nc.io = larpix.io.PACMAN_IO(relaxed=True)
-
-    for io_group in io_group_pacman_tile_.keys(): 
+    nc.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
+    
+    for io_group_ip_pair in pacman_configs['io_group']:
+        io_group = io_group_ip_pair[0]
         pacman_base.enable_all_pacman_uart_from_io_group(nc.io, io_group)
  
     config_loader.load_config_from_directory(nc, config_path)
+    pos=0
     if True:
-        ok, diff, unconfigured = enforce_iterative(nc, all_network_keys, configs=configs)
+        pos = int(pacman_configs['io_group'][0][0]//2)
+        ok, diff, unconfigured = enforce_iterative(nc, all_network_keys, configs=configs, pbar_desc='module{}'.format(pos), pbar_position=pos)
         if not ok:
             raise RuntimeError('Unconfigured chips!', diff)
     return c
@@ -126,8 +120,12 @@ def main(verbose,\
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--verbose', '-v', action='store_true',  default=_default_verbose)
+    parser.add_argument('--config_path', default=None, \
+                        type=str, help='''Path to save configuration''')
     parser.add_argument('--controller_config', default=_default_controller_config, \
                         type=str, help='''Controller config specifying hydra network''')                  
+    parser.add_argument('--pacman_config', default="io/pacman.json", \
+                        type=str, help='''Config specifying PACMANs''')
     args=parser.parse_args()
     c = main(**vars(args))
 
