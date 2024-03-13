@@ -71,14 +71,14 @@ def parse_file(filename, max_entries):
     adc = f['packets']['dataword'][mask][:max_entries]
     unique_id = unique_channel_id(f['packets'][mask][:max_entries])
     unique_id_set = np.unique(unique_id)
-    io_groups = f['packets']['io_group'][mask][:max_entries]
+    chips = f['packets']['chip_id'][mask][:max_entries]
 
     print("Number of packets in parsed files =", len(unique_id))
-    for io_group in set(io_groups):
-        _iomask = io_groups==io_group
+    for chip in tqdm.tqdm(range(11, 111), desc='looping over chip_id'):
+        _iomask = chips==chip
         _adc = adc[_iomask]
         _unique_id = unique_id[_iomask]
-        for i in tqdm.tqdm(set(_unique_id), desc='io_group={}'.format(io_group)):
+        for i in set(_unique_id):
             id_mask = _unique_id == i
             masked_adc = _adc[id_mask]
             d[i] = dict(
@@ -283,12 +283,13 @@ def plot_xy(d, metric, geometry_yaml, geometry_yaml_mod2, normalization):
 
         fig, ax = plt.subplots(2, 4, figsize=(40*3, 30*3))
 
+        uniques = np.array(list(d.keys()))
         for io_group in range(1, 9):
 
-            mask = unique_to_io_group(np.array(list(d.keys()))) == io_group
+            mask = unique_to_io_group(uniques) == io_group
 
             print('Getting {} for io_group {}'.format(metric, io_group))
-            d_keys = np.array(list(d.keys()))[mask]
+            d_keys = uniques[mask]
             print('\tNumber of channels: ', len(d_keys))
 
             ax[(io_group-1) % 2, (io_group-1)//2].set_xlabel('X Position [mm]')

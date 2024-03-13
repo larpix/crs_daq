@@ -20,7 +20,7 @@ _default_controller_config = None
 
 logging.basicConfig(filename=sup_log_, encoding='utf-8',format='%(asctime)s: %(message)s', datefmt='%Y/%m/%d-%I:%M:%S %Z', level=logging.DEBUG )
 
-def enforce_iterative(nc, all_network_keys, n=4, configs=None, pbar_desc='p', pbar_position=0):
+def enforce_iterative(nc, all_network_keys, n=3, configs=None, pbar_desc='p', pbar_position=0):
     ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys, pbar_desc=pbar_desc, pbar_position=pbar_position)
     if ok: return ok, diff, unconfigured
     elif n==0: 

@@ -38,7 +38,8 @@ def main(io_group, file_prefix=_default_file_prefix, \
          tx_diff=_default_tx_diff, \
          tx_slice=_default_tx_slice, \
          r_term=_default_r_term, \
-         i_rx=_default_i_rx, 
+         i_rx=_default_i_rx,
+         pacman_tile=None,\
          **kwargs):
    
     c = larpix.Controller()
@@ -54,7 +55,7 @@ def main(io_group, file_prefix=_default_file_prefix, \
         config_name='controller-config-'+now+'.json'
 
     for iog in [io_group]:
-        iog_ioc_cid=utility_base.iog_tile_to_iog_ioc_cid(io_group_pacman_tile_, io_group_asic_version_[iog])
+        iog_ioc_cid=utility_base.iog_tile_to_iog_ioc_cid({io_group : io_group_pacman_tile_[io_group]}, io_group_asic_version_[iog])
         
         #VERSION_SPECIFIC
         if io_group_asic_version_[iog]=='2b': 
@@ -70,8 +71,11 @@ def main(io_group, file_prefix=_default_file_prefix, \
         print('Working on io_group={}'.format(iog))
         if io_group_asic_version_[iog]=='2b':
             root_keys=[]        
-            for g_c_id in iog_ioc_cid:
-                if not g_c_id[0]==iog: continue
+            tiles=pacman_tile
+            if pacman_tile is None:
+                tiles = io_group_pacman_tile_[iog]
+            for tile in tiles:
+                io_channels = utility_base.tile_to_io_channel(tile)
                 candidate_root = network_base.setup_root(c, c.io, g_c_id[0], \
                                                           g_c_id[1],\
                                                           g_c_id[2], verbose, \
@@ -113,6 +117,8 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--io_group', default=None, \
                         type=int, help='''io group to network''')
+    parser.add_argument('--pacman_tile', default=None, \
+                        type=int, help='''PACMAN tile to work with''') 
     parser.add_argument('--file_prefix', default=_default_file_prefix, \
                         type=str, help='''String prepended to filename''')
     parser.add_argument('--disable_logger', default=_default_disable_logger, \
