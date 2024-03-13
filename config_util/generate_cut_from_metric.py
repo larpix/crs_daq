@@ -41,7 +41,7 @@ def unique_to_tiles(unique):
 def unique_to_io_group(unique):
     return(unique // (100*1000*1000)) % 1000
 
-def parse_file(filename, max_entries):
+def parse_file(filename, max_entries=-1):
     d = dict()
     f = h5py.File(filename, 'r')
     unixtime = f['packets'][:]['timestamp'][f['packets']
