@@ -56,8 +56,7 @@ def main(verbose,\
         controller_config, \
         io_group=None,
         pacman_tile=None,
-        pacman_config=None,
-        config_path=None):
+        pacman_config=None):
     
     pacman_configs = {}
     with open(pacman_config, 'r') as f:
@@ -117,8 +116,6 @@ if __name__=='__main__':
                         type=int, help='''io_group of tile to network''')
     parser.add_argument('--pacman_tile', default=None, \
                         type=int, help='''tile to network''')
-    parser.add_argument('--config_path', default=None, \
-                        type=str, help='''Path to save configuration''')
     parser.add_argument('--controller_config', default=_default_controller_config, \
                         type=str, help='''Controller config specifying hydra network''')                  
     parser.add_argument('--pacman_config', default="io/pacman.json", \
