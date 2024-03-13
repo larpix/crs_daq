@@ -10,6 +10,7 @@ from matplotlib import cm
 from matplotlib.colors import Normalize
 import merge_disabled_to_config
 import time
+import tqdm
 
 _default_filename=None
 
