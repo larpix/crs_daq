@@ -1,7 +1,6 @@
 import larpix
 import larpix.io
 import larpix.logger
-import pickledb
 import base
 import h5py
 import argparse
@@ -15,6 +14,7 @@ from base import enforce_parallel
 from RUNENV import *
 from base.utility_base import now
 from base import pacman_base
+from base import utility_base
 from base.utility_base import *
 from tqdm import tqdm
 
@@ -611,7 +611,7 @@ def main(controller_config=_default_controller_config,
          pedestal_file=_default_pedestal_file,
          trim_sigma_file=_default_trim_sigma_file,
          disabled_list=_default_disabled_list,
-         #noise_cut=_default_noise_cut,
+         pacman_config='io/pacman.json',
          null_sample_time=_default_null_sample_time,
          disable_rate=_default_disable_rate,
          set_rate=_default_set_rate,
@@ -623,57 +623,33 @@ def main(controller_config=_default_controller_config,
 
     time_initial = time.time()
 
-    db = pickledb.load(env_db, True) 
+    c = larpix.Controller()
+    c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
+   
+    pacman_configs = {}
+    with open(pacman_config, 'r') as f:
+        pacman_configs = json.load(f)
 
-    #check DB file to ensure run conditions satisfy requirements
-    for io_group in io_group_pacman_tile_.keys():
+    config_path = None
 
-        #check that tiles are configured with hydra network
-        TILES_CONFIGURED = db.get('IO_GROUP_{}_TILES_NETWORKED'.format(io_group))
-            
-        if not TILES_CONFIGURED:
-            print('NO TILES  configured for io_group={}'.format(io_group))
-            return
+    all_network_keys = []
+    for io_group_ip_pair in pacman_configs['io_group']:
+        io_group = io_group_ip_pair[0]
 
-        if len(TILES_CONFIGURED)==0:
-            print('NO TILES  configured for io_group={}'.format(io_group))
-            return
-
-        #check pacman is properly configured 
-        PACMAN_CONFIGURED = db.get('IO_GROUP_{}_PACMAN_CONFIGURED'.format(io_group))
-        if not PACMAN_CONFIGURED:
-            print('PACMAN not configured for io_group={}'.format(io_group))
-            return
-
-        #check network config exists
-        NETWORK_CONFIG =  db.get('IO_GROUP_{}_NETWORK_CONFIG'.format(io_group))
-        if not NETWORK_CONFIG:
-            print('NO existing network file for io_group={}'.format(io_group))
-            return
-
-        c = larpix.Controller()
-        c.io = larpix.io.PACMAN_IO(relaxed=True)
-        
         #list of network keys in order from root chip, for parallel configuration enforcement
-        all_network_keys = []
        
         for io_group in io_group_pacman_tile_.keys():
             CONFIG=None
-            print('Using default config')
-            CONFIG = db.get('DEFAULT_CONFIG_{}'.format(io_group))
-
-            all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(db.get('IO_GROUP_{}_NETWORK_CONFIG'.format(io_group)) )  
+            with open(asic_config_paths_file_, 'r') as ff:
+                d=json.load(ff)
+                CONFIG=d['configs'][str(io_group)]
+            all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel( utility_base.get_from_json(network_config_paths_file_, io_group) )
             config_loader.load_config_from_directory(c, CONFIG) 
             
-            db.set('IO_GROUP_{}_ASIC_CONFIGS'.format(io_group), CONFIG)
-            db.set('LAST_UPDATE', now()) 
         #ensure UARTs are enable on pacman to receive configuration packets
-        for io_group in io_group_pacman_tile_.keys(): 
-            pacman_base.enable_all_pacman_uart_from_io_group(c.io, io_group)
+    for io_group in io_group_pacman_tile_.keys(): 
+        pacman_base.enable_all_pacman_uart_from_io_group(c.io, io_group)
         
-    #enforce original config
-#    enforce_parallel.enforce_parallel(c, all_network_keys)
-
     print('START THRESHOLDING\n')
 
     channels = [ i for i in range(64) if i not in nonrouted_channels ]
@@ -768,6 +744,10 @@ if __name__ == '__main__':
                         default=_default_pedestal_file,
                         type=str,
                         help='''Path to pedestal file''')
+    parser.add_argument('--pacman_config',
+                        default='io/pacman.json',
+                        type=str,
+                        help='''PACMAN config file to use''') 
     parser.add_argument('--trim_sigma_file',
                         default=_default_trim_sigma_file,
                         type=str,
