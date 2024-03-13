@@ -41,27 +41,34 @@ def unique_to_tiles(unique):
 def unique_to_io_group(unique):
     return(unique // (100*1000*1000)) % 1000
 
-
-def parse_file(filename):
+def parse_file(filename, max_entries):
     d = dict()
-    f = h5py.File(filename,'r')
-    unixtime=f['packets'][:]['timestamp'][f['packets'][:]['packet_type']==4]
+    f = h5py.File(filename, 'r')
+    unixtime = f['packets'][:]['timestamp'][f['packets']
+                                            [:]['packet_type'] == 4]
     livetime = np.max(unixtime)-np.min(unixtime)
-    data_mask = f['packets'][:]['packet_type']==0
-    valid_parity_mask = f['packets'][:]['valid_parity']==1
+    data_mask = f['packets'][:]['packet_type'] == 0
+    valid_parity_mask = f['packets'][:]['valid_parity'] == 1
     mask = np.logical_and(data_mask, valid_parity_mask)
-    adc = f['packets']['dataword'][mask]
-    unique_id = unique_channel_id(f['packets'][mask])
+    adc = f['packets']['dataword'][mask][:max_entries]
+    unique_id = unique_channel_id(f['packets'][mask][:max_entries])
     unique_id_set = np.unique(unique_id)
-    print("number of packets in parsed files =",len(unique_id))
-    for i in unique_id_set:
-        id_mask = unique_id == i
-        masked_adc = adc[id_mask]
-        d[i]=dict(
-            mean = np.mean(masked_adc),
-            std = np.std(masked_adc),
-            rate = len(masked_adc) / (livetime + 1e-9) )
+    chips = f['packets']['chip_id'][mask][:max_entries]
+
+    print("Number of packets in parsed files =", len(unique_id))
+    for chip in tqdm.tqdm(range(11, 111), desc='looping over chip_id'):
+        _iomask = chips==chip
+        _adc = adc[_iomask]
+        _unique_id = unique_id[_iomask]
+        for i in set(_unique_id):
+            id_mask = _unique_id == i
+            masked_adc = _adc[id_mask]
+            d[i] = dict(
+                mean=np.mean(masked_adc),
+                std=np.std(masked_adc),
+                rate=len(masked_adc) / (livetime + 1e-9))
     return d
+
 
 def apply_cut_generate_disabled(d, metric, cut, polarity):
     nonrouted_v2a_channels=[6,7,8,9,22,23,24,25,38,39,40,54,55,56,57]
