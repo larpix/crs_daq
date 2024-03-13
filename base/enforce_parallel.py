@@ -15,7 +15,6 @@ def get_chips_by_io_group_io_channel(network_config, tiles=None, use_keys=None):
         for io_channel in io_channels:
             if not tiles is None:
                 if not utility_base.io_channel_to_tile(io_channel) in tiles: continue
-                tile_all_io_channels.append(io_channel)
             keys = dc.get_network_keys(io_group, io_channel, root_first_traversal=True)
             
             if not use_keys is None:
@@ -65,7 +64,7 @@ def enforce_parallel(c, network_keys, unmask_last=True, pbar_position=0, pbar_de
 
         if not working: break
 
-        ok, diff = c.enforce_configuration(current_chips, timeout=0.015, connection_delay=0.02, n=50, n_verify=5)
+        ok, diff = c.enforce_configuration(current_chips, timeout=0.015, connection_delay=0.01, n=60, n_verify=3)
         
         if not ok: 
             p_bar.update(len(current_chips) - len(diff.keys()))

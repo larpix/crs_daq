@@ -86,11 +86,11 @@ def main(verbose,\
 
         if io_group_asic_version_[io_group]=='2b':
             if verbose: print('loading network_v2b') 
-            c =  network_base.network_v2b(config, tiles=tiles, io_group=io_group)
+            c =  network_base.network_v2b(config, tiles=tiles, io_group=io_group, pacman_config=pacman_config)
         
         elif io_group_asic_version_[io_group] in [2, 'lightpix-1']:
             if verbose: print('loading network_v2a')
-            c = network_base.network_v2a(config, tiles=tiles, io_group=io_group) 
+            c = network_base.network_v2a(config, tiles=tiles, io_group=io_group, pacman_config=pacman_config) 
             if verbose: print('done') 
         all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(config, tiles)
         
