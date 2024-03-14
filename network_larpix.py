@@ -17,8 +17,7 @@ import logging
 
 _default_verbose = False
 _default_controller_config = None
-
-logging.basicConfig(filename=sup_log_, encoding='utf-8',format='%(asctime)s: %(message)s', datefmt='%Y/%m/%d-%I:%M:%S %Z', level=logging.DEBUG )
+_update_default=False
 
 def enforce_iterative(nc, all_network_keys, n=3, configs=None, pbar_desc='p', pbar_position=0):
     ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys, pbar_desc=pbar_desc, pbar_position=pbar_position)
@@ -68,6 +67,7 @@ def main(verbose,\
     with open(controller_config, 'r') as f:
         configs = json.load(f)
  
+    DCONFIGS={}
     # for each io_group, perform networking     
     all_network_keys = []
     for io_group_ip_pair in pacman_configs['io_group']:
@@ -97,9 +97,21 @@ def main(verbose,\
         _tiles = []
         for _, io_channels in c.network.items(): _tiles += utility_base.io_channel_list_to_tile(list(io_channels.keys()) )
         
-        config_path = config_loader.write_config_to_file(c, config_path)
+        _update_now=False
+        CONFIG=utility_base.get_from_json(default_asic_config_paths_file_,io_group)
+        if _update_default or CONFIG is None: 
+            config_path = config_loader.write_config_to_file(c, config_path) 
+            _update_now=True
 
-        dd=utility_base.update_json(asic_config_paths_file_, io_group, config_path)
+
+        DCONFIG=None
+        if _update_now: 
+            dd=utility_base.update_json(default_asic_config_paths_file_, io_group, config_path)
+            DCONFIG=config_path
+        else:
+            DCONFIG=utility_base.get_from_json(default_asic_config_paths_file_,io_group) 
+        dd=utility_base.update_json(asic_config_paths_file_, io_group,DCONFIG )
+        DCONFIGS[io_group]=DCONFIG
 
     nc = larpix.Controller()
     nc.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
@@ -107,8 +119,8 @@ def main(verbose,\
     for io_group_ip_pair in pacman_configs['io_group']:
         io_group = io_group_ip_pair[0]
         pacman_base.enable_all_pacman_uart_from_io_group(nc.io, io_group)
- 
-    config_loader.load_config_from_directory(nc, config_path)
+        for iog in DCONFIGS.keys():
+            config_loader.load_config_from_directory(nc, DCONFIGS[iog])
     pos=0
     if True:
         pos = int(pacman_configs['io_group'][0][0]//2)

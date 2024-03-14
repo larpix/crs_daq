@@ -36,11 +36,11 @@ def main(verbose, \
             
             CONFIG=None
             if asic_config is None:
-                with open(asic_config_paths_file_, 'r') as ff:
-                    d=json.load(ff)
-                    CONFIG=d['configs'][str(io_group)]
+                print('USING DEFAULT CONFIG')
+                CONFIG=utility_base.get_from_json(default_asic_config_paths_file_,io_group)
             else:
                 CONFIG='{}/{}'.format(asic_config, config_subdir)
+                utility_base.update_json(asic_config_paths_file_, io_group,CONFIG )
 
             all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel( utility_base.get_from_json(network_config_paths_file_, io_group) ) 
             config_loader.load_config_from_directory(c, CONFIG) 
@@ -83,8 +83,6 @@ def main(verbose, \
         ok, diff, unconfigured = enforce_parallel.enforce_parallel(c, all_network_keys, pbar_desc='module{}'.format(pos), pbar_position=pos)
         if not ok:
             raise RuntimeError(diff)
-        else:
-            dd=utility_base.update_json(asic_config_paths_file_, io_group, CONFIG)
         return
 
 

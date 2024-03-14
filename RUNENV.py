@@ -16,7 +16,8 @@ destination_dir_='/data/commission/March2024/'
 
 ##3###################################################
 
-asic_config_paths_file_='__asic_configs__.json'
+asic_config_paths_file_='.asic_configs_.json'
+default_asic_config_paths_file_='.default_asic_configs_.json'
 network_config_paths_file_='__network_configs__.json'
 
 log_dir='log/'
@@ -84,6 +85,11 @@ iog_VDDA_DAC = {1 : 46500, 2: 46500, 3 : 46500, 4: 46500, 5:46500, 6:46500, 7 : 
 if not os.path.isdir(destination_dir_): os.mkdir(destination_dir_)
 if not os.path.isdir(log_dir): os.mkdir(log_dir)
 if not os.path.isdir(asic_config_dir): os.mkdir(asic_config_dir)
+
+if not os.path.isfile(default_asic_config_paths_file_):
+    d={'configs':{}}
+    with open(default_asic_config_paths_file_, 'w') as f:
+        json.dump(d, f)
 
 if not os.path.isfile(network_config_paths_file_):
     d={'configs':{}}

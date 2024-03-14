@@ -18,6 +18,10 @@ def get_from_json(file,key,meta_field='configs'):
     d={}
     with open(file, 'r') as f:
         d = json.load(f)
+    if not meta_field in d.keys():
+        return None
+    if not str(key) in d[meta_field].keys():
+        return None
     return d[meta_field][str(key)]
 
 def update_json(file,key, data,meta_field='configs'):
