@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+
 if [[ $# -eq 2 ]]; then
 	CONFIG_DIR=$2
 	echo "Using asic_config dir $CONFIG_DIR"

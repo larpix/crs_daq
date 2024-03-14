@@ -18,7 +18,7 @@ destination_dir_='/data/commission/March2024/'
 
 asic_config_paths_file_='.asic_configs_.json'
 default_asic_config_paths_file_='.default_asic_configs_.json'
-network_config_paths_file_='__network_configs__.json'
+network_config_paths_file_='.network_configs_.json'
 
 log_dir='log/'
 sup_log_='log/full_log.log'

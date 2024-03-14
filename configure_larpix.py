@@ -42,7 +42,8 @@ def main(verbose, \
                 CONFIG='{}/{}'.format(asic_config, config_subdir)
                 utility_base.update_json(asic_config_paths_file_, io_group,CONFIG )
 
-            all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel( utility_base.get_from_json(network_config_paths_file_, io_group) ) 
+            network_config_file = utility_base.get_from_json(network_config_paths_file_, io_group)
+            all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel( network_config_file ) 
             config_loader.load_config_from_directory(c, CONFIG) 
             
             #make the network keys io channel agnostic
