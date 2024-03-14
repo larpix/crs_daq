@@ -17,7 +17,7 @@ from base import pacman_base
 from base import utility_base
 from base.utility_base import *
 from tqdm import tqdm
-
+MAX_TOGGLE_ITS=16
 _default_controller_config=None
 _default_pedestal_file=None
 _default_trim_sigma_file='channel_scale_factor.json'
@@ -50,10 +50,10 @@ def measure_background_rate_disable_csa(c, extreme_edge_chip_keys, csa_disable,
             asic_id = chip_key_to_asic_id(chip_key)
             rate = triggered_channels.count([chip_key,channel])/null_sample_time
             if rate > disable_rate:
-                count += 1
                 print(chip_key,' rate too high (',rate,
                       ' Hz) disabling channel: ',channel)
-                if chip_key not in c.chips: continue
+                if chip_key not in c.chips: continue 
+                count += 1
                 c.disable(chip_key,[channel])
                 c[chip_key].config.csa_enable[channel] = 0
                 c[chip_key].config.channel_mask[channel] = 1
@@ -169,6 +169,7 @@ def get_chip_key(packet):
 def enable_frontend(c, pacman_configs, channels, csa_disable, config, all_network_keys):
     ichip=-1
     chip_reg_pairs_list = []
+    bad_chips = []
     while True:
         chip_register_pairs = []
         current_chips = []
@@ -213,9 +214,6 @@ def enable_frontend(c, pacman_configs, channels, csa_disable, config, all_networ
             c.run(runtime,'check rate')
             all_packets = np.array(c.reads[-1])
             high_rate=False
-            #if all_packets.shape[0]/runtime > 10 and all_packets.shape[0]/runtime < 2000:
-            #    high_rate=False
-            #    continue
             if all_packets.shape[0]==0:
                 packets=np.array([])
             else:
@@ -241,6 +239,26 @@ def enable_frontend(c, pacman_configs, channels, csa_disable, config, all_networ
             ntrig = chip_triggers.shape[0]
             print('______Iteration: {}\ttotal packets: {}______'.format(ihr_it, ntrig))
             for chip in triggered_chips:
+                if not chip in c.chips:
+                    ckey=larpix.key.Key(chip)
+                    print('Unknown chip ID found...')
+                    __io_group, __io_channel = ckey.io_group, ckey.io_channel
+                    for pair in chip_register_pairs:
+                        cc_str=pair[0]
+                        cc = larpix.key.Key(cc_str)
+                        if cc.io_group==__io_group and cc.io_channel==__io_channel:
+                            #check if a chip is already disabled and warn
+                            for ccc_str in bad_chips:
+                                ccc = larpix.key.Key(ccc_str)
+                                if ccc.io_group==__io_group and ccc.io_channel==__io_channel:
+                                    print('Warning! Disabling {}, Chip on this channel disabled already:'.format(cc), ccc)
+                            bad_chips.append(cc)
+                            c[cc].config.csa_enable=[0]*64
+                            c[cc].config.channel_mask=[1]*64
+                            print('Found chip {}, disabling all channels'.format(cc))
+                    continue
+
+
                 ids = np.array(chip.split('-')).astype(int)
                 mask = np.logical_and( iog_triggers==ids[0], ioch_triggers==ids[1] )
                 mask = np.logical_and(mask, chip_triggers==ids[2])
@@ -252,6 +270,9 @@ def enable_frontend(c, pacman_configs, channels, csa_disable, config, all_networ
                     ntrig_ch = np.sum(channel==channels)
                     if ntrig_ch/runtime > 1000:
                         print('Very high rate channel disabled!\t{}-{}:\trate={}Hz'.format(chip, channel, ntrig_ch/runtime))
+                        if not chip in c.chips:
+                            print('Noisy chip missing from controller!')
+                            continue
                         c[chip].config.channel_mask[int(channel)]=1
                         c[chip].config.csa_enable[int(channel)]=0
                         disabled_channels=True
@@ -304,8 +325,9 @@ def find_global_dac_seed(c, pedestal_chip, normalization, cryo, vdda, verbose):
         c[chip_key].config.periodic_reset_cycles = 64 # registers [163-165]
         chip_register_pairs.append( (chip_key, list(range(0,65))+[128,163,164,165]) )
 
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
+    for i in range(20):
+        c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
+        c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
     return
 
 def update_chip(c, status):
@@ -391,6 +413,8 @@ def toggle_trim(c, channels, csa_disable, extreme_edge_chip_keys,
         if count == 0: flag = False
         timeEnd = time.time()-timeStart
         print('iteration ', iter_ctr,' processing time %.3f seconds\n\n'%timeEnd)
+        if iter_ctr  > MAX_TOGGLE_ITS:
+            flag=False 
 
     return csa_disable
 
@@ -500,7 +524,7 @@ def main(controller_config=_default_controller_config,
     print('==> %.3f seconds --- measured background rate with seeded global DAC & trim DAC maxed out\n --> silence channels that exceed rate\n\n'%timeEnd)
 #
     timeStart = time.time()
-    dr = disable_rate*0.5
+    dr = disable_rate
     csa_disable = measure_background_rate_disable_csa(c, extreme_edge_chip_keys, csa_disable, null_sample_time, dr, verbose)
     timeEnd = time.time() - timeStart
     print('==> %.3f seconds --- measured background rate with seeded global DAC & trim DAC maxed out\n --> silence channels that exceed rate\n\n'%timeEnd)
