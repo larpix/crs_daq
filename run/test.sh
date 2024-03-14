@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
-now=`date +%Y_%m_%d_%H_%M_%S_%Z`
-config_dir="asic_configs-$now"
+python test.py &
 
-echo $config_dir
+TEST_PID=$!
+echo "pid=$TEST_PID"
+sed -i "s/TEST_PID=[0-9]*/TEST_PID=${TEST_PID}/" .envrc
