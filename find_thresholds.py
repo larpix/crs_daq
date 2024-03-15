@@ -26,7 +26,7 @@ _default_null_sample_time= 1. #0.5 #1 #0.25
 _default_disable_rate=20.
 _default_set_rate=2.
 _default_cryo=False
-_default_vdda=1700
+_default_vdda=1800
 _default_normalization=1.
 _default_verbose=False
 vref_dac = 185 #223
@@ -110,7 +110,8 @@ def find_pedestal(pedestal_file, c, verbose):
                 count_noisy += 1 
                 continue
 
-        pedestal_channel[unique] = dict(mu = np.mean(adc), std = np.std(adc))
+            pedestal_channel[unique] = dict(mu = np.mean(__adc__), std = np.std(__adc__))
+    
     temp, temp_mu, temp_std = [ {} for i in range(3)]
     for unique in pedestal_channel.keys():
         chip_key = unique_to_chip_key(unique)
@@ -170,6 +171,7 @@ def enable_frontend(c, pacman_configs, channels, csa_disable, config, all_networ
     ichip=-1
     chip_reg_pairs_list = []
     bad_chips = []
+    print('Enabling Front-Ends...')
     while True:
         chip_register_pairs = []
         current_chips = []
@@ -203,6 +205,7 @@ def enable_frontend(c, pacman_configs, channels, csa_disable, config, all_networ
     for chip_register_pairs in chip_reg_pairs_list: 
         #print(chip_register_pairs)
         #print(type(chip_register_pairs))
+        #print('Enabling Chips:', [crp[0] for crp in chip_register_pairs ])
         c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)       
         c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
         high_rate = True
@@ -214,6 +217,7 @@ def enable_frontend(c, pacman_configs, channels, csa_disable, config, all_networ
             c.run(runtime,'check rate')
             all_packets = np.array(c.reads[-1])
             high_rate=False
+            print('it {}, n_packets:{}'.format(ihr_it,all_packets.shape[0]))
             if all_packets.shape[0]==0:
                 packets=np.array([])
             else:
@@ -303,8 +307,8 @@ def enable_frontend(c, pacman_configs, channels, csa_disable, config, all_networ
 
 def find_global_dac_seed(c, pedestal_chip, normalization, cryo, vdda, verbose):
     global_dac_lsb = vdda/256.
-    offset = 350 #300 # [mV] at 300 K
-    if cryo: offset = 350 # [mV] at 88 K
+    offset = 185#300 # [mV] at 300 K
+    if cryo: offset = 365 # [mV] at 88 K
     print('PEDESTAL OFFSET: ',offset)
     chip_register_pairs = []
     for chip_key in pedestal_chip.keys():
@@ -325,7 +329,8 @@ def find_global_dac_seed(c, pedestal_chip, normalization, cryo, vdda, verbose):
         c[chip_key].config.periodic_reset_cycles = 64 # registers [163-165]
         chip_register_pairs.append( (chip_key, list(range(0,65))+[128,163,164,165]) )
 
-    for i in range(20):
+    for i in range(3):
+        print(i)
         c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
         c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
     return

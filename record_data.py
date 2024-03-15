@@ -29,7 +29,7 @@ def datetime_now():
 	''' Return string with year, month, day, hour, minute '''
 	return time.strftime("%Y_%m_%d_%H_%M_%Z_%S")
 
-def main(file_count, runtime, message, packet, LRS, filename, **args):
+def main(file_count, runtime, message, packet, LRS, filename, pacman_config, **args):
 
     if not filename is None and file_count > 1:
         raise RuntimeError('All files will have same filename and will be overwritten')
@@ -43,7 +43,7 @@ def main(file_count, runtime, message, packet, LRS, filename, **args):
     os.mkdir(path)
 
     c = larpix.Controller()
-    c.io = larpix.io.PACMAN_IO(relaxed=True)
+    c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
 
     #data taking loop
     ctr=0
@@ -81,7 +81,8 @@ if __name__=='__main__':
                         type=int, help='''Number of output files to create, default inf''')
     parser.add_argument('--packet', action='store_true', default=False,\
                         help='''Generate packet file (default binary)''')
-
+    parser.add_argument('--pacman_config', default="io/pacman.json", \
+                        type=str, help='''Config specifying PACMANs''')
     parser.add_argument('--filename', '-f', default=None, \
                         type=str,  help='''Specifiy a file name''')
     args=parser.parse_args()
