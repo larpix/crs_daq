@@ -91,7 +91,7 @@ def get_good_roots(c, io_group, io_channels, root_chips=[11, 41, 71, 101]):
 def get_initial_controller(io_group, io_channels, vdda=0, pacman_version='v1rev3b'):
         #creating controller with pacman io
         c = larpix.Controller()
-        c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath='io/pacman_m0.json')
+        c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath='io/pacman_m1.json')
         c.io.double_send_packets = True
         print('getting initial controller')
         

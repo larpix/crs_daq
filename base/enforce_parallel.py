@@ -5,6 +5,23 @@ from base import utility_base
 import numpy as np
 from copy import deepcopy
 
+tag_to_config_map = {
+
+        'IOG1' : 0,
+        'IOG2' : 1,
+        'IOG3' : 2,
+        'IOG4' : 3,
+        'IOG5' : 4,
+        'IOG6' : 5,
+        'IOG7' : 6,
+        'IOG8' : 7,
+        'MOD0' : 0,
+        'MOD1' : 1,
+        'MOD2' : 2,
+        'MOD3' : 3,
+         None  : 0
+
+}
 
 def get_chips_by_io_group_io_channel(network_config, tiles=None, use_keys=None):
     

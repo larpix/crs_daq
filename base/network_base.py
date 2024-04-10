@@ -40,15 +40,15 @@ def network_ext_node(c, io_group, io_channel, iochannel_root_map):
 
 
 #@timebudget
-def network_ext_node_from_tuple(c, iog_ioc_cid):
-    c.add_network_node(iog_ioc_cid[0], iog_ioc_cid[1], \
+def network_ext_node_from_tuple(c, io_group, io_channel, chip_id):
+    c.add_network_node(io_group, io_channel, \
                        c.network_names, 'ext', root=True)
-    c.add_network_link(iog_ioc_cid[0], iog_ioc_cid[1], 'miso_us', \
-                       ('ext', iog_ioc_cid[2]), 0)
-    c.add_network_link(iog_ioc_cid[0], iog_ioc_cid[1], 'miso_ds', \
-                       (iog_ioc_cid[2],'ext'), 0)
-    c.add_network_link(iog_ioc_cid[0], iog_ioc_cid[1], 'mosi', \
-                       ('ext', iog_ioc_cid[2]), 0)
+    c.add_network_link(io_group, io_channel, 'miso_us', \
+                       ('ext', chip_id), 0)
+    c.add_network_link(io_group, io_channel, 'miso_ds', \
+                       (chip_id,'ext'), 0)
+    c.add_network_link(io_group, io_channel, 'mosi', \
+                       ('ext', chip_id), 0)
     return
 
 
@@ -593,7 +593,7 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured, \
         d["missing"][key.io_group][key.io_channel][key.chip_id].append(pair[1])
 
     now=time.strftime("%Y_%m_%d_%H_%M_%Z")
-    if file_prefix!=None: fname=file_prefix+'-network-'+now+'.json'
+    if file_prefix!=None: fname=file_prefix+'.json'
     if file_prefix==None: fname='network-'+now+'.json'
     with open(fname,'w') as out:
         json.dump(d, out, indent=4)

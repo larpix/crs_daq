@@ -12,8 +12,7 @@ warnings.filterwarnings("ignore")
 ######################################################
 ## Parameters for automatic file transfer to data drive 
 ## SHOULD END with /'
-destination_dir_='/data/commission/March2024/'
-
+destination_dir_='/data/commission/April2024/continued_pedestal/'
 ##3###################################################
 
 asic_config_paths_file_='.asic_configs_.json'
@@ -21,7 +20,8 @@ default_asic_config_paths_file_='.default_asic_configs_.json'
 network_config_paths_file_='.network_configs_.json'
 
 log_dir='log/'
-sup_log_='log/full_log.log'
+disabled_list_log_file_='disabled_list_log.json'
+asic_config_log_file_='asic_config_log.json'
 
 #####################################################
 ## Mappings of io_group-->pacman version and io_group/tile-->ASIC version
@@ -55,10 +55,10 @@ io_group_asic_version_={1:2, 2:2, 3:2, 4:2, 5:'2b', 6:'2b', 7:2, 8:2}
 ## For example, {1: {}, 2:{ 1 : [11, 12], 4: [55] }} excludes on io_group 2 chips 11,12 on tile 1, and chip 55 on tile 4 
 iog_exclude={
         1: {1:[], 2:[37], 3:[], 4:[], 5:[], 6:[], 7:[], 8:[]},
-        2: {1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[70], 8:[11]},
+        2: {1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[71], 8:[11]},
         3: {1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[], 8:[]},
         4: {2:[],5:[60], 7:[]},
-        5: {1:[], 2:[56, 80, 100], 3:[18], 4:[], 5:[], 6:[], 7:[], 8:[]}, 
+        5: {1:[], 2:[56, 80, 100], 3:[18], 4:[], 5:[], 6:[], 7:[106], 8:[]}, 
         6: {1:[], 2:[], 3:[], 4:[], 5:[72,73,83,92,93,102, 106], 6:[43], 7:[], 8:[108]},
         8: {2:[101]}
         }
@@ -72,12 +72,6 @@ asic_config_dir='asic_configs/'
 iog_VDDD_DAC = {1 : 40000, 2: 40000, 3 : 40000, 4: 40000, 5:31000, 6:31000, 7 : 40000, 8: 40000}
 iog_VDDA_DAC = {1 : 46500, 2: 46500, 3 : 46500, 4: 46500, 5:46500, 6:46500, 7 : 46500, 8: 46500 }
 ###################################################
-
-
-
-
-
-
 
 
 ######################################################################################################################3
@@ -99,4 +93,9 @@ if not os.path.isfile(network_config_paths_file_):
 if not os.path.isfile(asic_config_paths_file_):
     d={'configs':{}}
     with open(asic_config_paths_file_, 'w') as f:
+        json.dump(d, f)
+
+if not os.path.isfile(disabled_list_log_file_):
+    d={}
+    with open(disabled_list_log_file_, 'w') as f:
         json.dump(d, f)

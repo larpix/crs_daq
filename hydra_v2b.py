@@ -29,7 +29,7 @@ _default_tx_slice=15
 _default_r_term=2
 _default_i_rx=8
 _default_recheck=False
-
+v2b_root_ids=[21, 41, 71, 91]
 
 def main(io_group, file_prefix=_default_file_prefix, \
          disable_logger=_default_disable_logger, \
@@ -49,64 +49,64 @@ def main(io_group, file_prefix=_default_file_prefix, \
     c.io.reset_larpix(length=4096*4, io_group=io_group) #2048 
     time.sleep(4096*4*1e-6)
 
+    _file_prefix = file_prefix
 
     if True:
         now=time.strftime("%Y_%m_%d_%H_%M_%Z")
         config_name='controller-config-'+now+'.json'
+        #VERSION_SPECIFIC
+   
 
     for iog in [io_group]:
-        iog_ioc_cid=utility_base.iog_tile_to_iog_ioc_cid({io_group : io_group_pacman_tile_[io_group]}, io_group_asic_version_[iog])
-        
-        #VERSION_SPECIFIC
-        if io_group_asic_version_[iog]=='2b': 
-            print('inverting io group {} tiles {}'.format(iog, io_group_pacman_tile_[iog]))
-            pacman_base.invert_pacman_uart(c.io, iog, io_group_asic_version_[iog], \
+        print('inverting io group {} tiles {}'.format(iog, io_group_pacman_tile_[iog]))
+        pacman_base.invert_pacman_uart(c.io, iog, io_group_asic_version_[iog], \
                                        io_group_pacman_tile_[iog]) 
     
-    for g_c_id in iog_ioc_cid:
-        network_base.network_ext_node_from_tuple(c, g_c_id)
-    
-
-    for iog in [io_group]:
         print('Working on io_group={}'.format(iog))
         if io_group_asic_version_[iog]=='2b':
-            root_keys=[]        
             tiles=pacman_tile
             if pacman_tile is None:
                 tiles = io_group_pacman_tile_[iog]
+            else:
+                tiles = [pacman_tile]
             for tile in tiles:
-                io_channels = utility_base.tile_to_io_channel(tile)
-                candidate_root = network_base.setup_root(c, c.io, g_c_id[0], \
-                                                          g_c_id[1],\
-                                                          g_c_id[2], verbose, \
+
+                root_keys=[]        
+                io_channels = utility_base.tile_to_io_channel([tile])
+                for io_channel in io_channels:
+                    cid =  v2b_root_ids[ (io_channel-1) % 4]
+                    network_base.network_ext_node_from_tuple(c, iog, io_channel, cid)
+                    candidate_root = network_base.setup_root(c, c.io, iog, \
+                                                          io_channel,\
+                                                          cid, verbose, \
                                                           io_group_asic_version_[iog], \
                                                           0, 0, 15, 2, 8)
-                if candidate_root!=None: root_keys.append(candidate_root)
+                    if candidate_root!=None: root_keys.append(candidate_root)
            
-            print('ROOT KEYS: ',root_keys)
+                print('ROOT KEYS: ',root_keys)
 
-            iog_tile_to_root_keys=utility_base.partition_chip_keys_by_io_group_tile(root_keys)
-
-            for iog_tile in iog_tile_to_root_keys.keys():
-                network_base.initial_network(c, c.io, iog_tile[0], \
+                iog_tile_to_root_keys=utility_base.partition_chip_keys_by_io_group_tile(root_keys)
+                print(iog_tile_to_root_keys)
+                for iog_tile in iog_tile_to_root_keys.keys():
+                    network_base.initial_network(c, c.io, iog_tile[0], \
                                              iog_tile_to_root_keys[iog_tile], \
                                              verbose, \
                                              io_group_asic_version_[iog], ref_current_trim, \
                                              tx_diff, tx_slice, r_term, i_rx, exclude=iog_exclude[iog])
 
-            unconfigured=[]
-            if True:
-                for tile in io_group_pacman_tile_[iog]:
-                    out_of_network=network_base.iterate_waitlist(c, c.io, iog, \
+                    unconfigured=[]
+                    if True:
+                            
+                        out_of_network=network_base.iterate_waitlist(c, c.io, iog, \
                                                                  utility_base.tile_to_io_channel([tile]),
                                                                  verbose, \
                                                                  io_group_asic_version_[iog], \
                                                                  ref_current_trim,\
                                                                  tx_diff, tx_slice, \
                                                                  r_term, i_rx, exclude=iog_exclude[iog])
-                    unconfigured.extend(out_of_network)
-            
-            network_file = network_base.write_network_to_file(c, file_prefix, io_group_pacman_tile_,\
+                        unconfigured.extend(out_of_network)
+                if _file_prefix is None: file_prefix='iog-{}-pacman-tile-{}-hydra-network'.format(iog, tile) 
+                network_file = network_base.write_network_to_file(c, file_prefix, {io_group : [tile] },\
                                        unconfigured)
 
             return c, c.io

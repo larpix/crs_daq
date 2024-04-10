@@ -18,7 +18,8 @@ _default_verbose=False
 def main(verbose, \
         asic_config, \
         config_subdir,\
-        pacman_config):
+        pacman_config,
+        pid_logged=False):
         
         pacman_configs = {}
         with open(pacman_config, 'r') as f:
@@ -36,7 +37,7 @@ def main(verbose, \
             
             CONFIG=None
             if asic_config is None:
-                print('USING DEFAULT CONFIG')
+                print('Loading default config...')
                 CONFIG=utility_base.get_from_json(default_asic_config_paths_file_,io_group)
             else:
                 CONFIG='{}/{}'.format(asic_config, config_subdir)
@@ -79,11 +80,20 @@ def main(verbose, \
             io_group = io_group_ip_pair[0]
             pacman_base.enable_all_pacman_uart_from_io_group(c.io, io_group)
        
-        pos = int(pacman_configs['io_group'][0][0]//2)
+
+        pos=0
+        tag='configuring...'
+        if pid_logged:
+            pid = os.getpid()
+            tag = utility_base.get_from_process_log(pid)
+            pos = enforce_parallel.tag_to_config_map[tag]
+
         #enforce all configurations in parallel (one chip per io channel per cycle)
-        ok, diff, unconfigured = enforce_parallel.enforce_parallel(c, all_network_keys, pbar_desc='module{}'.format(pos), pbar_position=pos)
+        ok, diff, unconfigured = enforce_parallel.enforce_parallel(c, all_network_keys, pbar_desc=tag, pbar_position=pos)
         if not ok:
             raise RuntimeError(diff)
+
+        if pid_logged: print('\n{} configured successfully'.format(tag))
         return
 
 
@@ -95,6 +105,7 @@ if __name__=='__main__':
                         type=str, help='''Subdirectory in larger config dir. Ignroed if asic_config not specified''')
     parser.add_argument('--pacman_config', default="io/pacman.json", \
                         type=str, help='''Config specifying PACMANs''')
+    parser.add_argument('--pid_logged', action='store_true', default=False) 
     parser.add_argument('--verbose', '-v', action='store_true',  default=_default_verbose)
     args=parser.parse_args()
     c = main(**vars(args))

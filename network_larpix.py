@@ -55,7 +55,9 @@ def main(verbose,\
         controller_config, \
         io_group_tiles=None,
         pacman_config=None,
-        config_path=None):
+        config_path=None,
+        pid_logged=False,
+        update_default=_update_default):
     
 
     pacman_configs = {}
@@ -83,7 +85,6 @@ def main(verbose,\
 
         config = configs[str(io_group)]
         dd=utility_base.update_json(network_config_paths_file_, io_group, config)
-
         if io_group_asic_version_[io_group]=='2b':
             if verbose: print('loading network_v2b') 
             c =  network_base.network_v2b(config, tiles=tiles, io_group=io_group, pacman_config=pacman_config)
@@ -99,7 +100,7 @@ def main(verbose,\
         
         _update_now=False
         CONFIG=utility_base.get_from_json(default_asic_config_paths_file_,io_group)
-        if _update_default or CONFIG is None: 
+        if update_default or CONFIG is None: 
             config_path = config_loader.write_config_to_file(c, config_path) 
             _update_now=True
 
@@ -122,11 +123,16 @@ def main(verbose,\
         for iog in DCONFIGS.keys():
             config_loader.load_config_from_directory(nc, DCONFIGS[iog])
     pos=0
-    if True:
-        pos = int(pacman_configs['io_group'][0][0]//2)
-        ok, diff, unconfigured = enforce_iterative(nc, all_network_keys, configs=configs, pbar_desc='module{}'.format(pos), pbar_position=pos)
-        if not ok:
-            raise RuntimeError('Unconfigured chips!', diff)
+    tag='networking...'
+    if pid_logged:
+        pid = os.getpid()
+        tag = utility_base.get_from_process_log(pid)
+        pos = enforce_parallel.tag_to_config_map[tag]
+    ok, diff, unconfigured = enforce_iterative(nc, all_network_keys, configs=configs, pbar_desc=tag, pbar_position=pos)
+    if not ok:
+        raise RuntimeError('Unconfigured chips!', diff)
+    
+    if pid_logged: print('\n{} networked successfully'.format(tag))
     return c
 
 if __name__=='__main__':
@@ -138,6 +144,8 @@ if __name__=='__main__':
                         type=str, help='''Controller config specifying hydra network''')                  
     parser.add_argument('--pacman_config', default="io/pacman.json", \
                         type=str, help='''Config specifying PACMANs''')
+    parser.add_argument('--pid_logged', action='store_true', default=False)
+    parser.add_argument('--update_default', action='store_true', default=False)
     args=parser.parse_args()
     c = main(**vars(args))
 

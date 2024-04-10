@@ -212,8 +212,9 @@ def power_readback(io, io_group, pacman_version, tile):
             vddd=io.get_reg(0x24040+(i-1), io_group=io_group)
             idda=io.get_reg(0x24050+(i-1), io_group=io_group)
             iddd=io.get_reg(0x24060+(i-1), io_group=io_group)
-            print('Tile ',i,'  VDDA: ',vdda,' mV  IDDA: ',idda*0.1,' mA  ',
-                  'VDDD: ',vddd,' mV  IDDD: ',abs(iddd>>12),' mA')
+            print(iddd)
+            print('Tile ',i,'  VDDA: ',vdda,' mV  IDDA: ',int(idda*0.1),' mA  ',
+                  'VDDD: ',vddd,' mV  IDDD: ',int(iddd>>12),' mA')
             readback[i]=[vdda, idda*0.1, vddd, iddd>>12]
         elif pacman_version=='v1rev3' or 'v1revS1':
             vdda=io.get_reg(0x00024001+(i-1)*32+1, io_group=io_group)

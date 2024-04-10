@@ -7,31 +7,138 @@ import json
 #import asyncio
 import os
 import subprocess
-from signal import signal, SIGINT
+import time
 
 global oldfilename
 
 _broadcast_disable_nwrite=3
 
 
+def update_process_log(logfile='.envrc', status=0):
+    #update file logging background processes
+    # 0 means the process is completed
+    # 1 means process is running
+
+    locked_name=None
+    iretry=0
+    while locked_name is None:
+        locked_name=lock_file(logfile)
+        if locked_name is None:
+            time.sleep(0.1)
+            if iretry>10: print('failing to lock file... try={}'.format(iretry))
+            iretry+=1
+    
+    pid = os.getpid()
+
+    return pid
+   
+def get_from_process_log(pid, logfile='.envrc'):
+    with open(logfile, 'r') as f:
+        data=f.read()
+    pid=str(pid)
+    if pid in data:
+        lines=data.split('\n')
+        for line in lines:
+            if pid in line:
+                print( line.split('_PID={}'.format(pid))[0] )
+                return line.split('_PID={}'.format(pid))[0]
+    else:
+        return None
+
+    return None
+
+
 def get_from_json(file,key,meta_field='configs'):
     d={}
-    with open(file, 'r') as f:
-        d = json.load(f)
+    iretry=0
+    loaded=False
+    while not loaded:
+        iretry+=1
+        try:
+            with open(file, 'r') as f:
+                d = json.load(f)
+            loaded=True
+        except:
+            if iretry>10:
+                print('Issue opening file {}'.format(file))
+                time.sleep(0.1)
+
     if not meta_field in d.keys():
         return None
+    
     if not str(key) in d[meta_field].keys():
         return None
+    
     return d[meta_field][str(key)]
 
-def update_json(file,key, data,meta_field='configs'):
+def clear_json(file, meta_field='configs'):
+    return
+
+def lock_file(fname):
+    split = fname.split('/')
+    split[-1]='.temp_lock_'+split[-1]
+    new_name = '/'.join(split)
+    try:
+        os.rename(fname, new_name)
+        return new_name
+    except:
+        return None
+
+def unlock_file(locked_name, fname):
+    split = fname.split('/')
+    split[-1]=fname
+    new_name = '/'.join(split)
+    try:
+        os.rename(locked_name, new_name)
+        return True
+    except:
+        time.sleep(0.1)
+        return False
+
+
+def update_json(file,key, data,meta_field='configs'): 
+    loaded=False 
+    locked_name=None
+    iretry=0
+    while locked_name is None:
+        locked_name=lock_file(file)
+        if locked_name is None:
+            time.sleep(0.1)
+            if iretry>10: print('failing to lock file... try={}'.format(iretry))
+            iretry+=1
+
     d={}
-    with open(file, 'r') as f:
-        d = json.load(f)
+    iretry=0
+    while not loaded:
+        iretry+=1
+        try:
+            with open(locked_name, 'r') as f:
+                d = json.load(f)
+            loaded=True
+        except:
+            time.sleep(0.1)
+            if itretry>10: print('Warning: unable to open file {}'.format(file))
 
     d[meta_field][str(key)]=data
-    with open(file, 'w') as f:
-        json.dump(d,f,indent=4)
+    written=False
+    iretry=0
+    while not written:
+        iretry+=1
+        try:
+            with open(locked_name, 'w') as f:
+                json.dump(d,f,indent=4)
+            written=True
+        except:
+            time.sleep(0.1)
+            if itretry>10: print('Warning: unable to update file {}'.format(file))
+
+    unlocked=False
+    iretry=0
+    while not unlocked:
+        unlocked = unlock_file(locked_name, file)
+        if not unlocked:
+            if iretry>10: print('failing to unlock file... try={}'.format(iretry))
+            iretry+=1
 
     return d
 
@@ -94,7 +201,7 @@ def data_filename(c, packet):
 
 
 
-def data(c, runtime, packet, LRS=False, fname=None, writedir=None):
+def data(c, runtime, packet, LRS=False, fname=None):
     if packet==True:
         if fname is None: fname='packets-'+now+'.h5'
         c.logger = larpix.logger.HDF5Logger(filename=fname)
@@ -118,7 +225,7 @@ def data(c, runtime, packet, LRS=False, fname=None, writedir=None):
         c.io.disable_packet_parsing = True
         c.io.enable_raw_file_writing = True
         if fname is None: fname='binary-'+now+'.h5'
-        c.io.raw_filename=writedir+'/'+fname
+        c.io.raw_filename=fname
         c.io.join()
         rhdf5.to_rawfile(filename=c.io.raw_filename, \
                          io_version=pacman_msg_fmt.latest_version)
@@ -289,6 +396,8 @@ def partition_chip_keys_by_io_group_tile(chip_keys):
             if ck.io_group==key[0] and \
                io_channel_to_tile(ck.io_channel)==key[1]:
                 d[key].append(ck)
+    for key in list(d.keys()):
+        if len(d[key])==0: del d[key]
     return d
 
 def partition_chip_keys_by_tile(chip_keys):
@@ -296,6 +405,9 @@ def partition_chip_keys_by_tile(chip_keys):
     for i in range(1,9): d[i]=[]
     for ck in chip_keys:
         d[io_channel_to_tile(ck.io_channel)].append(ck)
+    for key in list(d.keys()):
+        if len(d[key])==0: del d[key]
+
     return d        
 
 def all_io_channels(c, io_group):
@@ -339,7 +451,7 @@ def iog_tile_to_iog_ioc_cid(io_group_pacman_tile, asic_version):
 def tile_to_io_channel(tile):
     io_channel=[]
     for t in tile:
-        for i in range(1,5,1):
+        for i in range(1,5):
             io_channel.append( ((t-1)*4)+i )
     return io_channel
 

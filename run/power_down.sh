@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
 
+if [ $# -eq 0 ]; then
+	echo "NOTHING POWERED DOWN--Specify which modules!"
+fi
+
 if [[ "$1" == *"0"* ]]; then
 python power_down_larpix.py --pacman_config io/pacman_m0.json 
 echo "Module0 powered down"

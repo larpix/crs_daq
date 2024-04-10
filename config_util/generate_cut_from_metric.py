@@ -79,6 +79,12 @@ def apply_cut_generate_disabled(d, metric, cut, polarity):
     tiles = set(unique_to_tiles( np.array(list(d.keys())) ))
 
     disabled_list = {}
+    
+    disabled_list['meta']={ \
+            'metric'   : metric,
+            'polarity' : polarity,
+            'cut'      : cut
+            {
 
     for io_group in io_groups:
         for tile in tiles:

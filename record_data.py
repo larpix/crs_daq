@@ -14,33 +14,32 @@ _default_file_count=-1
 _default_runtime=300
 _default_message='collecting data...'
 _default_packet=False
-_default_LRS = False
 
 def ctrlc_handler(signal_received, frame):
      
     #check if light system is running, and if so, stop it
     
-    if LRS: subprocess.call(["echo 0 > ~/.adc_watchdog_file"],shell=True)
+    #if LRS: subprocess.call(["echo 0 > ~/.adc_watchdog_file"],shell=True)
 
-    print('CTRL-C detected. Exiting.')
+    print('CTRL-C detected. Exiting gracefully.')
     exit(0)
 
 def datetime_now():
 	''' Return string with year, month, day, hour, minute '''
 	return time.strftime("%Y_%m_%d_%H_%M_%Z_%S")
 
-def main(file_count, runtime, message, packet, LRS, filename, pacman_config, **args):
+def main(file_count, runtime, message, packet, filename, pacman_config, **args):
 
     if not filename is None and file_count > 1:
         raise RuntimeError('All files will have same filename and will be overwritten')
 
-    #copy current ASIC config 
-    path='{}/asic_configs_{}'.format(asic_config_dir, datetime_now())
+#    #copy current ASIC config 
+#    path='{}/asic_configs_{}'.format(asic_config_dir, datetime_now())
    
-    if os.path.isdir(path):
-        print('Error recording configs--timestamped config files already exist')
-        return
-    os.mkdir(path)
+#    if os.path.isdir(path):
+#        print('Error recording configs--timestamped config files already exist')
+#return
+#    os.mkdir(path)
 
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
@@ -50,17 +49,17 @@ def main(file_count, runtime, message, packet, LRS, filename, pacman_config, **a
     while ctr<file_count or file_count < 0:
         
         run_start = datetime_now()
-
-        filename = utility_base.data_filename(c, packet) 
+        if filename is None or ctr>0: filename = destination_dir_ + '/' + utility_base.data_filename(c, packet)
+        elif ctr==0: filename = destination_dir_ + '/' + filename 
         
-        utility_base.data(c, runtime, packet, LRS, filename, writedir=destination_dir_)
+        print(filename)
+        utility_base.data(c, runtime, packet, False, filename)
         metadata = {
                 'filename'   : filename,
                 'run_start'  : run_start,
                 'run_end'    : datetime_now(),
                 'message'    : message,
-                'asic_config': path,
-                'LRS'        : LRS,
+                'asic_config': path
                 }
         ctr+=1
     
@@ -70,9 +69,6 @@ def main(file_count, runtime, message, packet, LRS, filename, pacman_config, **a
 if __name__=='__main__':
     signal(SIGINT, ctrlc_handler)
     parser = argparse.ArgumentParser()
-    parser.add_argument('--LRS', default=_default_LRS, \
-                        action='store_true', help='''True to run LRS''')
-
     parser.add_argument('--message', '-m', default=_default_message, \
                         type=str,  help='''Message logged with file''')
     parser.add_argument('--runtime', default=_default_runtime, \
