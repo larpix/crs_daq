@@ -5,13 +5,19 @@ import larpix
 import larpix.io
 import argparse
 from base import config_loader
-from RUNENV import *
 from tqdm import tqdm
 from base import pacman_base
 from base import utility_base
 from base import enforce_parallel
 from base.utility_base import now
 import json
+import sys
+import os
+from runenv import runenv as RUN
+
+module = sys.modules[__name__]
+for var in RUN.config.keys():
+    setattr(module, var, getattr(RUN, var))
 
 _default_verbose=False
 

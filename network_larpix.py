@@ -3,7 +3,7 @@ warnings.filterwarnings("ignore")
 import larpix
 import time
 import larpix.io
-from RUNENV import *
+from runenv import runenv as RUN
 import argparse
 from base import config_loader
 from base import network_base
@@ -14,10 +14,16 @@ from base import enforce_parallel
 import json
 from base.utility_base import now
 import logging
+import sys
+import os
+
+module = sys.modules[__name__]
+for var in RUN.config.keys():
+    setattr(module, var, getattr(RUN, var))
 
 _default_verbose = False
 _default_controller_config = None
-_update_default=True
+_update_default=False
 
 def enforce_iterative(nc, all_network_keys, n=3, configs=None, pbar_desc='p', pbar_position=0):
     ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys, pbar_desc=pbar_desc, pbar_position=pbar_position)
@@ -59,17 +65,16 @@ def main(verbose,\
         pid_logged=False,
         update_default=_update_default):
     
-
     pacman_configs = {}
     with open(pacman_config, 'r') as f:
         pacman_configs = json.load(f)
     
-    logging.info(pacman_configs['io_group'])
     configs = {}
     with open(controller_config, 'r') as f:
         configs = json.load(f)
  
     DCONFIGS={}
+
     # for each io_group, perform networking     
     all_network_keys = []
     for io_group_ip_pair in pacman_configs['io_group']:

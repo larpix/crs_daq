@@ -84,7 +84,7 @@ def apply_cut_generate_disabled(d, metric, cut, polarity):
             'metric'   : metric,
             'polarity' : polarity,
             'cut'      : cut
-            {
+            }
 
     for io_group in io_groups:
         for tile in tiles:

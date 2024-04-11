@@ -9,10 +9,13 @@ import argparse
 import time
 import math
 import asyncio
-from RUNENV import *
+import sys
+from runenv import runenv as RUN
 
-#from timebudget import timebudget
-#from base.v2a_base import *
+module = sys.modules[__name__]
+for var in RUN.config.keys():
+    setattr(module, var, getattr(RUN, var))
+
 
 
 ##########################################################################
@@ -212,7 +215,6 @@ def power_readback(io, io_group, pacman_version, tile):
             vddd=io.get_reg(0x24040+(i-1), io_group=io_group)
             idda=io.get_reg(0x24050+(i-1), io_group=io_group)
             iddd=io.get_reg(0x24060+(i-1), io_group=io_group)
-            print(iddd)
             print('Tile ',i,'  VDDA: ',vdda,' mV  IDDA: ',int(idda*0.1),' mA  ',
                   'VDDD: ',vddd,' mV  IDDD: ',int(iddd>>12),' mA')
             readback[i]=[vdda, idda*0.1, vddd, iddd>>12]

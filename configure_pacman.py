@@ -1,6 +1,5 @@
 import warnings
 warnings.filterwarnings("ignore")
-from RUNENV import *
 import larpix
 import argparse
 import larpix.io
@@ -9,10 +8,16 @@ from base import pacman_base
 from base.utility_base import now
 import json
 import logging
+import sys
 
 _default_verbose=False
 skip_readback=False
 
+
+from runenv import runenv as RUN
+module = sys.modules[__name__]
+for var in RUN.config.keys():
+    setattr(module, var, getattr(RUN, var))
 
 def main(verbose, pacman_config):
     #number of clock cycles to hold for hard reset of LArPix
@@ -29,10 +34,10 @@ def main(verbose, pacman_config):
     with open(pacman_config, 'r') as f:
         pacman_configs = json.load(f)
 
-    print(pacman_configs)
     # for each io_group, perform networking 
     config_path = None
-    
+   
+
     for io_group_ip_pair in pacman_configs['io_group']:
         io_group = io_group_ip_pair[0]
         print('Configuring IO Group {}'.format(io_group))
@@ -40,7 +45,6 @@ def main(verbose, pacman_config):
         pacman_version = iog_pacman_version_[io_group]
         VDDD_DAC = iog_VDDD_DAC[io_group]
         VDDA_DAC = iog_VDDA_DAC[io_group]
-
 
         if verbose:
             print('disabling tile power and clock')
@@ -75,8 +79,8 @@ def main(verbose, pacman_config):
                 time.sleep(0.1)
 
                 #set voltage dacs VDDD first 
-                c.io.set_reg(VDDD_REG+2*(PACMAN_TILE-1), VDDD_DAC, io_group=io_group)
-                c.io.set_reg(VDDA_REG+2*(PACMAN_TILE-1), VDDA_DAC, io_group=io_group)
+                c.io.set_reg(VDDD_REG+2*(PACMAN_TILE-1), VDDD_DAC[PACMAN_TILE-1], io_group=io_group)
+                c.io.set_reg(VDDA_REG+2*(PACMAN_TILE-1), VDDA_DAC[PACMAN_TILE-1], io_group=io_group)
         
         elif pacman_version=='v1rev4':
             VDDD_REG=0x24020
@@ -89,8 +93,8 @@ def main(verbose, pacman_config):
                 time.sleep(0.2)
 
                 #set voltage dacs VDDD first 
-                c.io.set_reg(VDDD_REG+(PACMAN_TILE-1), VDDD_DAC, io_group=io_group)
-                c.io.set_reg(VDDA_REG+(PACMAN_TILE-1), VDDA_DAC, io_group=io_group)
+                c.io.set_reg(VDDD_REG+(PACMAN_TILE-1), VDDD_DAC[PACMAN_TILE-1], io_group=io_group)
+                c.io.set_reg(VDDA_REG+(PACMAN_TILE-1), VDDA_DAC[PACMAN_TILE-1], io_group=io_group)
 
         if verbose:  print('reset larpix for n cycles',RESET_CYCLES)
         #   - set reset cycles

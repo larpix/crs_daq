@@ -8,7 +8,10 @@ from base import pacman_base
 import numpy as np
 #from timebudget import timebudget
 #import asyncio
-from RUNENV import io_group_asic_version_
+
+from runenv import runenv as RUN
+io_group_asic_version_=RUN.io_group_asic_version_
+
 ref_current_trim=0
 i_tx_diff=0
 tx_slices=15
