@@ -1,6 +1,15 @@
 import larpix
 import argparse
-from RUNENV import *
+
+import sys
+
+from runenv import runenv as RUN
+
+module = sys.modules[__name__]
+for var in RUN.config.keys():
+    setattr(module, var, getattr(RUN, var))
+
+
 from base import config_loader
 import shutil
 import time
