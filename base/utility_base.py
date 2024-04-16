@@ -65,14 +65,14 @@ def get_from_json(file,key,meta_field='configs'):
 
     if not meta_field in d.keys():
         return None
-    
+   
+    if key=='all':
+        return d[meta_field]
+
     if not str(key) in d[meta_field].keys():
         return None
     
     return d[meta_field][str(key)]
-
-def clear_json(file, meta_field='configs'):
-    return
 
 def lock_file(fname):
     split = fname.split('/')
@@ -143,7 +143,7 @@ def update_json(file,key, data,meta_field='configs'):
     return d
 
 def now():
-    return time.strftime("%Y_%m_%d_%H_%M_%Z")
+    return time.strftime("%Y_%m_%d_%H_%M_%S_%Z")
 
 def broadcast_disable(c, target_chips=None):
     broadcast_form = '{}-{}-255'

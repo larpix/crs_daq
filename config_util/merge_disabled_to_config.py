@@ -2,6 +2,7 @@ import argparse
 import json
 import numpy as np
 import os
+from config_dtime import datetime_now
 
 v2a_nonrouted_channels = [6,7,8,9,22,23,24,25,38,39,40,54,55,56,57]
 
@@ -15,20 +16,26 @@ def parse_disabled_json(disabled_json):
 
     channel_masks = {}
     for key in disabled_list:
+        if key=='meta': continue
         channel_masks[key] = [1 if channel in disabled_list[key] else 0 for channel in range(64)]
 
-    return channel_masks
+    meta = None
+    if 'meta' in disabled_list.keys():
+        meta = disabled_list['meta']
+    
+    return channel_masks, meta
 
 def main(*files, disabled_json, **kwargs):
-        channel_masks=parse_disabled_json(disabled_json)
+        channel_masks, meta =parse_disabled_json(disabled_json)
         for file in files:
                 config={}
                 with open(file, 'r') as f: config=json.load(f)
                 
-                chip_key=config['ASIC_ID']
-                version = config['ASIC_VERSION']
+                chip_key=config['meta']['ASIC_ID']
+                version = config['meta']['ASIC_VERSION']
 
                 if chip_key in channel_masks.keys():
+                    if not 'channel_mask' in config.keys(): config['channel_mask']=[1]*64
                     _s = sum(config['channel_mask'])
                     mask = np.array(config['channel_mask'])+np.array(channel_masks[chip_key]) 
                     config['channel_mask'] = [1 if val>0 else 0 for val in mask]
@@ -39,6 +46,12 @@ def main(*files, disabled_json, **kwargs):
                             config['channel_mask'][channel]=1
                     print(chip_key, ': disabled', sum(config['channel_mask'])-_s, 'keys')
                     config['csa_enable']=[1 if val==0 else 0 for val in channel_masks[chip_key]]
+
+                
+                if 'meta' in config.keys():
+                    config['meta']['last_update'] = datetime_now()
+                    if not 'disabled_lists' in config['meta'].keys(): config['meta']['disabled_lists'] = []
+                    config['meta']['disabled_lists'].append(meta)
 
                 with open(file, 'w') as f: json.dump(config, f, indent=4)
 

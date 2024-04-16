@@ -13,13 +13,13 @@ asic_config_dir=RUN.asic_config_dir
 hydra_registers = ['enable_piso_downstream', 'enable_piso_upstream', 'enable_posi', 'enable_miso_downstream', 'enable_miso_upstream', 'enable_mosi']
 
 def datetime_now():
-	''' Return string with year, month, day, hour, minute '''
-	return time.strftime("%Y_%m_%d_%H_%M_%Z")
+    return utility_base.now()
 
 def write_config_to_file(c, path=None, chip_key=None, description='default'):
 
+    now = datetime_now()
     if path is None:
-        path='{}/asic_configs_{}'.format(asic_config_dir, datetime_now())
+        path='{}/asic_configs_{}'.format(asic_config_dir, now)
 
     if not os.path.isdir(path): os.mkdir(path)
 
@@ -32,11 +32,15 @@ def write_config_to_file(c, path=None, chip_key=None, description='default'):
 
     for chip in chips:
         with open(path+'/config_{}.json'.format(str(chip)), 'w') as f:
-            chip_dict = c[chip].config.to_dict()
-            chip_dict['CHIP_KEY']=str(chip)
-            chip_dict['ASIC_ID']='{}-{}-{}'.format(chip.io_group, utility_base.io_channel_to_tile(chip.io_channel), chip.chip_id)
-            chip_dict['ASIC_VERSION'] = c[chip].asic_version
-            chip_dict['description'] = description
+            full_dict = c[chip].config.to_dict()
+            chip_dict = {key : full_dict[key] for key in c[chip].config.get_nondefault_registers().keys()} 
+            chip_dict['meta']={}
+            chip_dict['meta']['CHIP_KEY']=str(chip)
+            chip_dict['meta']['ASIC_ID']='{}-{}-{}'.format(chip.io_group, utility_base.io_channel_to_tile(chip.io_channel), chip.chip_id)
+            chip_dict['meta']['ASIC_VERSION'] = c[chip].asic_version
+            chip_dict['meta']['description'] = description
+            chip_dict['meta']['created'] = now
+            chip_dict['meta']['last_update'] = now
             json.dump( chip_dict , f, indent=4)
 
     return path
@@ -77,7 +81,7 @@ def load_config_from_file_existing_network(c, config):
     asic_config={}
     with open(config, 'r') as f: asic_config=json.load(f)
 
-    chip_key = asic_config['CHIP_KEY']
+    chip_key = asic_config['meta']['CHIP_KEY']
     key_tile = utility_base.io_channel_to_tile(larpix.key.Key(chip_key).io_channel)
     ids = chip_key.split('-')
     new_key = '{}-{}-{}'.format(ids[0], key_tile, ids[2])
@@ -100,12 +104,9 @@ def load_config_from_file_existing_network(c, config):
         print('unable to find chip:', chip_key)
 
     for key in asic_config.keys():
-        if key=='CHIP_KEY': continue
-        if key=='ASIC_ID': continue
-        if key=='ASIC_VERSION': continue
         if key in hydra_registers: continue 
         if key=='chip_id': continue
-        if key=='description': continue
+        if key=='meta': continue
         setattr(c[larpix.key.Key(new_id)].config, key, asic_config[key])
 
 
@@ -117,9 +118,9 @@ def load_config_from_file(c, config):
     asic_config={}
     with open(config, 'r') as f: asic_config=json.load(f)
 
-    chip_key = asic_config['CHIP_KEY']
-    asic_key = asic_config['ASIC_ID']
-    version = asic_config['ASIC_VERSION'] 
+    chip_key = asic_config['meta']['CHIP_KEY']
+    asic_key = asic_config['meta']['ASIC_ID']
+    version = asic_config['meta']['ASIC_VERSION'] 
     key_tile = utility_base.io_channel_to_tile(larpix.key.Key(chip_key).io_channel)   
     
     if not chip_key in c.chips:
@@ -138,10 +139,7 @@ def load_config_from_file(c, config):
             c.add_chip(chip_key, version=version)
 
     for key in asic_config.keys():
-        if key=='CHIP_KEY': continue
-        if key=='ASIC_ID': continue
-        if key=='ASIC_VERSION': continue
-        if key=='description': continue 
+        if key=='meta': continue 
         #if key in hydra_registers: continue 
 
         setattr(c[chip_key].config, key, asic_config[key])

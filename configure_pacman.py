@@ -4,11 +4,12 @@ import larpix
 import argparse
 import larpix.io
 import time
-from base import pacman_base
+from base import pacman_base, utility_base
 from base.utility_base import now
 import json
 import logging
 import sys
+import os
 
 _default_verbose=False
 skip_readback=False
@@ -20,9 +21,9 @@ for var in RUN.config.keys():
     setattr(module, var, getattr(RUN, var))
 
 def main(verbose, pacman_config):
+    
     #number of clock cycles to hold for hard reset of LArPix
     RESET_CYCLES=4096
- 
     pacman_configs = {}
     with open(pacman_config, 'r') as f:
         pacman_configs = json.load(f)
@@ -67,7 +68,7 @@ def main(verbose, pacman_config):
         
         VDDA_REG=None
         VDDD_REG=None
-        
+
         if pacman_version=='v1rev3' or pacman_version=='v1revS1' or pacman_version=='v1rev3b':
             VDDD_REG=0x24131
             VDDA_REG=0x24130
@@ -130,6 +131,9 @@ def main(verbose, pacman_config):
         #disable trigger forwarding
         c.io.set_reg(0x2014, 0xffffffff, io_group=io_group)
         time.sleep(0.01)
+        
+        utility_base.update_json(asic_config_paths_file_, io_group,None )
+        utility_base.update_json(network_config_paths_file_, io_group,None )
         
     return
 

@@ -61,15 +61,14 @@ def main(file_count, runtime, message, packet, filename, pacman_config, **args):
         if filename is None or ctr>0: filename = destination_dir_ + '/' + utility_base.data_filename(c, packet)
         elif ctr==0: filename = destination_dir_ + '/' + filename 
         
-        print(filename)
         utility_base.data(c, runtime, packet, False, filename)
-        metadata = {
-                'filename'   : filename,
-                'run_start'  : run_start,
-                'run_end'    : datetime_now(),
-                'message'    : message,
-                'asic_config': path
-                }
+        #metadata = {
+        #        'filename'   : filename,
+        #        'run_start'  : run_start,
+        #        'run_end'    : datetime_now(),
+        #        'message'    : message,
+        #        'asic_config': path
+        #        }
         ctr+=1
     
 

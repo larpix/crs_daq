@@ -14,10 +14,18 @@ def main(*files, **kwargs):
             with open(file, 'r') as f: flist=json.load(f)
             
             for key in flist.keys():
-                if not key in full_list.keys():
-                    full_list[key] = flist[key]
+                if key=='meta':
+                    if not key in full_list.keys():
+                        full_list[key]={}
+
+                    for subkey in flist[key].keys():
+                        full_list[key][sub_key] = flist[key][subkey]
                 else:
-                    full_list[key] = list(set(flist[key] + full_list[key]))
+
+                    if not key in full_list.keys():
+                        full_list[key] = flist[key]
+                    else:
+                        full_list[key] = list(set(flist[key] + full_list[key]))
 
         
         fname = 'combined-'+datetime_now()+'.json'

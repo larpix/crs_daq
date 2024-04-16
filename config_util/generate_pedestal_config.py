@@ -4,6 +4,8 @@ import argparse
 from tqdm import tqdm
 import os
 import json
+from config_dtime import datetime_now
+
 _default_verbose=False
 _default_periodic_trigger_cycles=400000
 _default_periodic_reset_cycles=4096 #409600
@@ -14,6 +16,7 @@ _default_tx_diff=0
 _default_tx_slice=15
 _default_r_term=2
 _default_i_rx=8
+
 
 
 def main(input_files, verbose, \
@@ -43,6 +46,9 @@ def main(input_files, verbose, \
             if not vref_dac is None: config['vref_dac'] = vref_dac
             config['periodic_trigger_cycles'] = periodic_trigger_cycles
             config['periodic_reset_cycles'] = periodic_reset_cycles
+            if 'meta' in config.keys():
+                config['meta']['last_update'] = datetime_now()
+                config['meta']['description']  = 'pedestal'
 
             with open(file, 'w') as f: json.dump(config, f, indent=4)
                            

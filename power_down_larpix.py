@@ -2,7 +2,7 @@ import larpix
 import argparse
 import larpix.io
 import time
-from base import pacman_base
+from base import pacman_base, utility_base
 import json
 import os
 from runenv import runenv as RUN
@@ -15,8 +15,7 @@ for var in RUN.config.keys():
 _default_verbose=False
 
 def main(verbose, pacman_config):
-     
-
+    
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
 
@@ -29,11 +28,9 @@ def main(verbose, pacman_config):
         # disable tile power, LARPIX clock
         c.io.set_reg(0x00000010, 0, io_group=io_group)
         c.io.set_reg(0x00000014, 0, io_group=io_group)
-   
-    try:     
-        os.remove(env_db)
-    except:
-        pass
+
+        utility_base.update_json(asic_config_paths_file_, io_group,None )
+        utility_base.update_json(network_config_paths_file_, io_group,None )
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()

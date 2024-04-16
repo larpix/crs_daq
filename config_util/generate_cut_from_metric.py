@@ -57,7 +57,7 @@ def parse_file(filename, max_entries=-1):
     chips = f['packets']['chip_id'][mask][:max_entries]
 
     print("Number of packets in parsed files =", len(unique_id))
-    for chip in tqdm.tqdm(range(11, 111), desc='looping over chip_id'):
+    for chip in tqdm.tqdm(range(11, 111), desc='parsing data...'):
         _iomask = chips==chip
         _adc = adc[_iomask]
         _unique_id = unique_id[_iomask]
@@ -71,7 +71,7 @@ def parse_file(filename, max_entries=-1):
     return d
 
 
-def apply_cut_generate_disabled(d, metric, cut, polarity):
+def apply_cut_generate_disabled(d, metric, cut, polarity, file):
     nonrouted_v2a_channels=[6,7,8,9,22,23,24,25,38,39,40,54,55,56,57]
     routed_v2a_channels=[i for i in range(64) if i not in nonrouted_v2a_channels]
     
@@ -80,11 +80,17 @@ def apply_cut_generate_disabled(d, metric, cut, polarity):
 
     disabled_list = {}
     
+    timestamp=datetime_now()
+    fname='cut-'+timestamp+'.json'
     disabled_list['meta']={ \
+            fname : {\
             'metric'   : metric,
             'polarity' : polarity,
-            'cut'      : cut
+            'cut'      : cut,
+            'created': timestamp,
+            'datafile' : file
             }
+        }
 
     for io_group in io_groups:
         for tile in tiles:
@@ -110,7 +116,6 @@ def apply_cut_generate_disabled(d, metric, cut, polarity):
 
             print('Number of channels disabled on tile {}-{}: {}'.format(io_group, tile, nchan))
     
-        fname='cut-'+datetime_now()+'.h5'
     with open(fname, 'w') as f:
         json.dump(disabled_list, f, indent=4)
 
@@ -133,7 +138,7 @@ def main(filename=_default_filename,
         elif metric=='rate':
             cut=_default_rate_cut
 
-    apply_cut_generate_disabled( d, metric, cut, polarity )
+    apply_cut_generate_disabled( d, metric, cut, polarity, filename)
 
     
 if __name__=='__main__':

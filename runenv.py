@@ -1,7 +1,8 @@
+import warnings
+warnings.filterwarnings("ignore")
 import json
 import os
 import sys
-
 
 class runenv:
        
@@ -25,8 +26,11 @@ class runenv:
 
         if not os.path.isdir(destination_dir_): os.mkdir(destination_dir_)
         if not os.path.isdir(log_dir): os.mkdir(log_dir)
+        if not os.path.isdir(monitor_dir_): os.mkdir(monitor_dir_)
         if not os.path.isdir(asic_config_dir): os.mkdir(asic_config_dir)
 
+        if not os.path.isfile(archive_status_file):
+            os.system('echo 0 > {}'.format(archive_status_file))
         if not os.path.isfile(default_asic_config_paths_file_):
             d={'configs':{}}
             with open(default_asic_config_paths_file_, 'w') as f:
@@ -46,7 +50,7 @@ class runenv:
             d={}
             with open(disabled_list_log_file_, 'w') as f:
                 json.dump(d, f)
-        
+
         def __init__(self, config_file='RUN_CONFIG.json'):
             
             ''' Constructor for specific instance with non-default config file name''' 
