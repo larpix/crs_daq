@@ -1,5 +1,6 @@
 import warnings
 warnings.filterwarnings("ignore")
+import argparse
 import time
 import sys
 import os
@@ -45,7 +46,7 @@ def set_archive_status(status):
 if not os.path.isfile(archive_status_file):
     os.system('echo {} > {}'.format(0, archive_status_file))
 
-def main():
+def main(monitor_dir):
 
     # monitor_dir is dir to write files for influx or other db, if available
    
@@ -94,10 +95,15 @@ def main():
             shutil.copy(file, hydra_monitor_dir )
 
     # ORGANIZE temp dir and move to monitor_dir with timestamp
-    os.rename(monitor_name,'{}/{}'.format(monitor_dir_, monitor_name.split('.')[-1]) )
+    shutil.move(monitor_name,'{}/{}'.format(monitor_dir, monitor_name.split('.')[-1]) )
     # WRITE status=0 into archive_status_file
     set_archive_status(0)
 
 
 if __name__=='__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--monitor_dir', type=str, default=monitor_dir_, \
+                        help='''Directory to write archive to''')
+    args=parser.parse_args()
+    main(**vars(args))
+

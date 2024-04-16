@@ -37,7 +37,7 @@ def datetime_now():
 	''' Return string with year, month, day, hour, minute '''
 	return time.strftime("%Y_%m_%d_%H_%M_%Z_%S")
 
-def main(file_count, runtime, message, packet, filename, pacman_config, **args):
+def main(file_count, runtime, message, packet, filename, pacman_config, return_filename, **args):
 
     if not filename is None and file_count > 1:
         raise RuntimeError('All files will have same filename and will be overwritten')
@@ -49,6 +49,9 @@ def main(file_count, runtime, message, packet, filename, pacman_config, **args):
 #        print('Error recording configs--timestamped config files already exist')
 #return
 #    os.mkdir(path)
+
+    #Launch archiving process in the background to copy ASIC configs / detector parameters
+    os.system('python archive.py --monitor_dir {} &'.format(destination_dir_))
 
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
@@ -71,6 +74,8 @@ def main(file_count, runtime, message, packet, filename, pacman_config, **args):
         #        }
         ctr+=1
     
+    if return_filename:
+        return filename
 
     return  
 
@@ -89,5 +94,6 @@ if __name__=='__main__':
                         type=str, help='''Config specifying PACMANs''')
     parser.add_argument('--filename', '-f', default=None, \
                         type=str,  help='''Specifiy a file name''')
+    parser.add_argument('--return_filename', action='store_true', help='''Return last filename''')
     args=parser.parse_args()
     c = main(**vars(args))
