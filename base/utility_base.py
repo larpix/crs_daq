@@ -64,8 +64,15 @@ def get_from_json(file,key,meta_field='configs'):
                 time.sleep(0.1)
 
     if not meta_field in d.keys():
-        return None
-   
+        if key=='all':
+            return d
+
+        if not str(key) in d.keys():
+            return None
+        
+        return d[str(key)]
+
+
     if key=='all':
         return d[meta_field]
 
@@ -119,7 +126,10 @@ def update_json(file,key, data,meta_field='configs'):
             time.sleep(0.1)
             if itretry>10: print('Warning: unable to open file {}'.format(file))
 
-    d[meta_field][str(key)]=data
+    
+    if meta_field in d.keys(): d[meta_field][str(key)]=data
+    else: d[str(key)]=data
+
     written=False
     iretry=0
     while not written:

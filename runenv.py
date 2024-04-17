@@ -32,17 +32,17 @@ class runenv:
         if not os.path.isfile(archive_status_file):
             os.system('echo 0 > {}'.format(archive_status_file))
         if not os.path.isfile(default_asic_config_paths_file_):
-            d={'configs':{}}
+            d={}
             with open(default_asic_config_paths_file_, 'w') as f:
                 json.dump(d, f)
 
         if not os.path.isfile(network_config_paths_file_):
-            d={'configs':{}}
+            d={}
             with open(network_config_paths_file_, 'w') as f:
                 json.dump(d, f)
 
         if not os.path.isfile(asic_config_paths_file_):
-            d={'configs':{}}
+            d={}
             with open(asic_config_paths_file_, 'w') as f:
                 json.dump(d, f)
 
