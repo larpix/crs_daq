@@ -1,3 +1,5 @@
+import warnings
+warnings.filterwarnings("ignore")
 import larpix
 import argparse
 import larpix.io
