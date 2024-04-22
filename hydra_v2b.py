@@ -18,7 +18,13 @@ import shutil
 from base import config_loader
 from tqdm import tqdm
 
-from RUNENV import io_group_asic_version_, io_group_pacman_tile_, iog_exclude
+import sys
+import os
+from runenv import runenv as RUN
+
+module = sys.modules[__name__]
+for var in RUN.config.keys():
+    setattr(module, var, getattr(RUN, var))
 
 _default_file_prefix=None
 _default_disable_logger=True

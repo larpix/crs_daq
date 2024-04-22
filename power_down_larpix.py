@@ -27,6 +27,10 @@ def main(verbose, pacman_config):
 
     for io_group_ip_pair in pacman_configs['io_group']:
         io_group = io_group_ip_pair[0]
+
+        # disable pacman receivers
+        c.io.set_reg(0x18, 0, io_group=io_group)
+        
         # disable tile power, LARPIX clock
         c.io.set_reg(0x00000010, 0, io_group=io_group)
         c.io.set_reg(0x00000014, 0, io_group=io_group)
