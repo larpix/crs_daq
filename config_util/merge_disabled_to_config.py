@@ -39,6 +39,7 @@ def main(*files, disabled_json, **kwargs):
                     _s = sum(config['channel_mask'])
                     mask = np.array(config['channel_mask'])+np.array(channel_masks[chip_key]) 
                     config['channel_mask'] = [1 if val>0 else 0 for val in mask]
+                    if not 'periodic_trigger_mask' in config.keys(): config['periodic_trigger_mask']=[1]*64
                     mask = np.array(config['periodic_trigger_mask'])+np.array(channel_masks[chip_key])
                     config['periodic_trigger_mask'] = [1 if val>0 else 0 for val in mask]
                     if version==2: 

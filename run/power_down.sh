@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 
 if [ $# -eq 0 ]; then
+	echo "############################################"
 	echo "NOTHING POWERED DOWN--Specify which modules!"
+	echo "############################################"
+	exit
 fi
 
 if [[ "$1" == *"0"* ]]; then
