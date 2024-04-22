@@ -322,7 +322,7 @@ def increment_remaining_trim(c, status):
             if status[chip_key]['disable'][channel]==False or status[chip_key]['active'][channel]==True:
                 chip_register_pairs.append( (chip_key, list(range(64))+list(range(66,74))+list(range(131,139)) ) )
                 if status[chip_key]['pixel_trim'][channel]<31:
-                    c[chip_key].config.pixel_trim_dac=status[chip_key]['pixel_trim']+1
+                    c[chip_key].config.pixel_trim_dac=status[chip_key]['pixel_trim'][channel]+1
                 c[chip_key].config.csa_enable[channel]=0
                 c[chip_key].config.channel_mask[channel]=1
     c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
