@@ -5,7 +5,8 @@ import time
 import json
 import copy
 import numpy as np
-from RUNENV import *
+from runenv import runenv as RUN
+#from RUNENV import *
 from base import pacman_base
 from base import config_loader
 from base import enforce_parallel
@@ -14,6 +15,12 @@ from base.utility_base import *
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+import sys
+from runenv import runenv as RUN
+
+module = sys.modules[__name__]
+for var in RUN.config.keys():
+    setattr(module, var, getattr(RUN, var))
 
 _v2a_nonrouted=[6,7,8,9,22,23,24,25,38,39,40,54,55,56,57]
 _initial_global_dac=70 #255
@@ -472,7 +479,7 @@ def main(pacman_config='io/pacman.json',
         CONFIG=None
         with open(asic_config_paths_file_, 'r') as ff:
             d=json.load(ff)
-            CONFIG=d['configs'][str(io_group)]
+            CONFIG=d[str(io_group)]
         all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(utility_base.get_from_json(network_config_paths_file_, io_group) )
         config_loader.load_config_from_directory(c, CONFIG)
         
