@@ -241,7 +241,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,\
                 if bail==True: break                                  
                 daughter_id = find_daughter_id(parent_piso_us, last_chip_id, \
                                                root.io_channel)
-                if daughter_id in exclude[utility_base.io_channel_to_tile(root.io_channel)]: 
+                if daughter_id in exclude[str(utility_base.io_channel_to_tile(root.io_channel))]: 
                     print('bailing due to excluded chip!')
                     bail=True
                     excluded=True
@@ -454,7 +454,7 @@ def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,\
                 daughter=larpix.key.Key(parent.io_group, parent.io_channel, \
                                         chip_id)
 
-                if chip_id in exclude[utility_base.io_channel_to_tile(parent.io_channel)]: continue
+                if chip_id in exclude[str(utility_base.io_channel_to_tile(parent.io_channel))]: continue
                 ok, diff = uart_base.setup_parent_piso(c, io, parent, \
                                                        daughter, verbose, \
                                                        tx_diff, tx_slice)
