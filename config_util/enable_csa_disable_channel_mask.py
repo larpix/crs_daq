@@ -17,13 +17,13 @@ def main(*files, disabled_list=None, **kwargs):
             config['channel_mask'] = [0]*64
             config['csa_enable'] = [1]*64
             
-            asic_id = config['ASIC_ID']
+            asic_id = config['meta']['ASIC_ID']
             if asic_id in disabled.keys():
                 for channel in disabled[asic_id]:
                     config['channel_mask'][channel]=1
                     config['csa_enable'][channel]=0
 
-            if config['ASIC_VERSION']==2:
+            if config['meta']['ASIC_VERSION']==2:
                 for channel in v2a_nonrouted_channels:
                     config['channel_mask'][channel]=1
                     config['csa_enable'][channel]=0
