@@ -60,16 +60,16 @@ if ! $has_default_m31; then
 	write_any=true
 fi
 
+now=`date +%Y_%m_%d_%H_%M_%S_%Z`
+config_dir="asic_configs/asic_configs-$now"
+config_dir_m0="$config_dir/m0"
+config_dir_m1="$config_dir/m1"
+config_dir_m2="$config_dir/m2"
+config_dir_m3="$config_dir/m3"
+
 if $write_any; then	
-	now=`date +%Y_%m_%d_%H_%M_%S_%Z`
-	config_dir="asic_configs/asic_configs-$now"
 
 	mkdir $config_dir
-
-	config_dir_m0="$config_dir/m0"
-	config_dir_m1="$config_dir/m1"
-	config_dir_m2="$config_dir/m2"
-	config_dir_m3="$config_dir/m3"
 
 fi
 
@@ -78,6 +78,8 @@ if [[ "$1" == *"0"* ]]; then
 		mkdir $config_dir_m0
 		echo "Saving Module0 configuration files to: $config_dir_m0"
 	fi
+
+	echo "config dir: $config_dir_m0"
 	python network_larpix.py --controller_config configs/controller_config.json --pacman_config io/pacman_m0.json --config_path $config_dir_m0 --pid_logged &
 	PID=$!
 	sed -i "s/MOD0_PID=[0-9]*/MOD0_PID=${PID}/" .envrc
