@@ -241,6 +241,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,\
                 if bail==True: break                                  
                 daughter_id = find_daughter_id(parent_piso_us, last_chip_id, \
                                                root.io_channel)
+                
                 if daughter_id in exclude[str(utility_base.io_channel_to_tile(root.io_channel))]: 
                     print('bailing due to excluded chip!')
                     bail=True

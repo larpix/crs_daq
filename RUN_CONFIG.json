@@ -1,5 +1,5 @@
 {
-	"destination_dir_"      : "/data/commission/April2024/MORCS_TEST_CRS_Apr_24/",
+	"destination_dir_"      : "/data/commission/April2024/continued_selftrigger/april23/",
 	"asic_config_paths_file_" : ".asic_configs_.json",
 	"default_asic_config_paths_file_" : ".default_asic_configs_.json",
 	"network_config_paths_file_" : ".network_configs_.json",
