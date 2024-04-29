@@ -128,9 +128,8 @@ def load_config_from_file(c, config):
 
         for key in asic_config.keys():
             if key=='meta': continue 
-            #if key in hydra_registers: continue 
+            if key in hydra_registers: continue 
             setattr(c[chip_key].config, key, asic_config[key])
-
 
     return c
 

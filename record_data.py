@@ -51,7 +51,18 @@ def main(file_count, runtime, message, packet, filename, pacman_config, return_f
 #    os.mkdir(path)
 
     #Launch archiving process in the background to copy ASIC configs / detector parameters
-    os.system('python archive.py --monitor_dir {} &'.format(destination_dir_))
+    if monitor:
+        #check if destination_dir_ ends with "/"
+        copy_configs_here_=None
+        if destination_dir_.endswith('/'):
+            copy_configs_here = '{}.configs'.format(destination_dir_[:-1])
+        else:
+            copy_configs_here = '{}.configs'.format(destination_dir_)
+
+        #check if copy_configs_here directory exists
+        if not os.path.exists(copy_configs_here):
+            os.mkdir(copy_configs_here)
+        os.system('python archive.py --monitor_dir {} &'.format(copy_configs_here))
 
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
