@@ -124,12 +124,26 @@ def load_config_from_file(c, config):
     key_tile = utility_base.io_channel_to_tile(larpix.key.Key(chip_key).io_channel)   
     
     if not chip_key in c.chips:
-        c.add_chip(chip_key, version=version)
+        #check other possible io_channels it could correspond to
+        io_channels = utility_base.tile_to_io_channel([key_tile])
 
-        for key in asic_config.keys():
-            if key=='meta': continue 
-            if key in hydra_registers: continue 
-            setattr(c[chip_key].config, key, asic_config[key])
+        found=False
+        for io_ch in io_channels:
+            new_key='{}-{}-{}'.format(larpix.key.Key(chip_key).io_group, io_ch, larpix.key.Key(chip_key).chip_id)
+            if new_key in c.chips:
+                found=True
+                chip_key=new_key
+            if found: break
+        
+        if not found:
+            c.add_chip(chip_key, version=version)
+
+    for key in asic_config.keys():
+        if key=='meta': continue 
+        #if key in hydra_registers: continue 
+
+        setattr(c[chip_key].config, key, asic_config[key])
+
 
     return c
 
