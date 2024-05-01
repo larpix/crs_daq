@@ -62,7 +62,7 @@ def main(file_count, runtime, message, packet, filename, pacman_config, return_f
         #check if copy_configs_here directory exists
         if not os.path.exists(copy_configs_here):
             os.mkdir(copy_configs_here)
-        os.system('python archive.py --monitor_dir {} &'.format(copy_configs_here))
+        os.system('python archive.py --ignore_busy --monitor_dir {} &'.format(copy_configs_here))
 
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)

@@ -24,19 +24,21 @@ for var in RUN.config.keys():
 
 _v2a_nonrouted=[6,7,8,9,22,23,24,25,38,39,40,54,55,56,57]
 _initial_global_dac=255
-_runtime_global=0.1
-_maxrate_global=1000.
-_minrate_global=5. 
+_runtime_global=0.05
+# may1_2024
+#lower maxrate_global to 100
+_maxrate_global=100.
+_minrate_global=10. 
 _maxdac_global=50
-_maxtriggers=100000.
+_maxtriggers=500000.
 
 _initial_trim_dac=16
-_runtime_trim=1.
-_maxrate_trim=10.
-_minrate_trim=1.
+_runtime_trim=0.1
+_maxrate_trim=100
+_minrate_trim=0.1
 
 _vref_dac=185
-_vcm_dac=41 #50
+_vcm_dac=41 # 50
 
 
 _default_disabled_list=None
@@ -137,13 +139,12 @@ def silence_highest_rate(c, chip, channel_rate):
         c[chip].config.csa_enable[highest_channel]=0
 
     
-def toggle_global_dac(c, all_network_keys):
+def toggle_global_dac(c, all_network_keys,max_channel_fraction=0.9):
     toggle_global_csa_disable={}
     
     bookkeep_masked_channels=0
     track_triggers={}
     track_progress={}
-    max_channel_fraction=0.8
     
     high_rate=True
     iteration=0
@@ -199,7 +200,22 @@ def toggle_global_dac(c, all_network_keys):
                 mask = np.logical_and( iog_triggers==ids[0], ioc_triggers==ids[1] )
                 mask = np.logical_and(mask, chip_triggers==ids[2])
                 channels = channel_triggers[mask]
-                set_channels = set(channels)
+                set_channels=set(channels)
+                ####
+                ## may1_2024
+                ##
+                # Add here to flag "disabled" channels that still trigger
+                # Some action could be taken here, but right now it just ignores it
+                asic_id=chip_key_to_asic_id(chip)
+                if asic_id in toggle_global_csa_disable.keys():    
+                    if not (len(set_channels)==len(set_channels- set(toggle_global_csa_disable[asic_id]))):
+                            # DISABLED_CHANNELS_TRIGGERED!
+                            # maybe do something here?
+                            print('disabled channels still firing!!')
+                            pass
+                    set_channels = set_channels - set(toggle_global_csa_disable[asic_id])
+                ##
+                ##
                 chip_rate = np.sum(mask)/_runtime_global
                 channel_rate={}
                 kill_fraction={}
@@ -220,10 +236,13 @@ def toggle_global_dac(c, all_network_keys):
                     channel_mask_count+=1
                     c[chip].config.channel_mask[int(channel)]=1
                     c[chip].config.csa_enable[int(channel)]=0
-                    asic_id = chip_key_to_asic_id(chip)
                     if asic_id not in toggle_global_csa_disable.keys(): toggle_global_csa_disable[asic_id]=[]
                     toggle_global_csa_disable[asic_id].append(int(channel))
                     chip_register_pairs.append( (chip, list(range(66,74))+list(range(131,139))) )
+                    # may1_2024
+                    # subtract rate of channels to be disabled from total chip rate
+                    # If only a few channels pushes total rate above threshold, shouldn't raise threshold_global until these are masked
+                    chip_rate = chip_rate - channel_rate[channel]
                 if chip_rate>_maxrate_global:
                     increment_count+=1
                     if c[chip].config.threshold_global>=253:
@@ -233,6 +252,8 @@ def toggle_global_dac(c, all_network_keys):
                         c[chip].config.threshold_global+=2
                     chip_register_pairs.append( (chip, [64]) )                    
                 if chip_rate>_minrate_global and chip_rate<_maxrate_global:
+                    # may1_2024
+                    # It might make sense to leave this to the trim toggling?
                     if c[chip].config.threshold_global>_maxdac_global:
                         silence_highest_rate(c, chip, channel_rate)
                         chip_register_pairs.append( (chip, list(range(66,74))+list(range(131,139))) )
@@ -266,7 +287,7 @@ def toggle_global_dac(c, all_network_keys):
                     c[chip].config.threshold_global -= 1
                 chip_register_pairs.append( (chip, [64]) )
                 high_rate=True
-        for _ in range(3):
+        for _ in range(10):
             c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
         print('triggered count: ',len(triggered_chips),'\tuntriggered count: ',untriggered_count,'\t masked count: ',len(masked_chip_set),'\nincremented: ',increment_count,'\t decremented: ',decrement_count,'\t channels masked: ',channel_mask_count)
         track_progress[iteration]=len(masked_chip_set)
@@ -329,15 +350,14 @@ def increment_remaining_trim(c, status):
             if status[chip_key]['disable'][channel]==False or status[chip_key]['active'][channel]==True:
                 chip_register_pairs.append( (chip_key, list(range(64))+list(range(66,74))+list(range(131,139)) ) )
                 if status[chip_key]['pixel_trim'][channel]<31:
-                    c[chip_key].config.pixel_trim_dac=status[chip_key]['pixel_trim'][channel]+1
+                    c[chip_key].config.pixel_trim_dac[channel]=status[chip_key]['pixel_trim'][channel]+1
                 c[chip_key].config.csa_enable[channel]=0
                 c[chip_key].config.channel_mask[channel]=1
     c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
     return 
     
 
-
-def toggle_trim_dac(c, csa_disable):
+def toggle_trim_dac(c, csa_disable, minrate_trim=_minrate_trim, maxrate_trim=_maxrate_trim, runtime_trim=_runtime_trim):
     toggle_trim_csa_disable={}
     track_triggers={}
     track_progress={}
@@ -351,13 +371,16 @@ def toggle_trim_dac(c, csa_disable):
         iteration +=1
 
         c.reads.clear()
-        c.run(_runtime_trim,'check rate')
+        c.run(runtime_trim,'check rate')
         all_packets = np.array(c.reads[-1])
         print('iteration {}, packet count {}'.format(iteration,all_packets.shape[0]))
 
+        start=time.time()
         if all_packets.shape[0]==0: packets = np.array([])
         else: packets = all_packets[np.vectorize(lambda x: x.packet_type)(all_packets)==0]
-
+        print('time to extract data packets:', start-time.time())
+        start=time.time()
+        
         triggered_chips=set()
         if packets.shape[0]>0:
             iog_triggers = np.vectorize(lambda x: x.io_group)(packets).astype(int)
@@ -368,7 +391,8 @@ def toggle_trim_dac(c, csa_disable):
             triggered_chips = set(chip_keys)
             track_triggers[iteration]=(packets.shape[0],len(triggered_chips))
 
-        for chip in c.chips:
+        print('time to extract from packets', start-time.time())
+        for chip in tqdm(c.chips):
             if chip in triggered_chips:
                 ids = np.array(str(chip).split('-')).astype(int)
                 mask = np.logical_and( iog_triggers==ids[0], ioc_triggers==ids[1] )
@@ -376,13 +400,13 @@ def toggle_trim_dac(c, csa_disable):
                 channels = channel_triggers[mask]
                 triggered_channels = set(channels)
                 channel_rate={}
-                for channel in triggered_channels: channel_rate[channel]=np.sum(channel==channels)/_runtime_trim
+                for channel in triggered_channels: channel_rate[channel]=np.sum(channel==channels)/runtime_trim
 
                 for channel in range(64):
                     if status[chip]['active'][channel]==False: continue
 
                     if channel in channel_rate.keys():
-                        if channel_rate[channel]>_maxrate_trim:
+                        if channel_rate[channel]>maxrate_trim:
                             status[chip]['pixel_trim'][channel] += 1
                             incremented+=1
                             if status[chip]['pixel_trim'][channel]>31:
@@ -391,9 +415,9 @@ def toggle_trim_dac(c, csa_disable):
                                 asic_id = chip_key_to_asic_id(chip)
                                 if asic_id not in toggle_trim_csa_disable.keys(): toggle_trim_csa_disable[asic_id]=[]
                                 toggle_trim_csa_disable[asic_id].append(channel)
-                        if channel_rate[channel]>=_minrate_trim and channel_rate[channel]<=_maxrate_trim:
+                        if channel_rate[channel]>=minrate_trim and channel_rate[channel]<=maxrate_trim:
                             deactivate_status(status, chip, channel)
-                        if channel_rate[channel]<_minrate_trim:
+                        if channel_rate[channel]<minrate_trim:
                             status[chip]['pixel_trim'][channel] -= 1
                             decremented+=1
                             if status[chip]['pixel_trim'][channel]<0:
@@ -535,11 +559,18 @@ def main(pacman_config='io/pacman.json',
     time_log['reenable_frontend']=timeEnd
 
     timeStart = time.time()
-    toggle_trim_csa_disable, trim_track_progress, trim_track_triggers = toggle_trim_dac(c, after_global)
+    toggle_trim_csa_disable_0, trim_track_progress_0, trim_track_triggers_ = toggle_trim_dac(c, after_global)
     timeEnd = time.time()-timeStart
     print('==> %.2f seconds --- toggle trim DACs\n'%timeEnd)
-    save_to_json('trim_disabled_list_iteration'+str(iteration), toggle_trim_csa_disable, recast=False)
-    time_log['toggle_trim']=timeEnd
+    save_to_json('trim_disabled_list_iteration'+str(iteration), toggle_trim_csa_disable_0, recast=False)
+    time_log['toggle_trim_it0']=timeEnd
+
+#    timeStart = time.time()
+#    toggle_trim_csa_disable, trim_track_progress, trim_track_triggers = toggle_trim_dac(c, toggle_trim_csa_disable_0, minrate_trim=0.1, maxrate_trim=1, runtime_trim=10)
+#    timeEnd = time.time()-timeStart
+#    print('==> %.2f seconds --- toggle trim DACs\n'%timeEnd)
+#    save_to_json('trim_disabled_list_iteration'+str(iteration), toggle_trim_csa_disable, recast=False)
+#    time_log['toggle_trim_it']=timeEnd
 
     after_trim={}
     for key in after_global.keys():

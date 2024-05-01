@@ -46,7 +46,7 @@ def set_archive_status(status):
 if not os.path.isfile(archive_status_file):
     os.system('echo {} > {}'.format(0, archive_status_file))
 
-def main(monitor_dir):
+def main(monitor_dir, ignore_busy):
 
     # monitor_dir is dir to write files for influx or other db, if available
    
@@ -62,8 +62,8 @@ def main(monitor_dir):
     while not first:
         first = set_archive_status(1)
         if not first:
-            return
-
+            if not ignore_busy:
+                return
     
     print('archiving process: {}'.format(os.getpid()))
     now = utility_base.now()
@@ -104,6 +104,8 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--monitor_dir', type=str, default=monitor_dir_, \
                         help='''Directory to write archive to''')
+    parser.add_argument('--ignore_busy', action='store_true', default=False, \
+                        help='''Write anyway even if another process is archiving''')
     args=parser.parse_args()
     main(**vars(args))
 
