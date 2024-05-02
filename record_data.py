@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore")
+
 import larpix
 import argparse
 
@@ -17,6 +20,7 @@ import os
 from base import utility_base
 from signal import signal, SIGINT
 import subprocess
+import base.utility_base
 from base.utility_base import now
 
 _default_file_count=-1
@@ -25,30 +29,21 @@ _default_message='collecting data...'
 _default_packet=False
 
 def ctrlc_handler(signal_received, frame):
-     
-    #check if light system is running, and if so, stop it
     
-    #if LRS: subprocess.call(["echo 0 > ~/.adc_watchdog_file"],shell=True)
-
-    print('CTRL-C detected. Exiting gracefully.')
-    exit(0)
+    base.utility_base._dump_and_exit_ = True
+    print('CTRL-C detected. Starting Dump.')
 
 def datetime_now():
 	''' Return string with year, month, day, hour, minute '''
 	return time.strftime("%Y_%m_%d_%H_%M_%Z_%S")
 
-def main(file_count, runtime, message, packet, filename, pacman_config, return_filename, **args):
+def main(file_count, runtime, message, packet, filename, file_tag, pacman_config, return_filename, record_metadata, run, data_stream, **args):
 
     if not filename is None and file_count > 1:
         raise RuntimeError('All files will have same filename and will be overwritten')
 
-#    #copy current ASIC config 
-#    path='{}/asic_configs_{}'.format(asic_config_dir, datetime_now())
-   
-#    if os.path.isdir(path):
-#        print('Error recording configs--timestamped config files already exist')
-#return
-#    os.mkdir(path)
+    global _global_record_metadata_
+    _global_record_metadata_ = record_metadata
 
     #Launch archiving process in the background to copy ASIC configs / detector parameters
     if monitor:
@@ -58,33 +53,34 @@ def main(file_count, runtime, message, packet, filename, pacman_config, return_f
             copy_configs_here = '{}.configs'.format(destination_dir_[:-1])
         else:
             copy_configs_here = '{}.configs'.format(destination_dir_)
-
+        
         #check if copy_configs_here directory exists
         if not os.path.exists(copy_configs_here):
             os.mkdir(copy_configs_here)
         os.system('python archive.py --ignore_busy --monitor_dir {} &'.format(copy_configs_here))
+
+    if record_metadata: os.system('./_dump_temp_archive_.sh &')
 
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
 
     #data taking loop
     ctr=0
-    while ctr<file_count or file_count < 0:
+    while (ctr<file_count or file_count < 0) and not base.utility_base._dump_and_exit_:
         
         run_start = datetime_now()
-        if filename is None or ctr>0: filename = destination_dir_ + '/' + utility_base.data_filename(c, packet)
+        if filename is None or ctr>0: filename = destination_dir_ + '/' + utility_base.data_filename(c, packet, file_tag)
         elif ctr==0: filename = destination_dir_ + '/' + filename 
         
+        # set command to archive in case of ctrl+c
+        _dump_and_embed_command_ = './_dump_and_embed_.sh {} {} {} &'.format(filename.split('/')[-1], run, data_stream)
+        
         utility_base.data(c, runtime, packet, False, filename)
-        #metadata = {
-        #        'filename'   : filename,
-        #        'run_start'  : run_start,
-        #        'run_end'    : datetime_now(),
-        #        'message'    : message,
-        #        'asic_config': path
-        #        }
+        #metadata handling here
+        if record_metadata: os.system(_dump_and_embed_command_)
+        
         ctr+=1
-    
+         
     if return_filename:
         return filename
 
@@ -105,6 +101,14 @@ if __name__=='__main__':
                         type=str, help='''Config specifying PACMANs''')
     parser.add_argument('--filename', '-f', default=None, \
                         type=str,  help='''Specifiy a file name''')
+    parser.add_argument('--file_tag', default=None, \
+                        type=str, help='''Automatic filename generation including this tag''')
+    parser.add_argument('--record_metadata', default=False, \
+                        action='store_true', help='''Dump metadata''')
+    parser.add_argument('--run', default=-1, \
+                        type=int, help='''Run number, passed from combined run control''')
+    parser.add_argument('--data_stream', default='', \
+                        type=str, help='''Data stream, passed from combined run control''')
     parser.add_argument('--return_filename', action='store_true', help='''Return last filename''')
     args=parser.parse_args()
     c = main(**vars(args))

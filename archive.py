@@ -30,22 +30,6 @@ def copy_directory_files(src, dest):
     return 0
 
 
-def get_archive_status():
-    with open(archive_status_file, 'r') as f:
-        return int(f.read())
-
-def set_archive_status(status): 
-    current = get_archive_status()
-    if current==0 or current==os.getpid():
-        if status > 0: status = os.getpid()
-        os.system('echo {} > {}'.format(status, archive_status_file))
-        return True
-    else:
-        return False
-
-if not os.path.isfile(archive_status_file):
-    os.system('echo {} > {}'.format(0, archive_status_file))
-
 def main(monitor_dir, ignore_busy):
 
     # monitor_dir is dir to write files for influx or other db, if available
@@ -56,14 +40,6 @@ def main(monitor_dir, ignore_busy):
     # 3) ...
  
     #WRITE status=1 (BUSY) into logger_status_file
-    
-
-    first = False
-    while not first:
-        first = set_archive_status(1)
-        if not first:
-            if not ignore_busy:
-                return
     
     print('archiving process: {}'.format(os.getpid()))
     now = utility_base.now()
@@ -96,8 +72,6 @@ def main(monitor_dir, ignore_busy):
 
     # ORGANIZE temp dir and move to monitor_dir with timestamp
     shutil.move(monitor_name,'{}/{}'.format(monitor_dir, monitor_name.split('.')[-1]) )
-    # WRITE status=0 into archive_status_file
-    set_archive_status(0)
 
 
 if __name__=='__main__':

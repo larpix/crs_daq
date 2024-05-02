@@ -1,5 +1,5 @@
 {
-	"destination_dir_"      : "/data/commission/April2024/self_trigger_test_apr30/",
+	"destination_dir_"      : "/data/commission/May2024/self_trigger_m0_test/",
 	"asic_config_paths_file_" : ".asic_configs_.json",
 	"default_asic_config_paths_file_" : ".default_asic_configs_.json",
 	"network_config_paths_file_" : ".network_configs_.json",
@@ -7,7 +7,7 @@
 	"asic_config_log_file_" : "asic_config_log.json",
 	"asic_config_dir" : "asic_configs/",
 	"log_dir" : "log/",
-	"monitor" : true,
+	"monitor" : false,
 	"monitor_dir_" : "/home/acd/acdaq/CRS_DAQ/monitor/",
 	"archive_status_file" : ".archive_status",
 	
