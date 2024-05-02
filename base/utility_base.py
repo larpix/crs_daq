@@ -11,6 +11,9 @@ import time
 
 global oldfilename
 
+# metadata dumping and generation for ctrl+c
+_dump_and_exit_ = False
+
 _broadcast_disable_nwrite=3
 
 
@@ -200,14 +203,15 @@ def flush_data(c, runtime=0.1, rate_limit=0., max_iterations=10):
             break
 
 
-def data_filename(c, packet):
+def data_filename(c, packet, tag=None):
     now=time.strftime("%Y_%m_%d_%H_%M_%S_%Z")
-    if packet==True:
-        fname='packets-'+now+'.h5'
-    else:
-        fname='binary-'+now+'.h5'
+    type_str = 'binary'
+    if packet: type_str='packet'
 
-    return fname
+    if tag is None:
+        return '{}-{}.h5'.format(type_str, now)
+
+    return '{}-{}-{}.h5'.format(type_str, tag, now)
 
 
 
@@ -216,9 +220,6 @@ def data(c, runtime, packet, LRS=False, fname=None):
         if fname is None: fname='packets-'+now+'.h5'
         c.logger = larpix.logger.HDF5Logger(filename=fname)
         
-        if LRS: 
-            subprocess.call(["echo 1 > ~/.adc_watchdog_file"],shell=True)  #start LRS
-
         print('filename: ',c.logger.filename)
         c.logger.enable()
         c.run(runtime,' collecting data')
@@ -251,6 +252,7 @@ def data(c, runtime, packet, LRS=False, fname=None):
         last_counter = 0
         oldfilename=c.io.raw_filename
         while True:
+            if _dump_and_exit_: break
             c.read()
             time.sleep(0.1)
             now=time.time()
@@ -258,9 +260,6 @@ def data(c, runtime, packet, LRS=False, fname=None):
                 if c.io.raw_filename and os.path.isfile(c.io.raw_filename):
                     counter = rhdf5.len_rawfile(c.io.raw_filename, attempts=0)
                     print('average message rate: {:0.2f} Hz\r'.format( (counter-last_counter)/data_rate_refresh ),end='') 
-                    if LRS:
-                        post = 'datarate,sens=larpix1 value={:0.02f}'.format((counter-last_counter)/(data_rate_refresh))
-                        subprocess.call(["curl","--silent","-XPOST", "http://130.92.128.162:8086/write?db=singlemodule_nov2020", "--data-binary", post])
                     last_counter=counter
                 data_rate_start = now
                 data_rate_counter = 0
