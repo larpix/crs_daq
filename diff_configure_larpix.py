@@ -60,10 +60,10 @@ def main(verbose, \
             io_group = io_group_ip_pair[0]   
             CONFIG=None
             CONFIG='{}/{}'.format(asic_config, config_subdir)
-            utility_base.update_json(asic_config_paths_file_, io_group,CONFIG )
 
             network_config_file = utility_base.get_from_json(network_config_paths_file_, io_group)
             config_loader.load_config_from_directory(nc, CONFIG)
+            utility_base.update_json(asic_config_paths_file_, io_group,CONFIG )
 
         # now, nc has the new configuration loaded, c has the old configuration
         # parse these and get all differences
@@ -82,8 +82,6 @@ def main(verbose, \
                 if str(chip) in io_chan_list:
                     io_chan_list.remove(str(chip))
 
-        print(all_network_keys)
-        return
         #ensure UARTs are enable on pacman to receive configuration packets
         for io_group_ip_pair in pacman_configs['io_group']:
             io_group = io_group_ip_pair[0]
@@ -98,7 +96,7 @@ def main(verbose, \
 
         #enforce all configurations in parallel (one chip per io channel per cycle)
         #note: using nc here, not c
-        ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys, pbar_desc=tag, pbar_position=pos)
+        ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys,unmask_last=False, pbar_desc=tag, pbar_position=pos)
         if not ok:
             raise RuntimeError(diff)
 

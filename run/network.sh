@@ -4,7 +4,7 @@ if ! [ -f .default_asic_configs_.json ]; then
 	echo "{}" > .default_asic_configs_.json
 fi
 
-default_file=".default_asic_configs_.json"
+default_file=$(jq '.default_asic_config_paths_file_' <<< cat RUN_CONFIG.json)
 has_default_m00=$(jq -r 'has("1")' <<< cat .default_asic_configs_.json)
 has_default_m01=$(jq -r 'has("2")' <<< cat .default_asic_configs_.json)
 has_default_m10=$(jq -r 'has("3")' <<< cat .default_asic_configs_.json)

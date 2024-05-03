@@ -24,9 +24,11 @@ _default_verbose=False
 def main(verbose, \
         asic_config, \
         config_subdir,\
-        pacman_config,
+        pacman_config,\
+        no_unmask_last=False,\
         pid_logged=False):
         
+        unmask_last = not no_unmask_last
         pacman_configs = {}
         with open(pacman_config, 'r') as f:
             pacman_configs = json.load(f)
@@ -43,8 +45,8 @@ def main(verbose, \
             
             CONFIG=None
             if asic_config is None:
-                print('Loading default config...')
-                CONFIG=utility_base.get_from_json(default_asic_config_paths_file_,io_group)
+                print('Loading current config...')
+                CONFIG=utility_base.get_from_json(asic_config_paths_file_,io_group)
             else:
                 CONFIG='{}/{}'.format(asic_config, config_subdir)
                 utility_base.update_json(asic_config_paths_file_, io_group,CONFIG )
@@ -95,7 +97,7 @@ def main(verbose, \
             pos = enforce_parallel.tag_to_config_map[tag]
 
         #enforce all configurations in parallel (one chip per io channel per cycle)
-        ok, diff, unconfigured = enforce_parallel.enforce_parallel(c, all_network_keys, pbar_desc=tag, pbar_position=pos)
+        ok, diff, unconfigured = enforce_parallel.enforce_parallel(c, all_network_keys, unmask_last=unmask_last, pbar_desc=tag, pbar_position=pos)
         if not ok:
             raise RuntimeError(diff)
 
@@ -112,6 +114,7 @@ if __name__=='__main__':
     parser.add_argument('--pacman_config', default="io/pacman.json", \
                         type=str, help='''Config specifying PACMANs''')
     parser.add_argument('--pid_logged', action='store_true', default=False) 
+    parser.add_argument('--no_unmask_last', action='store_true',  default=False)
     parser.add_argument('--verbose', '-v', action='store_true',  default=_default_verbose)
     args=parser.parse_args()
     c = main(**vars(args))
