@@ -59,7 +59,8 @@ def main(file_count, runtime, message, packet, filename, file_tag, pacman_config
             os.mkdir(copy_configs_here)
         os.system('python archive.py --ignore_busy --monitor_dir {} &'.format(copy_configs_here))
 
-    if record_metadata: os.system('./_dump_temp_archive_.sh &')
+    # dump ASIC configs to temporary directory to embed in data files
+    os.system('./dump_temp_archive.sh &')
 
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
@@ -73,11 +74,18 @@ def main(file_count, runtime, message, packet, filename, file_tag, pacman_config
         elif ctr==0: filename = destination_dir_ + '/' + filename 
         
         # set command to archive in case of ctrl+c
-        _dump_and_embed_command_ = './_dump_and_embed_.sh {} {} {} &'.format(filename.split('/')[-1], run, data_stream)
+        
+        embed_command = './embed_configs.sh {} &'.format(filename.split('/')[-1])
+        dump_command = './dump_metadata.sh {} {} {} &'.format(filename.split('/')[-1], run, data_stream)
         
         utility_base.data(c, runtime, packet, False, filename)
         #metadata handling here
-        if record_metadata: os.system(_dump_and_embed_command_)
+        
+        #embed configs in data file
+        os.system(embed_command)
+        
+        #dump metadata file
+        if record_metadata: os.system(dump_command)
         
         ctr+=1
          
