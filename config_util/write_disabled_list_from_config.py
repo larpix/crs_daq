@@ -1,5 +1,4 @@
 import argparse
-from base import config_loader
 import json
 import numpy as np
 
@@ -9,7 +8,7 @@ def main(*files, disabled_json, **kwargs):
                 config={}
                 with open(file, 'r') as f: config=json.load(f)
                 
-                chip_key=config['CHIP_KEY']
+                chip_key=config['meta']['ASIC_ID']
                 
                 if True:
                     mask = np.array(config['channel_mask'])

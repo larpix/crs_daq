@@ -18,8 +18,8 @@ echo "Module1 powered down"
 fi
 
 if [[ "$1" == *"2"* ]]; then
-python power_down_larpix.py --pacman_config io/pacman_m2.json 
-echo "Module2 powered down"
+	
+	echo "Don't power down module 2....."
 fi
 
 if [[ "$1" == *"3"* ]]; then

@@ -25,7 +25,7 @@ _default_verbose = False
 _default_controller_config = None
 _update_default=False
 
-def enforce_iterative(nc, all_network_keys, n=3, configs=None, pbar_desc='p', pbar_position=0):
+def enforce_iterative(nc, all_network_keys, n=1, configs=None, pbar_desc='p', pbar_position=0):
     ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys, pbar_desc=pbar_desc, pbar_position=pbar_position)
     if ok: return ok, diff, unconfigured
     elif n==0: 
@@ -135,7 +135,7 @@ def main(verbose,\
         pos = enforce_parallel.tag_to_config_map[tag]
     ok, diff, unconfigured = enforce_iterative(nc, all_network_keys, configs=configs, pbar_desc=tag, pbar_position=pos)
     if not ok:
-        raise RuntimeError('Unconfigured chips!', diff)
+        raise RuntimeError('Unconfigured chips!', diff.keys())
     
     if pid_logged: print('\n{} networked successfully'.format(tag))
     return c

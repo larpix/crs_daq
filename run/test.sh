@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-python test.py &
+default_file=$(jq '.default_asic_config_paths_file_' <<< cat RUN_CONFIG.json)
 
-TEST_PID=$!
-echo "pid=$TEST_PID"
-sed -i "s/TEST_PID=[0-9]*/TEST_PID=${TEST_PID}/" .envrc
+echo $default_file

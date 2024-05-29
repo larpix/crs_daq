@@ -12,7 +12,15 @@ import numpy as np
 import json
 from base import utility_base
 from base.network_base import _default_clk_ctrl, clk_ctrl_2_clk_ratio_map
-from RUNENV import io_group_pacman_tile_, iog_pacman_version_, iog_exclude
+import time
+import sys
+import os
+from runenv import runenv as RUN
+
+module = sys.modules[__name__]
+for var in RUN.config.keys():
+    setattr(module, var, getattr(RUN, var))
+
 arr = graphs.NumberedArrangement()
 
 def string_to_chips_list(string):
@@ -91,7 +99,7 @@ def get_good_roots(c, io_group, io_channels, root_chips=[11, 41, 71, 101]):
 def get_initial_controller(io_group, io_channels, vdda=0, pacman_version='v1rev3b'):
         #creating controller with pacman io
         c = larpix.Controller()
-        c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath='io/pacman_m1.json')
+        c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath='io/pacman.json')
         c.io.double_send_packets = True
         print('getting initial controller')
         
@@ -213,6 +221,7 @@ def test_network(c, io_group, io_channels, paths):
                                 still_stepping[ipath] = False
                                 continue
                         next_key = larpix.key.Key(io_group, io_channels[ipath], path[step])
+                        print(next_key)
                         prev_key = larpix.key.Key(io_group, io_channels[ipath], path[step-1])
                         if prev_key.chip_id in root_chips:
                                 c[prev_key].config.chip_id = prev_key.chip_id
@@ -231,7 +240,13 @@ def test_network(c, io_group, io_channels, paths):
                         c.write_configuration(next_key, 'enable_miso_downstream')
                         c.write_configuration(next_key, 'enable_miso_downstream')
 
-                        ok, diff = c.enforce_configuration(next_key, timeout=0.01, n=5, n_verify=3)
+                        ok, diff = c.enforce_configuration(next_key, timeout=0.02, n=5, n_verify=3)
+                        if False:
+                            print('checking', next_key)
+                            for i in range(50):
+                                ok, diff = c.verify_registers( [(next_key, 0)], timeout=0.01 )
+                        
+                                if not ok: print(diff)
                         pbar.update(1)
                         if ok:
                                 continue
@@ -259,9 +274,8 @@ def main(pacman_tile, io_group, pacman_version, vdda=0, config_name=None, exclud
             print('excluding chips {} on tile {}'.format(exclude[tile], tile))
             d['_include'].append(hydra_chain(io_group, tile, pacman_version, vdda, exclude[tile], first=True, exclude_roots=exclude_roots[tile]))
     if isinstance(pacman_tile, int):
-        print(exclude)
-        print('excluding chips {} on tile {}'.format(exclude[pacman_tile], pacman_tile))
-        d['_include'].append(hydra_chain(io_group, pacman_tile, pacman_version, vdda, exclude[pacman_tile], first=True, exclude_roots=exclude_roots))
+        print('excluding chips {} on tile {}'.format(exclude[str(pacman_tile)], pacman_tile))
+        d['_include'].append(hydra_chain(io_group, pacman_tile, pacman_version, vdda, exclude[str(pacman_tile)], first=True, exclude_roots=exclude_roots))
     
     fname=config_name
 

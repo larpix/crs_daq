@@ -977,7 +977,6 @@
         "no test performed"
     ],
     "excluded_chips": [
-        60,
         60
     ]
 }

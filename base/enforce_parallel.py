@@ -81,8 +81,12 @@ def enforce_parallel(c, network_keys, unmask_last=True, pbar_position=0, pbar_de
 
         if not working: break
 
-        ok, diff = c.enforce_configuration(current_chips, timeout=0.02, connection_delay=0.012, n=50, n_verify=4)
-        
+        ok, diff = c.enforce_configuration(current_chips, timeout=0.02, connection_delay=0.01, n=10, n_verify=10)
+        if not ok:
+            if len(diff.keys()) < 20:
+                print(diff.keys())
+                ok, diff = c.enforce_configuration(current_chips, timeout=0.025, connection_delay=0.01, n=5, n_verify=10)
+
         if not ok: 
             p_bar.update(len(current_chips) - len(diff.keys()))
             p_bar.refresh() 
@@ -105,9 +109,12 @@ def enforce_parallel(c, network_keys, unmask_last=True, pbar_position=0, pbar_de
                 if np.any( np.logical_not(masks[chip])): send=True
         
         if send:
-            for __ in range(N_WRITE_UNMASK):
-                c.multi_write_configuration( [ (chip, list(range(131, 139))+list(range(66, 74))+list(range(155,163))) for chip in c.chips ], connection_delay=0.001 )
+            if True:
+                for __ in range(N_WRITE_UNMASK):
+                    c.multi_write_configuration( [ (chip, list(range(131, 139))+list(range(66, 74))+list(range(155,163))) for chip in c.chips if chip.io_group in c.io._io_group_table.keys() ], connection_delay=0.001 )
 
+            else:
+                pass
     return ok, diff, unconfigured
 
 

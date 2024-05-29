@@ -4,33 +4,21 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 def main(*files, inc=0, **kwargs):
-        trims = []
+        globs = []
         for file in files:
                 config={}
                 with open(file, 'r') as f: config=json.load(f)
-               
-                try:
-                    ptd = np.array(config['pixel_trim_dac'])
-                except:
-                    print(file)
-                    ptd=np.array([16]*64)
-                try:
-                    csa = np.array(config['csa_enable'])
-                    csa = np.logical_and( csa, np.logical_not(config['channel_mask']) )
-                except:
-                    csa=np.array([1]*64)
-                trims += list( ptd[csa]  )
-                if any( ptd==0 ):
-                    print(file, ptd)
+                
+                glob = config['threshold_global']
+                globs.append(glob)
 
 
-        vals, bins = np.histogram(trims, range=(-0.5, 31.5), bins=32)
+        vals, bins = np.histogram(globs, range=(-0.5, 31.5), bins=32)
+        globs=np.array(globs)
+        for val in  set(globs) :
+            print('{}: {}'.format(val, np.sum(globs==val)))
 
-        for ival, val in enumerate(vals):
-            print('{}: {}'.format(ival, val))
-
-        print(','.join([str(v) for v in vals]))
-
+        return
         fig=plt.figure()
         ax=fig.add_subplot()
         ax.hist(trims,range=(-0.5, 31.5), bins=32 )

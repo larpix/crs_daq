@@ -19,7 +19,7 @@ r_term=2
 i_rx=8
 
 _default_clk_ctrl = 1
-_uart_phase = 2
+_uart_phase = 3
 
 clk_ctrl_2_clk_ratio_map = {
         0: 10,
@@ -635,7 +635,7 @@ def network_v2b(controller_config, tiles=None, io_group=None, pacman_config=None
             if not tiles is None:
                 if not utility_base.io_channel_to_tile(io_channel) in tiles: continue
 
-            c.init_network(io_group, io_channel, modify_mosi=False)
+            c.init_network(io_group, io_channel, modify_mosi=True)
     
        #write tx, rx, etc configs
     for chip_key in c.chips.keys():
@@ -698,7 +698,7 @@ def network_v2a(controller_config, tiles=None, io_group=None, verbose=False, pac
         for io_channel in io_channels:
             if not tiles is None:
                 if not utility_base.io_channel_to_tile(io_channel) in tiles: continue
-            c.init_network(io_group, io_channel, modify_mosi=False)
+            c.init_network(io_group, io_channel, modify_mosi=True)
     
     ###### set uart speed (v2a at 2.5 MHz transmit clock, v2b fine at 5 MHz transmit clock)
     for io_group, io_channels in c.network.items():

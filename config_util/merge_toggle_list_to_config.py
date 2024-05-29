@@ -20,8 +20,10 @@ def parse_toggle_json(toggle_json):
 
     return toggle_list
 
-def main(*files, toggle_json,toggle_global, cryo, **kwargs):
-        
+def main(*files, toggle_json, toggle_global, cryo, **kwargs):
+    
+    global trim_scale_
+    global glob_scale_
     if cryo: trim_scale_=cryo_scale_ 
     
     toggle_list=parse_toggle_json(toggle_json)
@@ -42,37 +44,37 @@ def main(*files, toggle_json,toggle_global, cryo, **kwargs):
             if not 'pixel_trim_dac' in config.keys():
                 config['pixel_trim_dac']=[16]*64
 
-            if toggle_global:
-                #global toggling code here
-                for pair in toggle_list[chip_key]:
-                    config['pixel_trim_dac'][pair[0]] += pair[1]
-                
-                #check for bottomed out trims
-                if np.any(config['pixel_trim_dac'] < 0):
-                    decrement=False
-                    #check for room to decrease global threshold
-                    max_ptd = np.max(config['pixel_trim_dac'])
-                    if (31-max_ptd) > glob_scale_ / trim_scale_:
-                        decrement=True
-                    else:
-                        count_bottomed=np.sum([ 1 if ptd < 1 else 0 for ptd in config['pixel_trim_dac']   ] )
-                        if count_bottomed > 32:
-                            decrement=True
-                
-                    if decrement:
-                        config['threshold_global'] -= 1
-                        config['pixel_trim_dac'] = [ ptd + int(glob_scale/trim_scale_) for ptd in config['pixel_trim_dac'] ]
-
-                #check for maxed out trims, see if room to incrememnt global up
-                if np.any(config['pixel_trim_dac'] > 31):
-                    # some channels too high, might need to raise global threshold
-                    min_ptd = np.min(config['pixel_trim_dac'])
-                    if min_ptd > glob_scale_ / trim_scale_:
-                        #room to increment global up
-                        config['threshold_global'] += 1 
-                        config['pixel_trim_dac'] = [ ptd - int(glob_scale/trim_scale_) + 1 for ptd in config['pixel_trim_dac'] ] 
-                    
-            else:
+            #if toggle_global:
+            #    #global toggling code here
+            #    for pair in toggle_list[chip_key]:
+            #        config['pixel_trim_dac'][pair[0]] += pair[1]
+            #    
+            #    #check for bottomed out trims
+            #    if np.any(np.array(config['pixel_trim_dac']) < 0):
+            #        decrement=False
+            #        #check for room to decrease global threshold
+            #        max_ptd = np.max(config['pixel_trim_dac'])
+            #        if (31-max_ptd) > glob_scale_ / trim_scale_:
+            #            decrement=True
+            #        else:
+            #            count_bottomed=np.sum([ 1 if ptd < 1 else 0 for ptd in config['pixel_trim_dac']   ] )
+            #            if count_bottomed > 32:
+            #                decrement=True
+            #    
+            #        if decrement:
+            #            config['threshold_global'] -= 1
+            #            config['pixel_trim_dac'] = [ ptd + int(glob_scale_/trim_scale_) for ptd in config['pixel_trim_dac'] ]
+            #
+            #    #check for maxed out trims, see if room to incrememnt global up
+            #    if np.any( np.array(config['pixel_trim_dac']) > 31):
+            #        # some channels too high, might need to raise global threshold
+            #        min_ptd = np.min(config['pixel_trim_dac'])
+            #        if min_ptd > glob_scale_ / trim_scale_:
+            #            #room to increment global up
+            #            config['threshold_global'] += 1 
+            #            config['pixel_trim_dac'] = [ ptd - int(glob_scale_/trim_scale_) + 1 for ptd in config['pixel_trim_dac'] ] 
+            #        
+            if True:
                 for pair in toggle_list[chip_key]:
                     config['pixel_trim_dac'][pair[0]] += pair[1]
            
@@ -107,5 +109,7 @@ if __name__ == "__main__":
     
     main(
         *args.input_files,
-        toggle_json=args.toggle_json
+        toggle_json=args.toggle_json,
+        toggle_global=args.toggle_global,
+        cryo=args.cryo
     )
