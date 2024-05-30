@@ -29,7 +29,7 @@ def main(input_files, controller_config, \
         #Take inventory of all chips in hydra network
         chip_keys=[]
         asic_ids =[]
-        
+        used_ids =[]
         for file in input_files:
             asic_config={}
             with open(file, 'r') as f: asic_config=json.load(f)
@@ -63,13 +63,12 @@ def main(input_files, controller_config, \
             elif c[test_chip].asic_version=='2b':
                 hydra_registers=hydra_registers_v2b
             
-
             for chip in c.chips:
                 _asic_id = get_asic_id(chip)
                 if _asic_id in asic_ids:
                     #found the chip we need to modify
                     index=asic_ids.index(_asic_id)
-                    
+                    used_ids.append(_asic_id)
                     asic_config={}
                     file=input_files[index]
                     with open(file, 'r') as f: asic_config=json.load(f)
@@ -81,6 +80,8 @@ def main(input_files, controller_config, \
                     asic_config['meta']['last_update'] = datetime_now()
 
                     with open(file, 'w') as f: json.dump(asic_config, f, indent=4)
+
+        print('Remove files:', set(asic_ids)-set(used_ids)) 
      
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
