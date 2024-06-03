@@ -201,6 +201,159 @@
                             null,
                             null,
                             null,
+                            18
+                        ]
+                    },
+                    {
+                        "chip_id": 18,
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            19
+                        ]
+                    },
+                    {
+                        "chip_id": 19,
+                        "miso_us": [
+                            null,
+                            null,
+                            29,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 29,
+                        "miso_us": [
+                            null,
+                            null,
+                            39,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 39,
+                        "miso_us": [
+                            null,
+                            null,
+                            49,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 49,
+                        "miso_us": [
+                            null,
+                            null,
+                            59,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 59,
+                        "miso_us": [
+                            null,
+                            null,
+                            69,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 69,
+                        "miso_us": [
+                            null,
+                            null,
+                            79,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 79,
+                        "miso_us": [
+                            null,
+                            null,
+                            89,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 89,
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            90
+                        ]
+                    },
+                    {
+                        "chip_id": 90,
+                        "miso_us": [
+                            80,
+                            null,
+                            null,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 80,
+                        "miso_us": [
+                            70,
+                            null,
+                            null,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 70,
+                        "miso_us": [
+                            60,
+                            null,
+                            null,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 60,
+                        "miso_us": [
+                            50,
+                            null,
+                            null,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 50,
+                        "miso_us": [
+                            40,
+                            null,
+                            null,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 40,
+                        "miso_us": [
+                            30,
+                            null,
+                            null,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 30,
+                        "miso_us": [
+                            20,
+                            null,
+                            null,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 20,
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
                             null
                         ]
                     }
@@ -482,86 +635,14 @@
                     {
                         "chip_id": 99,
                         "miso_us": [
-                            89,
                             null,
                             null,
-                            null
+                            null,
+                            100
                         ]
                     },
                     {
-                        "chip_id": 89,
-                        "miso_us": [
-                            79,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 79,
-                        "miso_us": [
-                            69,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 69,
-                        "miso_us": [
-                            59,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 59,
-                        "miso_us": [
-                            49,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 49,
-                        "miso_us": [
-                            39,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 39,
-                        "miso_us": [
-                            29,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 29,
-                        "miso_us": [
-                            19,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 19,
-                        "miso_us": [
-                            null,
-                            null,
-                            null,
-                            20
-                        ]
-                    },
-                    {
-                        "chip_id": 20,
+                        "chip_id": 100,
                         "miso_us": [
                             null,
                             null,
@@ -856,78 +937,6 @@
                     {
                         "chip_id": 110,
                         "miso_us": [
-                            100,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 100,
-                        "miso_us": [
-                            90,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 90,
-                        "miso_us": [
-                            80,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 80,
-                        "miso_us": [
-                            70,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 70,
-                        "miso_us": [
-                            60,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 60,
-                        "miso_us": [
-                            50,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 50,
-                        "miso_us": [
-                            40,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 40,
-                        "miso_us": [
-                            30,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 30,
-                        "miso_us": [
                             null,
                             null,
                             null,
@@ -962,8 +971,5 @@
     "bad_uart_links": [
         "no test performed"
     ],
-    "excluded_chips": [
-        18,
-        18
-    ]
+    "excluded_chips": []
 }
