@@ -27,7 +27,7 @@ def main(verbose, \
         pacman_config,\
         no_unmask_last=False,\
         pid_logged=False):
-        
+       
         unmask_last = not no_unmask_last
         pacman_configs = {}
         with open(pacman_config, 'r') as f:

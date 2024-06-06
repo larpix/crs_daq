@@ -45,7 +45,7 @@ def get_chips_by_io_group_io_channel(network_config, tiles=None, use_keys=None):
 
     return all_keys
 
-def enforce_parallel(c, network_keys, unmask_last=True, pbar_position=0, pbar_desc='configuring...'):
+def enforce_parallel(c, network_keys, unmask_last=True, pbar_position=0, pbar_desc='configuring...', ignore_diff=False):
     
     ichip = -1  
     nchip = sum([len(net) for net in network_keys])
@@ -81,16 +81,16 @@ def enforce_parallel(c, network_keys, unmask_last=True, pbar_position=0, pbar_de
 
         if not working: break
 
-        ok, diff = c.enforce_configuration(current_chips, timeout=0.02, connection_delay=0.01, n=10, n_verify=10)
+        ok, diff = c.enforce_configuration(current_chips, timeout=0.02, connection_delay=0.01, n=5, n_verify=5)
         if not ok:
             if len(diff.keys()) < 20:
-                print(diff.keys())
-                ok, diff = c.enforce_configuration(current_chips, timeout=0.025, connection_delay=0.01, n=5, n_verify=10)
+                print(diff.keys(), diff)
+                ok, diff = c.enforce_configuration(current_chips, timeout=0.025, connection_delay=0.01, n=10, n_verify=10)
 
         if not ok: 
             p_bar.update(len(current_chips) - len(diff.keys()))
             p_bar.refresh() 
-            return ok, diff, unconfigured
+            if not ignore_diff: return ok, diff, unconfigured
         
         p_bar.update(len(current_chips))
         p_bar.refresh()

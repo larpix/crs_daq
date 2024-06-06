@@ -99,7 +99,7 @@ def get_good_roots(c, io_group, io_channels, root_chips=[11, 41, 71, 101]):
 def get_initial_controller(io_group, io_channels, vdda=0, pacman_version='v1rev3b'):
         #creating controller with pacman io
         c = larpix.Controller()
-        c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath='io/pacman.json')
+        c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath='io/pacman_io1.json')
         c.io.double_send_packets = True
         print('getting initial controller')
         
@@ -241,12 +241,13 @@ def test_network(c, io_group, io_channels, paths):
                         c.write_configuration(next_key, 'enable_miso_downstream')
 
                         ok, diff = c.enforce_configuration(next_key, timeout=0.02, n=5, n_verify=3)
-                        if False:
+                        if False and next_key.chip_id>40 and next_key.chip_id < 61:
                             print('checking', next_key)
-                            for i in range(50):
-                                ok, diff = c.verify_registers( [(next_key, 0)], timeout=0.01 )
-                        
-                                if not ok: print(diff)
+                            for i in range(500):
+                                c.verify_registers( [(next_key, 0)], timeout=0.01 )
+                                
+                                #if not ok: print(diff)
+                            time.sleep(1)
                         pbar.update(1)
                         if ok:
                                 continue
@@ -350,15 +351,14 @@ def hydra_chain(io_group, pacman_tile, pacman_version, vdda, exclude=None, first
         init_initial_network(c, io_group, io_channels, paths)
         #test network to make sure all chips were brought up correctly
         ok = test_network(c, io_group, io_channels, paths)
-
         while not ok:
                 c = reset_board_get_controller(c, io_group, io_channels)
 
                 existing_paths = [ [chip] for chip in root_chips  ]
-
+            
                 #initial network
                 print(arr.excluded_links)
-                paths = arr.get_path(existing_paths)
+                paths = arr.get_path(existing_paths) 
                 print('path inlcuding', sum(  [len(path) for path in paths] ), 'chips' )
 
                 #bring up initial network and set clock frequency
@@ -375,6 +375,7 @@ def hydra_chain(io_group, pacman_tile, pacman_version, vdda, exclude=None, first
         if True:
                 print('writing configuration', _name + ', including', sum(  [len(path) for path in paths] ), 'chips'  )
                 generate_config.write_existing_path(_name, io_group, root_chips, io_channels, paths, ['no test performed'], arr.excluded_chips, asic_version=2)
+        print(arr.excluded_links)
         return _name 
 
 if __name__ == '__main__':

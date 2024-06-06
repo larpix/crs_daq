@@ -49,7 +49,7 @@ def main(io_group, file_prefix=_default_file_prefix, \
          **kwargs):
    
     c = larpix.Controller()
-    c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath='io/pacman_m2.json')
+    c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath='io/pacman_io6.json')
     c.io.reset_larpix(length=4096*4, io_group=io_group) #2048 
     time.sleep(4096*4*1e-6)
     c.io.reset_larpix(length=4096*4, io_group=io_group) #2048 

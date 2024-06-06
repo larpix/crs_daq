@@ -19,7 +19,7 @@ r_term=2
 i_rx=8
 
 _default_clk_ctrl = 1
-_uart_phase = 3
+_uart_phase = 2
 
 clk_ctrl_2_clk_ratio_map = {
         0: 10,

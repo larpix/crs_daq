@@ -25,7 +25,7 @@ _default_verbose = False
 _default_controller_config = None
 _update_default=False
 
-def enforce_iterative(nc, all_network_keys, n=1, configs=None, pbar_desc='p', pbar_position=0):
+def enforce_iterative(nc, all_network_keys, n=3, configs=None, pbar_desc='p', pbar_position=0):
     ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys, pbar_desc=pbar_desc, pbar_position=pbar_position)
     if ok: return ok, diff, unconfigured
     elif n==0: 
@@ -124,9 +124,10 @@ def main(verbose,\
     
     for io_group_ip_pair in pacman_configs['io_group']:
         io_group = io_group_ip_pair[0]
-        pacman_base.enable_all_pacman_uart_from_io_group(nc.io, io_group)
         for iog in DCONFIGS.keys():
             config_loader.load_config_from_directory(nc, DCONFIGS[iog])
+
+        pacman_base.enable_pacman_uart_from_io_channel(nc.io, io_group, list(set([chip.io_channel for chip in nc.chips])))
     pos=0
     tag='networking...'
     if pid_logged:
@@ -135,7 +136,7 @@ def main(verbose,\
         pos = enforce_parallel.tag_to_config_map[tag]
     ok, diff, unconfigured = enforce_iterative(nc, all_network_keys, configs=configs, pbar_desc=tag, pbar_position=pos)
     if not ok:
-        raise RuntimeError('Unconfigured chips!', diff.keys())
+        raise RuntimeError('Unconfigured chips!', diff)
     
     if pid_logged: print('\n{} networked successfully'.format(tag))
     return c

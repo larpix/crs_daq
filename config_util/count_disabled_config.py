@@ -1,5 +1,4 @@
 import argparse
-from base import config_loader
 import json
 import numpy as np
 
@@ -9,13 +8,15 @@ def main(*files, disabled_json, **kwargs):
                 config={}
                 with open(file, 'r') as f: config=json.load(f)
                 
-                chip_key=config['CHIP_KEY']
-                
+                chip_key=config['meta']['CHIP_KEY']
+                version=config['meta']['ASIC_VERSION']
                 _s = sum(config['channel_mask'])
-                total+=_s
-        total = total - (64-49)*1600
+                if version=='2b': 
+                    total+=_s
+                else:
+                    total+=(_s-(64-49))
+        
         print('total: ', total)
-        print('fraction: ', (total)/(49*1600))
                 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
