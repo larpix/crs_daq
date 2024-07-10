@@ -13,7 +13,7 @@ _default_filename = None
 
 _default_geometry_yaml = 'analysis/layout-3.0.0.yaml'
 
-_default_metric = 'mean'
+_default_metric = ''
 
 pitch = 3.8  # mm
 
@@ -67,7 +67,6 @@ def parse_file(filename):
 
 
 def plot_1d(d, metric):
-
     io_groups = set(unique_to_io_group(np.array(list(d.keys()))))
     tiles = set(unique_to_tiles(np.array(list(d.keys()))))
 
@@ -213,12 +212,34 @@ def main(filename=_default_filename,
          **kwargs):
 
     d = parse_file(filename)
-
-    normalization = 255
+    normalization = 50
+    if metric == 'mean':
+        normalization = 50
     if metric == 'std':
         normalization = 5
     if metric == 'rate':
-        normalization = 0.4
+        normalization = 5
+
+    if metric == '':
+        # plot all
+        # mean
+        normalization = 50
+        metric = 'mean'
+        plot_xy(d, metric, geometry_yaml, normalization, filename)
+        plot_1d(d, metric)
+        # mean
+        normalization = 5
+        metric = 'std'
+        plot_xy(d, metric, geometry_yaml, normalization, filename)
+        plot_1d(d, metric)
+        # mean
+        normalization = 5
+        metric = 'rate'
+        plot_xy(d, metric, geometry_yaml, normalization, filename)
+        plot_1d(d, metric)
+
+        metric = ''
+        return
 
     plot_xy(d, metric, geometry_yaml, normalization, filename)
 

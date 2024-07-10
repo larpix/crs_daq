@@ -118,6 +118,14 @@ def main(io_group, file_prefix=_default_file_prefix,
                                                                   unconfigured, asic_version=io_group_asic_version_[iog])
             end = time.time()
 
+            # write directly to controller_config.json
+            # works with one iog for now
+            with open('controller_config.json', 'w') as controller_config:
+                d = dict()
+                d[str(iog)] = network_file
+                json.dump(d, controller_config, indent=4)
+
+                print('Writing to controller_config.json')
             print('Time elapsed: ', end-start, ' s.')
             return c, c.io
 
