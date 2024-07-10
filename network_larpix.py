@@ -14,7 +14,7 @@ import json
 from base.utility_base import now
 
 _default_verbose = False
-_default_controller_config = None
+_default_controller_config = 'controller_config.json'
 
 
 def main(verbose,
@@ -51,7 +51,7 @@ def main(verbose,
 
         config = configs[str(io_group)]
 
-        if io_group_asic_version_[io_group] == '2b':
+        if io_group_asic_version_[io_group] in ['2b', '2d']:
             c = network_base_FSD.network_v2b(config)
 
         elif io_group_asic_version_[io_group] in [2, 'lightpix-1']:

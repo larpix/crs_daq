@@ -1,7 +1,6 @@
 import larpix
 import larpix.io
 import larpix.logger
-import pickledb
 import base
 import h5py
 import argparse
@@ -15,48 +14,25 @@ from base import enforce_parallel
 from RUNENV import *
 from base.utility_base import now
 from base import pacman_base
+from base import utility_base
 from base.utility_base import *
 from tqdm import tqdm
-
-_default_controller_config=None
+MAX_TOGGLE_ITS=16
+_default_controller_config='controller_config.json'
 _default_pedestal_file=None
 _default_trim_sigma_file='channel_scale_factor.json'
 _default_disabled_list=None
-_default_noise_cut=2.
 _default_null_sample_time= 1. #0.5 #1 #0.25
 _default_disable_rate=20.
 _default_set_rate=2.
 _default_cryo=False
-_default_vdda=1700
+_default_vdda=1800
 _default_normalization=1.
 _default_verbose=False
-vref_dac = 223
-vcm_dac  = 68
+vref_dac = 185 #223
+vcm_dac  = 45 #68
 nonrouted_channels=[6,7,8,9,22,23,24,25,38,39,40,54,55,56,57]
 
-def measure_background_rate_increase_trim(c, extreme_edge_chip_keys, null_sample_time, set_rate, verbose):
-    print('=====> Rate threshold: ',set_rate,' Hz')
-    flag = True
-    for io_group in io_group_pacman_tile_.keys():
-        pacman_base.enable_all_pacman_uart_from_io_group(c.io, io_group)
-    while flag:
-        c.multi_read_configuration(extreme_edge_chip_keys, timeout=null_sample_time,message='rate check')
-        triggered_channels = c.reads[-1].extract('chip_key','channel_id',packet_type=0)
-        print('total rate={}Hz'.format(len(triggered_channels)/null_sample_time))
-        count = 0
-        for chip_key, channel in set(map(tuple,triggered_channels)):
-            rate = triggered_channels.count([chip_key,channel])/null_sample_time
-            if rate > set_rate:
-                count += 1
-                print(chip_key,' rate too high (',rate,
-                      ' Hz) increasinng channel ',channel,' trim DAC to 31')
-                if chip_key not in c.chips: continue
-                c[chip_key].config.pixel_trim_dac[channel] = 31
-                c.write_configuration(chip_key,[channel])
-        c.reads = []
-        if count == 0: flag = False
-
-    return
 
 def measure_background_rate_disable_csa(c, extreme_edge_chip_keys, csa_disable,
                                         null_sample_time, disable_rate,verbose):
@@ -74,10 +50,10 @@ def measure_background_rate_disable_csa(c, extreme_edge_chip_keys, csa_disable,
             asic_id = chip_key_to_asic_id(chip_key)
             rate = triggered_channels.count([chip_key,channel])/null_sample_time
             if rate > disable_rate:
-                count += 1
                 print(chip_key,' rate too high (',rate,
                       ' Hz) disabling channel: ',channel)
-                if chip_key not in c.chips: continue
+                if chip_key not in c.chips: continue 
+                count += 1
                 c.disable(chip_key,[channel])
                 c[chip_key].config.csa_enable[channel] = 0
                 c[chip_key].config.channel_mask[channel] = 1
@@ -90,27 +66,9 @@ def measure_background_rate_disable_csa(c, extreme_edge_chip_keys, csa_disable,
                 csa_disable[asic_id].append(channel)
         c.reads = []
         if count == 0: flag = False
-        #else:
-        #   for chip in c.chips:
-        #      c.write_configuration(chip_key,'channel_mask')
 
     return csa_disable
 
-def disable_channel(c, chip_key, channel, csa_disable):
-    if chip_key not in csa_disable: csa_disable[chip_key] = []
-    csa_disable[chip_key].append(channel)
-    c.write_configuration(chip_key, csa_registers[int(channel/8)])
-    return
-
-def disable_multiple_channels(c, csa_disable):
-    chip_register_pairs = []
-    for chip_key in csa_disable.keys():
-        if chip_key not in c.chips: continue
-        for channel in csa_disable[chip_key]:
-            c[chip_key].config.csa_enable[channel] = 0
-        chip_register_pairs.append( (chip_key, list(range(66,74)) ) )
-    c.multi_write_configuration(chip_register_pairs)
-    return
 
 def find_pedestal(pedestal_file, c, verbose):
     count_noisy = 0
@@ -118,6 +76,7 @@ def find_pedestal(pedestal_file, c, verbose):
     data_mask = f['packets'][:]['packet_type']==0
     valid_parity_mask = f['packets'][data_mask]['valid_parity']==1
     good_data = (f['packets'][data_mask])[valid_parity_mask]
+    adc = good_data['dataword'].astype(np.uint64)
     io_group = good_data['io_group'].astype(np.uint64)
     io_channel = good_data['io_channel'].astype(np.uint64)
     chip_id = good_data['chip_id'].astype(np.uint64)
@@ -132,20 +91,26 @@ def find_pedestal(pedestal_file, c, verbose):
         if c[chip].asic_version==2: 
             csa_disable[asic_id] += nonrouted_channels
             csa_disable[asic_id] = list(set(csa_disable[asic_id]))
-     
-    for unique in tqdm(sorted(unique_channels)):
-        channel_mask = uniques == unique
 
-        chip_key = unique_to_chip_key(unique)
-        adc = good_data[channel_mask]['dataword']
-        asic_id = chip_key_to_asic_id(chip_key)
-        if len(adc) < 1 or np.mean(adc)>200.:# or np.std(adc)==0:
-            if asic_id not in csa_disable: csa_disable[asic_id] = []
-            csa_disable[asic_id].append(unique_to_channel_id(unique))
-            count_noisy += 1 
-            continue
+    for cid in tqdm(set(chip_id)):
+        _mask_ = cid == chip_id
+        _uniques_ = uniques[_mask_]
+        _adc_ = adc[_mask_]
+        
+        for unique in set(_uniques_):
+            channel_mask = _uniques_ == unique
+            __adc__ = _adc_[channel_mask]
 
-        pedestal_channel[unique] = dict(mu = np.mean(adc), std = np.std(adc))
+            chip_key = unique_to_chip_key(unique)
+            asic_id = chip_key_to_asic_id(chip_key)
+            if len(__adc__) < 1 or np.mean(__adc__)>200.:# or np.std(adc)==0:
+                if asic_id not in csa_disable: csa_disable[asic_id] = []
+                csa_disable[asic_id].append(unique_to_channel_id(unique))
+                count_noisy += 1 
+                continue
+
+            pedestal_channel[unique] = dict(mu = np.mean(__adc__), std = np.std(__adc__))
+    
     temp, temp_mu, temp_std = [ {} for i in range(3)]
     for unique in pedestal_channel.keys():
         chip_key = unique_to_chip_key(unique)
@@ -178,18 +143,19 @@ def disable_from_file(c, disabled_list, csa_disable):
             asic_id = chip_key_to_asic_id(chip_key)
             disable_input[asic_id]=[6,7,8,9,22,23,24,25,38,39,40,54,55,56,57] # channels NOT routed out to pixel pads for LArPix-v2
     chip_register_pairs = []
-    for chip_key in c.chips:
+    for chip_key in tqdm(c.chips, desc='disabling channels...'):
         asic_id = chip_key_to_asic_id(chip_key)
-        chip_register_pairs.append( (chip_key, list(range(66,74)) ) )
-        for key in disable_input:
-            if key==asic_id or key=='All':
+        chip_register_pairs.append( (chip_key, list(range(66,74))+list(range(131,139)) )  )
+        if asic_id in disable_input.keys():
+            key=asic_id
+            if True:
                 for channel in disable_input[key]:
                     c[chip_key].config.csa_enable[channel] = 0
-                    if chip_key not in csa_disable: csa_disable[chip_key] = []
+                    c[chip_key].config.channel_mask[channel] = 1
                     if not asic_id in csa_disable.keys(): csa_disable[asic_id]=[]
                     csa_disable[asic_id].append(channel)
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
+    c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
+    c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
     return csa_disable
 
 def from_ADC_to_mV(c, chip_key, adc, flag, vdda):
@@ -198,16 +164,14 @@ def from_ADC_to_mV(c, chip_key, adc, flag, vdda):
     if flag==True: return adc * ( (vref - vcm) / 256. ) + vcm
     else: return adc * ( (vref - vcm) / 256. )
 
-def find_mode(l):
-    a = Counter(l)
-    return a.most_common(1)
-
 def get_chip_key(packet):
     return '{}-{}-{}'.format(packet.io_group, packet.io_channel, packet.chip_id)
 
-def enable_frontend(c, channels, csa_disable, config, all_network_keys):
+def enable_frontend(c, pacman_configs, channels, csa_disable, config, all_network_keys):
     ichip=-1
     chip_reg_pairs_list = []
+    bad_chips = []
+    print('Enabling Front-Ends...')
     while True:
         chip_register_pairs = []
         current_chips = []
@@ -235,13 +199,15 @@ def enable_frontend(c, channels, csa_disable, config, all_network_keys):
                 #print(chip_key, c[chip_key].config.csa_enable)        
         chip_reg_pairs_list.append( chip_register_pairs )
 
-    for io_group in io_group_pacman_tile_.keys():
+    for io_group_ip_pair in pacman_configs['io_group']:
+        io_group = io_group_ip_pair[0]
         pacman_base.enable_all_pacman_uart_from_io_group( c.io, io_group  )
     for chip_register_pairs in chip_reg_pairs_list: 
         #print(chip_register_pairs)
         #print(type(chip_register_pairs))
-        c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)       
-        c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
+        #print('Enabling Chips:', [crp[0] for crp in chip_register_pairs ])
+        c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)       
+        c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
         high_rate = True
         runtime = 0.1 #1
         ihr_it = 0
@@ -251,9 +217,7 @@ def enable_frontend(c, channels, csa_disable, config, all_network_keys):
             c.run(runtime,'check rate')
             all_packets = np.array(c.reads[-1])
             high_rate=False
-            #if all_packets.shape[0]/runtime > 10 and all_packets.shape[0]/runtime < 2000:
-            #    high_rate=False
-            #    continue
+            print('it {}, n_packets:{}'.format(ihr_it,all_packets.shape[0]))
             if all_packets.shape[0]==0:
                 packets=np.array([])
             else:
@@ -271,12 +235,36 @@ def enable_frontend(c, channels, csa_disable, config, all_network_keys):
                 high_rate=True
                 for pair in chip_register_pairs:
                     c[pair[0]].config.threshold_global -= 1
-                for _ in range(10): 
-                    c.multi_write_configuration([ (chip, [64])], connection_delay=0.001)                     	
+                    if c[pair[0]].config.threshold_global<0: c[pair[0]].config_threshold_global=0
+                    for _ in range(3): 
+                        c.multi_write_configuration([ (pair[0], [64])], connection_delay=0.01)
+                continue
                 
             ntrig = chip_triggers.shape[0]
             print('______Iteration: {}\ttotal packets: {}______'.format(ihr_it, ntrig))
             for chip in triggered_chips:
+                if not chip in c.chips:
+                    ckey=larpix.key.Key(chip)
+                    print('Unknown chip ID found...')
+                    __io_group, __io_channel = ckey.io_group, ckey.io_channel
+                    for pair in chip_register_pairs:
+                        cc_str=pair[0]
+                        cc = larpix.key.Key(cc_str)
+                        if cc.io_group==__io_group and cc.io_channel==__io_channel:
+                            #check if a chip is already disabled and warn
+                            for ccc_str in bad_chips:
+                                ccc = larpix.key.Key(ccc_str)
+                                if ccc.io_group==__io_group and ccc.io_channel==__io_channel:
+                                    print('Warning! Disabling {}, Chip on this channel disabled already:'.format(cc), ccc)
+                            bad_chips.append(cc)
+                            c[cc].config.csa_enable=[0]*64
+                            c[cc].config.channel_mask=[1]*64
+                            asic_id = chip_key_to_asic_id(cc)
+                            csa_disable[asic_id]=list(range(64))
+                            print('Found chip {}, disabling all channels'.format(cc))
+                    continue
+
+
                 ids = np.array(chip.split('-')).astype(int)
                 mask = np.logical_and( iog_triggers==ids[0], ioch_triggers==ids[1] )
                 mask = np.logical_and(mask, chip_triggers==ids[2])
@@ -288,14 +276,19 @@ def enable_frontend(c, channels, csa_disable, config, all_network_keys):
                     ntrig_ch = np.sum(channel==channels)
                     if ntrig_ch/runtime > 1000:
                         print('Very high rate channel disabled!\t{}-{}:\trate={}Hz'.format(chip, channel, ntrig_ch/runtime))
+                        if not chip in c.chips:
+                            print('Noisy chip missing from controller!')
+                            continue
                         c[chip].config.channel_mask[int(channel)]=1
                         c[chip].config.csa_enable[int(channel)]=0
+                        asic_id = chip_key_to_asic_id(chip)
+                        csa_disable[asic_id].append(int(channel))
                         disabled_channels=True
 
-		#write channel mask
+        #write channel mask
                 if disabled_channels:
                     high_rate=True
-                    for _ in range(10): c.multi_write_configuration([ (chip, list(range(66, 74))+list(range(131, 140)))], connection_delay=0.001)       
+                    for _ in range(10): c.multi_write_configuration([ (chip, list(range(66, 74))+list(range(131, 139)))], connection_delay=0.01)       
                     continue
 
                 ntrig_chip = np.sum(mask) 
@@ -306,28 +299,20 @@ def enable_frontend(c, channels, csa_disable, config, all_network_keys):
                     change_thresh=True
                     
                 if ntrig_chip/runtime > 2000:
-                    #print('\t\thigh rate channels! issue soft reset and raise global threshold {}'.format(
                     print('\t\thigh rate channels on chip {}! raise global threshold {}'.format(chip,
-                        #c[pair[0]].config.threshold_global + 1))
                         c[chip].config.threshold_global + 1))
-                    #if sum(fifo_half)!=0:
-                    #   c[pair[0]].config.load_config_defaults = 1
-                    #   c.write_configuration(pair[0], 'load_config_defaults')
-                    #   c.write_configuration(pair[0], 'load_config_defaults')
-                    #   c[pair[0]].config.load_config_defaults = 0
-                    #   print('---- ISSURING A SOFTWARE RESET ----')
                     if c[chip].config.threshold_global < 255:
                         c[chip].config.threshold_global += 1
                         change_thresh=True
                 
                 #write global threshold
                 if change_thresh:
-                    for _ in range(10): c.multi_write_configuration([ (chip, [64])], connection_delay=0.001)       
+                    for _ in range(10): c.multi_write_configuration([ (chip, [64])], connection_delay=0.01)       
 
 def find_global_dac_seed(c, pedestal_chip, normalization, cryo, vdda, verbose):
     global_dac_lsb = vdda/256.
-    offset = 300 # [mV] at 300 K
-    if cryo: offset = 350 # [mV] at 88 K
+    offset = 100#300 # [mV] at 300 K
+    if cryo: offset = 365 # [mV] at 88 K
     print('PEDESTAL OFFSET: ',offset)
     chip_register_pairs = []
     for chip_key in pedestal_chip.keys():
@@ -348,150 +333,11 @@ def find_global_dac_seed(c, pedestal_chip, normalization, cryo, vdda, verbose):
         c[chip_key].config.periodic_reset_cycles = 64 # registers [163-165]
         chip_register_pairs.append( (chip_key, list(range(0,65))+[128,163,164,165]) )
 
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
+    for i in range(3):
+        print(i)
+        c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
+        c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
     return
-
-def load_trim_sigma(trim_sigma_file):
-    trim_sigma = {}
-    with open(trim_sigma_file,'r') as f:
-        data = json.load(f)
-        for key in data.keys():
-            trim_sigma[key] = data[key][0]+data[key][1]
-    return trim_sigma
-
-def find_trim_dac_seed(c, channels, cryo, vdda,
-                       pedestal_channel, pedestal_chip, trim_sigma):
-    global_dac_lsb = vdda/256.
-    trim_scale = 1.45 # [mV] at 300 K
-    offset = 300 # [mV] at 300 K
-    if cryo:
-        trim_scale = 2.34 # [mV] at 88 K
-        offset = 350 # [mV] at 88 K
-
-    chip_register_pairs = []
-    for i in pedestal_channel.keys():
-        ped_chip_key = unique_to_chip_key(i)
-        if ped_chip_key not in c.chips: continue
-        ped_channel = unique_to_channel_id(i)
-        if ped_channel not in channels: continue
-
-        x = trim_sigma[str(ped_channel)] * from_ADC_to_mV(c, ped_chip_key, pedestal_channel[i]['std'], False, vdda)
-        y = from_ADC_to_mV(c, ped_chip_key, pedestal_channel[i]['mu'], True, vdda)
-        z = (global_dac_lsb * c[ped_chip_key].config.threshold_global) + offset
-        trim_dac = int(round((x+y-z)/trim_scale))
-
-        if trim_dac<0: trim_dac = 0
-        if trim_dac>31: trim_dac = 31
-        c[ped_chip_key].config.pixel_trim_dac[ped_channel] = trim_dac
-        chip_register_pairs.append( (ped_chip_key, [ped_channel]) )
-
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
-    return
-
-def channel_start_listen(c, chip_keys, channel, csa_disable):
-    chip_register_pairs = []
-    flag = False
-    for chip_key in chip_keys:
-        if chip_key in csa_disable:
-            if channel in csa_disable[chip_key]: continue
-        c[chip_key].config.channel_mask[channel] = 0 # registers [131-138]
-        c[chip_key].config.csa_enable[channel] = 1 # registers [66-73]
-        chip_register_pairs.append( (chip_key, list(range(66,74))+list(range(131,139)) ) )
-        flag = True
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
-    return flag
-
-def channel_stop_listen(c, chip_keys, channel):
-    chip_register_pairs = []
-    for chip_key in chip_keys:
-        c[chip_key].config.channel_mask[channel] = 1 # registers [131-138]
-        c[chip_key].config.csa_enable[channel] = 0 # registers [66-73]
-        chip_register_pairs.append( (chip_key, list(range(66,74))+list(range(131,139)) ) )
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
-
-def send_testpulse(c, chip_keys, channel, n_pulses, start_dac, pulse_dac):
-    c.reads = []
-    chip_register_pairs = []
-    for chip_key in chip_keys:
-        c[chip_key].config.csa_testpulse_enable = [1]*64
-        c[chip_key].config.csa_testpulse_enable[channel] = 0
-        c[chip_key].config.csa_testpulse_dac = start_dac
-        chip_register_pairs.append( (chip_key, list(range(100,109))) )
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
-    packet, byte = ([] for i in range(2))
-
-    c.start_listening()
-    for i in range(n_pulses):
-        chip_register_pairs = []
-        for chip_key in chip_keys:
-            c[chip_key].config.csa_testpulse_dac = start_dac-pulse_dac
-            chip_register_pairs.append( (chip_key, 108) )
-        c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
-
-        chip_register_pairs = []
-        for chip_key in chip_keys:
-            c[chip_key].config.csa_testpulse_dac = start_dac
-            chip_register_pairs.append( (chip_key, [108]) )
-        c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
-
-    read_packets, read_bytestream = c.read()
-    c.stop_listening()
-
-    for chip_key in chip_keys:
-        c[chip_key].config.csa_testpulse_enable[channel] = 1
-        chip_register_pairs.append( (chip_key, list(range(100,108))) )
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
-
-    packet.extend(read_packets)
-    byte.append(read_bytestream)
-    data = b''.join(byte)
-    c.store_packets(packet,data,'')
-
-    eff_dict = {}
-    for chip_key in chip_keys:
-        eff_dict[chip_key] = len(c.reads[-1].extract('channel_id',packet_type=0,channel_id=channel,chip_id=chip_key.chip_id))/n_pulses
-        if len(c.reads[-1].extract('channel_id',packet_type=0,channel_id=channel,chip_id=chip_key.chip_id))/n_pulses>0:
-            print (chip_key,' efficiency: ',len(c.reads[-1].extract('channel_id',packet_type=0,channel_id=channel,chip_id=chip_key.chip_id))/n_pulses)
-    return eff_dict
-
-def set_pixel_trim(c, channel, status):
-    chip_register_pairs = []
-    for chip_key in status.keys():
-        c[chip_key].config.pixel_trim_dac[channel] = status[chip_key]['pixel_trim']
-        c[chip_key].config.channel_mask[channel] = 0 # registers [131-138]
-        c[chip_key].config.csa_enable[channel] = 1 # registers [66-73]
-        chip_register_pairs.append( (chip_key, list(range(0,64))) )
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
-    return
-
-def chip_key_string(chip_key):
-    return '-'.join([str(int(chip_key.io_group)),str(int(chip_key.io_channel)),str(int(chip_key.chip_id))])
-
-def note_tagged_from_outset(channel, csa_disable, record):
-    for chip_key in csa_disable.keys():
-        if chip_key not in record:
-            record[chip_key_string(chip_key)] = []
-        if channel in csa_disable[chip_key]:
-            record[chip_key_string(chip_key)].append(-1)
-    return
-
-def update(c, status, csa_disable, channel):
-    chip_register_pairs = []
-    for chip_key in status.keys():
-        c[chip_key].config.pixel_trim_dac[channel] = status[chip_key]['pixel_trim']
-        if status[chip_key]['active'] == False:
-            c[chip_key].config.csa_enable[channel] = 0
-            chip_register_pairs.append( (chip_key, [channel]+ list(range(66,74))) )
-            continue
-        if status[chip_key]['disable'] == True:
-            csa_disable[chip_key].append(channel)
-            c[chip_key].config.csa_enable[channel] = 0
-            chip_register_pairs.append( (chip_key, [channel]+ list(range(66,74))) )
-            continue
-        chip_register_pairs.append( (chip_key, [channel]) )
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
 
 def update_chip(c, status):
     chip_register_pairs = []
@@ -503,16 +349,7 @@ def update_chip(c, status):
                 c[chip_key].config.csa_enable[channel] = 0
                 c[chip_key].config.channel_mask[channel] = 1
 
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
-    return
-
-def silence_all(c, chip_keys):
-    chip_register_pairs = []
-    for chip_key in chip_keys:
-        c[chip_key].config.csa_enable = [0]*64
-        c[chip_key].config.channel_mask = [1]*64
-        chip_register_pairs.append( (chip_key, list(range(66,74))+list(range(131,139)) ) )
-    c.multi_write_configuration(chip_register_pairs, connection_delay=0.001)
+    c.multi_write_configuration(chip_register_pairs, connection_delay=0.01)
     return
 
 def toggle_trim(c, channels, csa_disable, extreme_edge_chip_keys,
@@ -585,6 +422,8 @@ def toggle_trim(c, channels, csa_disable, extreme_edge_chip_keys,
         if count == 0: flag = False
         timeEnd = time.time()-timeStart
         print('iteration ', iter_ctr,' processing time %.3f seconds\n\n'%timeEnd)
+        if iter_ctr  > MAX_TOGGLE_ITS:
+            flag=False 
 
     return csa_disable
 
@@ -595,8 +434,9 @@ def save_config_to_file(c, chip_keys, csa_disable, verbose):
         c[chip_key].config.channel_mask= [0]*64
         c[chip_key].config.vref_dac = vref_dac
         c[chip_key].config.vcm_dac = vcm_dac
-        if chip_key in csa_disable:
-            for channel in csa_disable[chip_key]:
+        asic_id = chip_key_to_asic_id(chip_key)
+        if asic_id in csa_disable.keys():
+            for channel in csa_disable[asic_id]:
                 c[chip_key].config.csa_enable[channel] = 0
                 c[chip_key].config.channel_mask[channel] = 1
    
@@ -607,11 +447,18 @@ def save_config_to_file(c, chip_keys, csa_disable, verbose):
     return
 
 
+
+def save_to_json(filename, d):
+    with open(filename+'.json','w') as outfile:
+        json.dump(d, outfile, indent=4)
+
+
+        
 def main(controller_config=_default_controller_config,
          pedestal_file=_default_pedestal_file,
          trim_sigma_file=_default_trim_sigma_file,
          disabled_list=_default_disabled_list,
-         #noise_cut=_default_noise_cut,
+         pacman_config='io/pacman.json',
          null_sample_time=_default_null_sample_time,
          disable_rate=_default_disable_rate,
          set_rate=_default_set_rate,
@@ -623,57 +470,33 @@ def main(controller_config=_default_controller_config,
 
     time_initial = time.time()
 
-    db = pickledb.load(env_db, True) 
+    c = larpix.Controller()
+    c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
+   
+    pacman_configs = {}
+    with open(pacman_config, 'r') as f:
+        pacman_configs = json.load(f)
 
-    #check DB file to ensure run conditions satisfy requirements
-    for io_group in io_group_pacman_tile_.keys():
+    config_path = None
 
-        #check that tiles are configured with hydra network
-        TILES_CONFIGURED = db.get('IO_GROUP_{}_TILES_NETWORKED'.format(io_group))
-            
-        if not TILES_CONFIGURED:
-            print('NO TILES  configured for io_group={}'.format(io_group))
-            return
+    all_network_keys = []
+    for io_group_ip_pair in pacman_configs['io_group']:
+        io_group = io_group_ip_pair[0]
 
-        if len(TILES_CONFIGURED)==0:
-            print('NO TILES  configured for io_group={}'.format(io_group))
-            return
-
-        #check pacman is properly configured 
-        PACMAN_CONFIGURED = db.get('IO_GROUP_{}_PACMAN_CONFIGURED'.format(io_group))
-        if not PACMAN_CONFIGURED:
-            print('PACMAN not configured for io_group={}'.format(io_group))
-            return
-
-        #check network config exists
-        NETWORK_CONFIG =  db.get('IO_GROUP_{}_NETWORK_CONFIG'.format(io_group))
-        if not NETWORK_CONFIG:
-            print('NO existing network file for io_group={}'.format(io_group))
-            return
-
-        c = larpix.Controller()
-        c.io = larpix.io.PACMAN_IO(relaxed=True)
-        
         #list of network keys in order from root chip, for parallel configuration enforcement
-        all_network_keys = []
        
-        for io_group in io_group_pacman_tile_.keys():
-            CONFIG=None
-            print('Using default config')
-            CONFIG = db.get('DEFAULT_CONFIG_{}'.format(io_group))
-
-            all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(db.get('IO_GROUP_{}_NETWORK_CONFIG'.format(io_group)) )  
-            config_loader.load_config_from_directory(c, CONFIG) 
+        CONFIG=None
+        with open(asic_config_paths_file_, 'r') as ff:
+            d=json.load(ff)
+            CONFIG=d['configs'][str(io_group)]
+        all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel( utility_base.get_from_json(network_config_paths_file_, io_group) )
+        config_loader.load_config_from_directory(c, CONFIG) 
             
-            db.set('IO_GROUP_{}_ASIC_CONFIGS'.format(io_group), CONFIG)
-            db.set('LAST_UPDATE', now()) 
         #ensure UARTs are enable on pacman to receive configuration packets
-        for io_group in io_group_pacman_tile_.keys(): 
-            pacman_base.enable_all_pacman_uart_from_io_group(c.io, io_group)
+    for io_group_ip_pair in pacman_configs['io_group']:
+        io_group = io_group_ip_pair[0]
+        pacman_base.enable_all_pacman_uart_from_io_group(c.io, io_group)
         
-    #enforce original config
-#    enforce_parallel.enforce_parallel(c, all_network_keys)
-
     print('START THRESHOLDING\n')
 
     channels = [ i for i in range(64) if i not in nonrouted_channels ]
@@ -690,63 +513,46 @@ def main(controller_config=_default_controller_config,
     pedestal_channel, pedestal_chip, csa_disable = find_pedestal(pedestal_file, c, verbose)
     timeEnd = time.time()-timeStart
     print('==> %.3f seconds --- pedestal evaluation \n\n'%timeEnd)
+
 #
     timeStart = time.time()
     csa_disable = disable_from_file(c, disabled_list, csa_disable)
     timeEnd = time.time()-timeStart
     print('==> %.3f seconds --- disable channels from input list'%timeEnd)
+
 #
     timeStart = time.time()
     find_global_dac_seed(c, pedestal_chip, normalization, cryo, vdda, verbose)
     timeEnd = time.time()-timeStart
     print('==> %.3f seconds --- set global DAC seed \n\n'%timeEnd)
+    
 
     timeStart = time.time()
-    enable_frontend(c, channels, csa_disable, controller_config, all_network_keys)
+    enable_frontend(c, pacman_configs, channels, csa_disable, controller_config, all_network_keys)
     timeEnd  = time.time()-timeStart
     print('==> %.3f seconds --- enable frontend \n\n'%timeEnd)
 #
+
     timeStart = time.time()
     dr = disable_rate*50
     csa_disable = measure_background_rate_disable_csa(c, extreme_edge_chip_keys, csa_disable, null_sample_time, dr, verbose)
     timeEnd = time.time() - timeStart
     print('==> %.3f seconds --- measured background rate with seeded global DAC & trim DAC maxed out\n --> silence channels that exceed rate\n\n'%timeEnd)
+
+    
     timeStart = time.time()
     dr = disable_rate*5
     csa_disable = measure_background_rate_disable_csa(c, extreme_edge_chip_keys, csa_disable, null_sample_time, dr, verbose)
     timeEnd = time.time() - timeStart
     print('==> %.3f seconds --- measured background rate with seeded global DAC & trim DAC maxed out\n --> silence channels that exceed rate\n\n'%timeEnd)
 #
+    
     timeStart = time.time()
-    dr = disable_rate*0.5
+    dr = disable_rate
     csa_disable = measure_background_rate_disable_csa(c, extreme_edge_chip_keys, csa_disable, null_sample_time, dr, verbose)
     timeEnd = time.time() - timeStart
     print('==> %.3f seconds --- measured background rate with seeded global DAC & trim DAC maxed out\n --> silence channels that exceed rate\n\n'%timeEnd)
-#
-    ###timeStart = time.time()
-    ###trim_sigma = load_trim_sigma(trim_sigma_file)
-    ###timeEnd = time.time() - timeStart
-    ###print('==> %.3f seconds --- load trim DAC scaling fractor from --trim_sigma_file \n\n'%timeEnd)
 
-    ###timeStart = time.time()
-    ###find_trim_dac_seed(c, channels, cryo, vdda, pedestal_channel, pedestal_chip, trim_sigma)
-    ###timeEnd = time.time() - timeStart
-    ###print('==> %.3f seconds --- set trim DAC seed \n\n'%timeEnd)
-
-    ###timeStart = time.time()
-    ###measure_background_rate_increase_trim(c, extreme_edge_chip_keys, null_sample_time, disable_rate, verbose)
-    ###timeEnd = time.time() - timeStart
-    ###print('==> %.3f seconds --- measured background rate with seeded global & trim DACs\n --> trim DAC maxed out for channels that exceed rate\n\n'%timeEnd)
-
-    ###timeStart = time.time()
-    ###measure_background_rate_increase_trim(c, extreme_edge_chip_keys, null_sample_time, disable_rate, verbose)
-    ###timeEnd = time.time() - timeStart
-    ###print('==> %.3f seconds --- measured background rate with seeded global & trim DACs\n --> trim DAC maxed out for channels that exceed rate\n\n'%timeEnd)
-
-    ###timeStart = time.time()
-    ###measure_background_rate_increase_trim(c, extreme_edge_chip_keys, null_sample_time, disable_rate, verbose)
-    ###timeEnd = time.time() - timeStart
-    ###print('==> %.3f seconds --- measured background rate with seeded global & trim DACs\n --> trim DAC maxed out for channels that exceed rate\n\n'%timeEnd)
 
     timeStart = time.time()
     toggle_trim(c, channels, csa_disable, extreme_edge_chip_keys,
@@ -754,9 +560,11 @@ def main(controller_config=_default_controller_config,
     timeEnd = time.time() - timeStart
     print('==> %.3f seconds --- toggle trim DACs'%timeEnd)
 #
+    
     save_config_to_file(c, chip_keys, csa_disable, verbose)
     timeEnd = time.time()-timeStart
     print('==> %.3f seconds --- saving to json config file \n'%timeEnd)
+
 
     time10 = time.time()-time_initial
     print('END THRESHOLD ==> %.3f seconds total run time'%time10)
@@ -768,6 +576,10 @@ if __name__ == '__main__':
                         default=_default_pedestal_file,
                         type=str,
                         help='''Path to pedestal file''')
+    parser.add_argument('--pacman_config',
+                        default='io/pacman.json',
+                        type=str,
+                        help='''PACMAN config file to use''') 
     parser.add_argument('--trim_sigma_file',
                         default=_default_trim_sigma_file,
                         type=str,
@@ -776,10 +588,6 @@ if __name__ == '__main__':
                         default=_default_disabled_list,
                         type=str,
                         help='''File containing json-formatted dict of <chip key>:[<channels>] to disable''')
-    #parser.add_argument('--noise_cut',
-    #                    default=_default_noise_cut,
-    #                    type=float,
-    #                    help='''Disable channel CSA if pedestal ADC RMS exceeds this value''')
     parser.add_argument('--null_sample_time',
                         default=_default_null_sample_time,
                         type=float,
@@ -808,4 +616,3 @@ if __name__ == '__main__':
                         help='''Print to screen debugging output''')
     args = parser.parse_args()
     c = main(**vars(args))
-
