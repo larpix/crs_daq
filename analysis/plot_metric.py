@@ -8,6 +8,7 @@ from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
 from matplotlib import cm
 from matplotlib.colors import Normalize
+import tqdm
 
 _default_filename = None
 
@@ -19,31 +20,43 @@ pitch = 3.8  # mm
 
 
 def unique_channel_id(d):
-    return ((d['io_group'].astype(int)*100000000+d['io_channel'].astype(int))*100000
+    return ((d['io_group'].astype(int)*1000+d['io_channel'].astype(int))*1000
             + d['chip_id'].astype(int))*100 + d['channel_id'].astype(int)
+
+
 
 
 def unique_to_channel_id(unique):
     return unique % 100
 
 
+
+
 def unique_to_chip_id(unique):
     return (unique // 100) % 1000
 
 
+
+
 def unique_to_io_channel(unique):
-    return (unique//(100*1000)) % 100
+    return (unique//(100*1000)) % 1000
+
+
 
 
 def unique_to_tiles(unique):
     return ((unique_to_io_channel(unique)-1) // 4) + 1
 
 
+
+
 def unique_to_io_group(unique):
     return (unique // (100*1000*1000)) % 1000
 
 
-def parse_file(filename):
+
+
+def parse_file(filename, max_entries=-1):
     d = dict()
     f = h5py.File(filename, 'r')
     unixtime = f['packets'][:]['timestamp'][f['packets']
@@ -52,19 +65,25 @@ def parse_file(filename):
     data_mask = f['packets'][:]['packet_type'] == 0
     valid_parity_mask = f['packets'][:]['valid_parity'] == 1
     mask = np.logical_and(data_mask, valid_parity_mask)
-    adc = f['packets']['dataword'][mask]
-    unique_id = unique_channel_id(f['packets'][mask])
+    adc = f['packets']['dataword'][mask][:max_entries]
+    unique_id = unique_channel_id(f['packets'][mask][:max_entries])
     unique_id_set = np.unique(unique_id)
-    print("number of packets in parsed files =", len(unique_id))
-    for i in unique_id_set:
-        id_mask = unique_id == i
-        masked_adc = adc[id_mask]
-        d[i] = dict(
-            mean=np.mean(masked_adc),
-            std=np.std(masked_adc),
-            rate=len(masked_adc) / (livetime + 1e-9))
-    return d
+    chips = f['packets']['chip_id'][mask][:max_entries]
 
+
+    print("Number of packets in parsed files =", len(unique_id))
+    for chip in tqdm.tqdm(range(11, 171), desc='looping over chip_id'):
+        _iomask = chips==chip
+        _adc = adc[_iomask]
+        _unique_id = unique_id[_iomask]
+        for i in set(_unique_id):
+            id_mask = _unique_id == i
+            masked_adc = _adc[id_mask]
+            d[i] = dict(
+                mean=np.mean(masked_adc),
+                std=np.std(masked_adc),
+                rate=len(masked_adc) / (livetime + 1e-9))
+    return d
 
 def plot_1d(d, metric):
     io_groups = set(unique_to_io_group(np.array(list(d.keys()))))
@@ -233,7 +252,7 @@ def main(filename=_default_filename,
         plot_xy(d, metric, geometry_yaml, normalization, filename)
         plot_1d(d, metric)
         # mean
-        normalization = 5
+        normalization = 1
         metric = 'rate'
         plot_xy(d, metric, geometry_yaml, normalization, filename)
         plot_1d(d, metric)

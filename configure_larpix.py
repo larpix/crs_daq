@@ -98,7 +98,9 @@ def main(verbose, \
             pacman_base.enable_all_pacman_uart_from_io_group(c.io, io_group)
 
         #enforce all configurations in parallel (one chip per io channel per cycle)
-        enforce_parallel.enforce_parallel(c, all_network_keys)
+        ok, diff, _ = enforce_parallel.enforce_parallel(c, all_network_keys)
+        if not ok:
+            raise RuntimeError('Enforcing failed', diff)
 
         return
 

@@ -694,7 +694,7 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
     return fname
 
 
-def network_v2b(controller_config, verbose=False, **kwargs):
+def network_v2b(controller_config, tiles=None, verbose=False, **kwargs):
 
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True)
@@ -705,14 +705,18 @@ def network_v2b(controller_config, verbose=False, **kwargs):
         c.load(controller_config)
 
     for io_group, io_channels in c.network.items():
-        if True:
-            if verbose:
-                print('resetting io group:', io_group)
+        if tiles is None :    
+            if verbose: print('resetting io group:', io_group)
             c.io.reset_larpix(length=2048, io_group=io_group)
             time.sleep(2048*(1/(10e6)))
             c.io.reset_larpix(length=2048, io_group=io_group)
             time.sleep(2048*(1/(10e6)))
-
+        else:
+            if verbose: print('resetting tiles {} on io group:'.format(tiles), io_group)
+            c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
+            time.sleep(2048*(1/(10e6)))
+            c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
+            time.sleep(2048*(1/(10e6)))
     # throttle the data rate to insure no FIFO collisions
     c.io.group_packets_by_io_group = False
     for io_group, io_channels in c.network.items():
@@ -752,6 +756,10 @@ def network_v2b(controller_config, verbose=False, **kwargs):
             setattr(c[chip_key].config, f'tx_slices{uart}', tx_slices)
             registers.append(
                 c[chip_key].config.register_map[f'tx_slices{uart}'])
+        
+#        ok, diff = c.enforce_configuration([chip_key], timeout=0.01, connection_delay=0.003, n=20, n_verify=7)
+#        if not ok:
+#            raise RuntimeError('Enforcing failed', diff)
         for reg in registers:
             c.write_configuration(chip_key, reg, connection_delay=0.005)
             c.write_configuration(chip_key, reg, connection_delay=0.005)
@@ -760,6 +768,9 @@ def network_v2b(controller_config, verbose=False, **kwargs):
             c.write_configuration(chip_key, reg, connection_delay=0.005)
             c.write_configuration(chip_key, reg, connection_delay=0.005)
             c.write_configuration(chip_key, reg, connection_delay=0.005)
+       # ok, diff = c.enforce_configuration([chip_key], timeout=0.01, connection_delay=0.003, n=20, n_verify=7)
+        #if not ok:
+        #    raise RuntimeError('Enforcing failed', diff)
 
     # # set uart speed (v2a at 2.5 MHz transmit clock, v2b fine at 5 MHz transmit clock)
     # for io_group, io_channels in c.network.items():
