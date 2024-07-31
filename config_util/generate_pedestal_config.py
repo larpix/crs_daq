@@ -6,10 +6,10 @@ from tqdm import tqdm
 import os
 import json
 _default_verbose = False
-_default_periodic_trigger_cycles = 64*400000
+_default_periodic_trigger_cycles = 400000
 _default_periodic_reset_cycles = 4096  # 409600
-_default_vref_dac = 185  # cold 223 ### warm 185
-_default_vcm_dac = 50  # cold 68 ### warm 50
+_default_vref_dac = 223  # cold 223 ### warm 185
+_default_vcm_dac = 68  # cold 68 ### warm 50
 _default_ref_current_trim = 0
 _default_tx_diff = 0
 _default_tx_slice = 15
@@ -34,7 +34,7 @@ def main(input_files, verbose,
         with open(file, 'r') as f:
             config = json.load(f)
         config['enable_periodic_trigger'] = 1
-        config['enable_rolling_periodic_trigger'] = 0
+        config['enable_rolling_periodic_trigger'] = 1
         config['enable_periodic_reset'] = 1
         config['enable_rolling_periodic_reset'] = 0
         config['enable_hit_veto'] = 0

@@ -93,79 +93,63 @@ def data_filename(c, packet):
     return fname
 
 
-def data(c, runtime, packet, LRS=False, fname=None, writedir=None):
-    if packet == True:
-        if fname is None:
-            fname = 'packets-'+now+'.h5'
+def data(c, runtime, packet, LRS=False, fname=None):
+    if packet==True:
+        if fname is None: fname='packets-'+now+'.h5'
         c.logger = larpix.logger.HDF5Logger(filename=fname)
-
-        if LRS:
-            subprocess.call(["echo 1 > ~/.adc_watchdog_file"],
-                            shell=True)  # start LRS
-
-        print('filename: ', c.logger.filename)
+        
+        print('filename: ',c.logger.filename)
         c.logger.enable()
-        c.run(runtime, ' collecting data')
+        c.run(runtime,' collecting data')
         c.logger.flush()
         c.logger.disable()
-
+        
         c.reads.clear()
 
-        if LRS:
-            subprocess.call(["echo 0 > ~/.adc_watchdog_file"],
-                            shell=True)  # stop LRS
+        if LRS: 
+            subprocess.call(["echo 0 > ~/.adc_watchdog_file"],shell=True) #stop LRS
             time.sleep(1)
-
+        
     else:
         c.io.disable_packet_parsing = True
         c.io.enable_raw_file_writing = True
-        if fname is None:
-            fname = 'binary-'+now+'.h5'
-        c.io.raw_filename = writedir+'/'+fname
+        if fname is None: fname='binary-'+now+'.h5'
+        c.io.raw_filename=fname
         c.io.join()
-        rhdf5.to_rawfile(filename=c.io.raw_filename,
+        rhdf5.to_rawfile(filename=c.io.raw_filename, \
                          io_version=pacman_msg_fmt.latest_version)
-
-        print('filename: ', c.io.raw_filename)
-        run_start = time.time()
+        
+        print('filename: ',c.io.raw_filename)
+        run_start=time.time()
         c.start_listening()
-        if LRS:
-            subprocess.call(["echo 1 > ~/.adc_watchdog_file"],
-                            shell=True)  # start LRS
+        if LRS: 
+            subprocess.call(["echo 1 > ~/.adc_watchdog_file"],shell=True)  #start LRS
             print('starting LRS ...')
         data_rate_refresh = 5.
         data_rate_start = time.time()
         last_counter = 0
-        oldfilename = c.io.raw_filename
+        oldfilename=c.io.raw_filename
         while True:
+
             c.read()
             time.sleep(0.1)
-            now = time.time()
-            if now-data_rate_start > data_rate_refresh and False:
+            now=time.time()
+            if now-data_rate_start>data_rate_refresh and False:
                 if c.io.raw_filename and os.path.isfile(c.io.raw_filename):
                     counter = rhdf5.len_rawfile(c.io.raw_filename, attempts=0)
-                    print('average message rate: {:0.2f} Hz\r'.format(
-                        (counter-last_counter)/data_rate_refresh), end='')
-                    if LRS:
-                        post = 'datarate,sens=larpix1 value={:0.02f}'.format(
-                            (counter-last_counter)/(data_rate_refresh))
-                        subprocess.call(
-                            ["curl", "--silent", "-XPOST", "http://130.92.128.162:8086/write?db=singlemodule_nov2020", "--data-binary", post])
-                    last_counter = counter
+                    print('average message rate: {:0.2f} Hz\r'.format( (counter-last_counter)/data_rate_refresh ),end='') 
+                    last_counter=counter
                 data_rate_start = now
                 data_rate_counter = 0
-            if now > (run_start+runtime):
-                break
+            if now>(run_start+runtime): break
         c.stop_listening()
-        if LRS:
-            subprocess.call(["echo 0 > ~/.adc_watchdog_file"],
-                            shell=True)  # stop LRS
+        if LRS: 
+            subprocess.call(["echo 0 > ~/.adc_watchdog_file"],shell=True) #stop LRS
             time.sleep(0.3)
         c.read()
         c.io.join()
 
     return fname
-
 
 async def async_reconcile_configuration(c, chip_keys, verbose,
                                         timeout=0.01, connection_delay=0.01,
@@ -304,10 +288,10 @@ def reconcile_registers(c, chip_key_register_pairs, verbose, timeout=0.1,
                         connection_delay=0.01, n=2, n_verify=2):
     ok, diff = c.enforce_registers(chip_key_register_pairs, timeout=timeout,
                                    connection_delay=connection_delay,
-                                   n=n, n_verify=n_verify)
+                                   n=n, n_verify=n_verify, msg_length=1)
     ok, diff = c.verify_configuration([e[0] for e in chip_key_register_pairs], timeout=timeout,
                                    connection_delay=connection_delay,
-                                   n=n_verify)
+                                   n=n_verify, msg_length=1)
     if not ok:
         print(diff)
     # print(c.reads[-1])

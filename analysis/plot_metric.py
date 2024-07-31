@@ -245,24 +245,24 @@ def main(filename=_default_filename,
         normalization = 50
         metric = 'mean'
         plot_xy(d, metric, geometry_yaml, normalization, filename)
-        plot_1d(d, metric)
+        #plot_1d(d, metric)
         # mean
         normalization = 5
         metric = 'std'
         plot_xy(d, metric, geometry_yaml, normalization, filename)
-        plot_1d(d, metric)
+        #plot_1d(d, metric)
         # mean
         normalization = 1
         metric = 'rate'
         plot_xy(d, metric, geometry_yaml, normalization, filename)
-        plot_1d(d, metric)
+        #plot_1d(d, metric)
 
         metric = ''
         return
 
     plot_xy(d, metric, geometry_yaml, normalization, filename)
 
-    plot_1d(d, metric)
+    #plot_1d(d, metric)
 
 
 if __name__ == '__main__':

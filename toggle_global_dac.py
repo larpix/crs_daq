@@ -21,21 +21,21 @@ import sys
 #     setattr(module, var, getattr(RUN, var))
 
 
-_initial_global_dac = 100  # 100 ### initial global DAC set value
+_initial_global_dac = 80  # 100 ### initial global DAC set value
 _runtime_global = 0.5  # 0.1 ### runtime to assess chip trigger rate
-_maxrate_global = 1000.  # maximum chip trigger rate to set global DAC
-_minrate_global = 10.  # minimum chip trigger rate to set global DAC
+_maxrate_global = 300.  # maximum chip trigger rate to set global DAC
+_minrate_global = 5.  # minimum chip trigger rate to set global DAC
 # disable maximum rate channel, and reassess rate if global DAC above this value
-_maxdac_global = 60
+_maxdac_global = 50
 _mindac_global = 10  # re-evaluate chip if global DAC set below this value
 # 200000. ### do not lower global DACs if total packet count exceeds this value
-_maxtriggers = 1e4
+_maxtriggers = 1e7
 _bail_threshold = 3
 
 _v2a_nonrouted = [6, 7, 8, 9, 22, 23, 24, 25, 38, 39, 40, 54, 55, 56, 57]
-_vref_dac = 185
-_vcm_dac = 45
-
+_vref_dac = 223 # 185  # 223
+_vcm_dac = 68 # 50  # 68
+_max_iter = 250
 
 _default_disabled_list = None
 _default_chip_list = None
@@ -114,7 +114,7 @@ def enable_frontend(c, chips_to_test, csa_disable, all_network_keys, pacman_conf
             chip_register_pairs.append(
                 (chip_key, list(range(66, 74))+list(range(131, 139))))
 
-        for i in range(10):
+        for i in range(5):
             c.multi_write_configuration(
                 chip_register_pairs, connection_delay=0.01)
 
@@ -170,6 +170,9 @@ def toggle_global_dac(c, toggled_chips, csa_disable, all_network_keys, pacman_co
         iteration += 1
         high_rate = False
 
+        if iteration > _max_iter:
+            break
+
         c.reads.clear()
         c.run(_runtime_global, 'check rate')
         all_packets = np.array(c.reads[-1])
@@ -195,7 +198,8 @@ def toggle_global_dac(c, toggled_chips, csa_disable, all_network_keys, pacman_co
             triggered_chips = set(chip_keys)
             track_triggers[iteration] = (
                 packets.shape[0], len(triggered_chips))
-            print('triggered chips: ', set(chip_triggers))
+            print('triggered chips: ', set(chip_triggers),
+                  ' on ', set(ioc_triggers))
         else:
             track_triggers[iteration] = (0, 0)
             chip_register_pairs = []

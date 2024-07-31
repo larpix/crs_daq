@@ -17,7 +17,7 @@ _default_verbose = False
 _default_controller_config = 'controller_config.json'
 
 def enforce_iterative(nc, all_network_keys, n=0, configs=None):
-    # print(n)
+    print(n)
     ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys)
     if ok: 
         print(ok)
@@ -88,7 +88,6 @@ def main(verbose,
 
         if io_group_asic_version_[io_group] in ['2b', '2d']:
             c = network_base_FSD.network_v2b(config)
-
         elif io_group_asic_version_[io_group] in [2, 'lightpix-1']:
             c = network_base_FSD.network_v2a(config)
 

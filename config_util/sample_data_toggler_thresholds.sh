@@ -15,8 +15,8 @@ echo "Writing sample data file to: $full_path"
 
 python record_data.py --filename $filename --runtime $2 --file_count 1
 echo "converting to $full_packet"
-python ../../test/larpix-control/scripts/convert_rawhdf5_to_hdf5.py -i $filename -o $full_packet
-python analysis/plot_metric.py --metric rate --filename $full_packet
+python ../../test/larpix-control/scripts/convert_rawhdf5_to_hdf5.py -i $filename -o $full_packet #--block_size 8
+# python analysis/plot_metric.py --metric rate --filename $full_packet
 
 toggle_filename="toggle-list-$now.json" 
 python config_util/toggle_trims_from_rate.py --filename $full_packet --min_rate $3 --max_rate $4 --toggle_filename $toggle_filename

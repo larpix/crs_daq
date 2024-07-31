@@ -19,7 +19,6 @@ def main(asic_config):
     plt.hist(l, bins=30, range=[0, 31])
     plt.xlabel('pixel_trim_dac')
     plt.ylabel('counts')
-    plt.yscale('log')
 
     now = time.strftime("%Y_%m_%d_%H_%M_%S_%Z")
 

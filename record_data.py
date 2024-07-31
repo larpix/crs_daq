@@ -111,8 +111,9 @@ def main(file_count, runtime, message, packet, LRS, filename, **args):
 
         run_start = datetime_now()
 
-        if filename is None:
+        if filename is None or ctr>0:
             filename = utility_base.data_filename(c, packet)
+            # print(filename)
 
         rundb.set('CURRENT_DATA_FILE', filename)
         rundb.set('CURRENT_RUN_START', run_start)
@@ -123,8 +124,8 @@ def main(file_count, runtime, message, packet, LRS, filename, **args):
         rundb.set('LAST_UPDATED', now())
         print('Run ID {}: {}'.format(runID, filename))
 
-        utility_base.data(c, runtime, packet, LRS, filename,
-                          writedir='./')
+        utility_base.data(c, runtime, packet, LRS, filename)
+
         metadata = {
             'filename': filename,
             'run_start': run_start,

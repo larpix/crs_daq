@@ -60,7 +60,20 @@ def network_ext_node_from_tuple(c, iog_ioc_cid):
     return
 
 
+def network_ext_node_from_tuple(c, io_group, io_channel, chip_id):
+    c.add_network_node(io_group, io_channel,
+                       c.network_names, 'ext', root=True)
+    c.add_network_link(io_group, io_channel, 'miso_us',
+                       ('ext', chip_id), 0)
+    c.add_network_link(io_group, io_channel, 'miso_ds',
+                       (chip_id, 'ext'), 0)
+    c.add_network_link(io_group, io_channel, 'mosi',
+                       ('ext', chip_id), 0)
+    return
+
 # @timebudget
+
+
 def configure_chip_id(c, io_group, ioc, chip_id, asic_version):
     setup_key = larpix.key.Key(io_group, ioc, 1)
     if setup_key not in c.chips:
@@ -705,14 +718,16 @@ def network_v2b(controller_config, tiles=None, verbose=False, **kwargs):
         c.load(controller_config)
 
     for io_group, io_channels in c.network.items():
-        if tiles is None :    
-            if verbose: print('resetting io group:', io_group)
+        if tiles is None:
+            if verbose:
+                print('resetting io group:', io_group)
             c.io.reset_larpix(length=2048, io_group=io_group)
             time.sleep(2048*(1/(10e6)))
             c.io.reset_larpix(length=2048, io_group=io_group)
             time.sleep(2048*(1/(10e6)))
         else:
-            if verbose: print('resetting tiles {} on io group:'.format(tiles), io_group)
+            if verbose:
+                print('resetting tiles {} on io group:'.format(tiles), io_group)
             c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
             time.sleep(2048*(1/(10e6)))
             c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
@@ -721,11 +736,16 @@ def network_v2b(controller_config, tiles=None, verbose=False, **kwargs):
     c.io.group_packets_by_io_group = False
     for io_group, io_channels in c.network.items():
         for io_channel in io_channels:
-            c.init_network(io_group, io_channel, modify_mosi=False)
+            if not tiles is None:
+                if not utility_base.io_channel_to_tile(io_channel) in tiles:
+                    continue
+            c.init_network(io_group, io_channel, modify_mosi=True)
 
        # write tx, rx, etc configs
     for chip_key in c.chips.keys():
-
+        if not tiles is None:
+            if not utility_base.io_channel_to_tile(chip_key.io_channel) in tiles:
+                continue
         if chip_key.chip_id in [21, 61, 101, 151]:
 
             ref_current_trim = ref_current_trim_root
@@ -756,20 +776,20 @@ def network_v2b(controller_config, tiles=None, verbose=False, **kwargs):
             setattr(c[chip_key].config, f'tx_slices{uart}', tx_slices)
             registers.append(
                 c[chip_key].config.register_map[f'tx_slices{uart}'])
-        
+
 #        ok, diff = c.enforce_configuration([chip_key], timeout=0.01, connection_delay=0.003, n=20, n_verify=7)
 #        if not ok:
 #            raise RuntimeError('Enforcing failed', diff)
         for reg in registers:
             c.write_configuration(chip_key, reg, connection_delay=0.005)
-            c.write_configuration(chip_key, reg, connection_delay=0.005)
-            c.write_configuration(chip_key, reg, connection_delay=0.005)
+#            c.write_configuration(chip_key, reg, connection_delay=0.005)
+#            c.write_configuration(chip_key, reg, connection_delay=0.005)
         for reg in registers:
-            c.write_configuration(chip_key, reg, connection_delay=0.005)
-            c.write_configuration(chip_key, reg, connection_delay=0.005)
+            #            c.write_configuration(chip_key, reg, connection_delay=0.005)
+            #            c.write_configuration(chip_key, reg, connection_delay=0.005)
             c.write_configuration(chip_key, reg, connection_delay=0.005)
        # ok, diff = c.enforce_configuration([chip_key], timeout=0.01, connection_delay=0.003, n=20, n_verify=7)
-        #if not ok:
+        # if not ok:
         #    raise RuntimeError('Enforcing failed', diff)
 
     # # set uart speed (v2a at 2.5 MHz transmit clock, v2b fine at 5 MHz transmit clock)

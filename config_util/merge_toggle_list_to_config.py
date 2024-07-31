@@ -49,7 +49,13 @@ def main(*files, toggle_json, toggle_global, cryo, **kwargs):
         with open(file, 'r') as f:
             config = json.load(f)
 
-        chip_key = '1-1-'+file.split('_')[-1].split('.')[0].split('-')[-1]
+        tile = str(
+            (int(file.split('_')[-1].split('.')[0].split('-')[-2])-1)//4+1)
+        chip = file.split('_')[-1].split('.')[0].split('-')[-1]
+        chip_key = f'1-{tile}-{chip}'
+        # print(file)
+        # print(tile)
+        # print(chip)
         version = 'v2d'
 
         if chip_key in toggle_list.keys():

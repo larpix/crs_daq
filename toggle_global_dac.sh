@@ -30,7 +30,7 @@ timestamp=$(date +%Y_%m_%d_%H_%M_%S_%Z)
 echo $timestamp
 mkdir -p threshold/global_dac_$timestamp
 
-python3 toggle_global_dac.py --pacman_config $1 --disabled_list $2 --chip_list $3 --diagnostic_dir threshold/global_dac_$timestamp
+python3 toggle_global_dac.py --pacman_config $1 --diagnostic_dir threshold/global_dac_$timestamp --asic_config $2 --chip_list $3 --disabled_list $4
 
 #i=$1
 #echo $i

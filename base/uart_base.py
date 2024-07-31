@@ -30,7 +30,7 @@ def setup_parent_piso(c, io, parent, daughter, verbose, tx_diff, tx_slice):
     io.set_reg(0x18, 2**(parent.io_channel-1), io_group=parent.io_group)
     # ok, diff = c.enforce_configuration(parent, timeout=0.001, connection_delay=0.005, n=10, n_verify=3)
     ok, diff = utility_base.reconcile_configuration(
-        c, parent, verbose, timeout=0.005, connection_delay=0.005, n=10, n_verify=3)
+        c, parent, verbose, timeout=0.002, connection_delay=0.003, n=3, n_verify=2)
     # ok, diff = utility_base.reconcile_configuration(
     #     c, parent, verbose)
     #ok, diff = utility_base.simple_reconcile_configuration(
@@ -56,7 +56,7 @@ def setup_daughter(c, io, parent, daughter, verbose, asic_version,
     # stepbystep_v2d_5x5.read(c, daughter, 'chip_id')
     # ok, diff = c.enforce_configuration(daughter, timeout=0.001, connection_delay=0.005, n=10, n_verify=3)
     ok, diff = utility_base.reconcile_configuration(
-        c, daughter, verbose, timeout=0.005, connection_delay=0.005, n=10, n_verify=3)
+        c, daughter, verbose, timeout=0.002, connection_delay=0.003, n=3, n_verify=2)
     #ok, diff = utility_base.simple_reconcile_configuration(
     #    c, daughter)
     # print(diff)

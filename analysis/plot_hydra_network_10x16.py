@@ -69,10 +69,11 @@ def start_end(chipID, uart, chipid_pos):
 
 
 def chip_to_ioc(chipID, ioc_chip):
-    for ioc in range(4, 0, -1):
+    for ioc in ioc_chip.keys():
         if chipID in ioc_chip[str(ioc)]:
-            return (ioc)
+            return int(ioc)-1
     return
+
 
 
 def plot_hydra_network(geometry_yaml, chipID_uart, missingIO, root_chips, filename, io_group, ioc_chip):
@@ -115,7 +116,7 @@ def plot_hydra_network(geometry_yaml, chipID_uart, missingIO, root_chips, filena
         for uart in chipID_uart[chipID]:
             start, end = start_end(int(chipID), uart, chipid_pos)
             plt.arrow(start[0], start[1], end[0], end[1], width=1.0,
-                      color=colors[chip_to_ioc(chipID, ioc_chip)-1], alpha=0.5)
+                      color=colors[(chip_to_ioc(chipID, ioc_chip)-1)%4], alpha=0.5)
 
     for i in range(len(missingIO)):
         chipIDpair = missingIO[i]

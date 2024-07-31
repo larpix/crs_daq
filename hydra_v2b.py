@@ -35,6 +35,7 @@ _default_r_term = 2
 _default_i_rx = 8
 _default_recheck = False
 
+v2d_10x16_root_ids = [21, 61, 101, 151]
 
 def main(io_group, file_prefix=_default_file_prefix,
          disable_logger=_default_disable_logger,
@@ -44,24 +45,26 @@ def main(io_group, file_prefix=_default_file_prefix,
          tx_slice=_default_tx_slice,
          r_term=_default_r_term,
          i_rx=_default_i_rx,
+         pacman_tile=None,
          **kwargs):
 
     start = time.time()
 
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True)
-    c.io.reset_larpix(length=4096*4, io_group=io_group)  # 2048
+    c.io.reset_tiles([pacman_tile], length=4096*4, io_group=io_group)  # 2048
     time.sleep(4096*4*1e-6)
-    c.io.reset_larpix(length=4096*4, io_group=io_group)  # 2048
+    c.io.reset_tiles([pacman_tile], length=4096*4, io_group=io_group)  # 2048
     time.sleep(4096*4*1e-6)
+
 
     if True:
         now = time.strftime("%Y_%m_%d_%H_%M_%Z")
         config_name = 'controller-config-'+now+'.json'
 
-    for iog in [io_group]:
-        iog_ioc_cid = utility_base.iog_tile_to_iog_ioc_cid(
-            io_group_pacman_tile_, io_group_asic_version_[iog], isFSDtile=True)
+    # for iog in [io_group]:
+    #     iog_ioc_cid = utility_base.iog_tile_to_iog_ioc_cid(
+    #         io_group_pacman_tile_, io_group_asic_version_[iog], isFSDtile=True)
 
         # fixed in FSD tile PCB
         # VERSION_SPECIFIC
@@ -70,39 +73,49 @@ def main(io_group, file_prefix=_default_file_prefix,
         #    pacman_base.invert_pacman_uart(c.io, iog, io_group_asic_version_[iog], \
         #                               io_group_pacman_tile_[iog])
 
-    for g_c_id in iog_ioc_cid:
-        network_base_FSD.network_ext_node_from_tuple(c, g_c_id)
+    # for g_c_id in iog_ioc_cid:
+    #     network_base_FSD.network_ext_node_from_tuple(c, g_c_id)
 
     for iog in [io_group]:
         print('Working on io_group={}'.format(iog))
         if io_group_asic_version_[iog] in ['2b', '2d']:
-            root_keys = []
-            for g_c_id in iog_ioc_cid:
-                candidate_root = network_base_FSD.setup_root(c, c.io, g_c_id[0],
-                                                             g_c_id[1],
-                                                             g_c_id[2], verbose,
-                                                             io_group_asic_version_[
-                                                                 iog],
-                                                             0, 0, 15, 2, 8)
-                if candidate_root != None:
-                    root_keys.append(candidate_root)
 
-            print('ROOT KEYS: ', root_keys)
+            tiles=pacman_tile
+            print('Working on tiles: ', pacman_tile)
 
-            iog_tile_to_root_keys = utility_base.partition_chip_keys_by_io_group_tile(
-                root_keys)
+            if pacman_tile is None:
+                tiles = io_group_pacman_tile_[iog]
+            else:
+                tiles = [pacman_tile]
+            for tile in tiles:
 
-            for iog_tile in iog_tile_to_root_keys.keys():
-                network_base_FSD.initial_network(c, c.io, iog_tile[0],
-                                                 iog_tile_to_root_keys[iog_tile],
-                                                 verbose,
-                                                 io_group_asic_version_[
-                                                     iog], ref_current_trim,
-                                                 tx_diff, tx_slice, r_term, i_rx, exclude=iog_exclude[iog])
+                root_keys = []
+                io_channels = utility_base.tile_to_io_channel([tile])
+                for io_channel in io_channels:
+                    cid =  v2d_10x16_root_ids[ (io_channel-1) % 4]
+                    network_base_FSD.network_ext_node_from_tuple(c, iog, io_channel, cid)
+                    candidate_root = network_base_FSD.setup_root(c, c.io, iog, \
+                                                          io_channel,\
+                                                          cid, verbose, \
+                                                          io_group_asic_version_[iog], \
+                                                          0, 0, 15, 2, 8)
+                    if candidate_root!=None: root_keys.append(candidate_root)
 
-            unconfigured = []
-            if True:
-                for tile in io_group_pacman_tile_[iog]:
+                print('ROOT KEYS: ', root_keys)
+
+                iog_tile_to_root_keys = utility_base.partition_chip_keys_by_io_group_tile(
+                    root_keys)
+
+                for iog_tile in iog_tile_to_root_keys.keys():
+                    network_base_FSD.initial_network(c, c.io, iog_tile[0],
+                                                     iog_tile_to_root_keys[iog_tile],
+                                                     verbose,
+                                                     io_group_asic_version_[
+                                                         iog], ref_current_trim,
+                                                     tx_diff, tx_slice, r_term, i_rx, exclude=iog_exclude[iog])
+
+                unconfigured = []
+                if True:
                     out_of_network = network_base_FSD.iterate_waitlist(c, c.io, iog,
                                                                        utility_base.tile_to_io_channel(
                                                                            [tile]),
@@ -114,18 +127,19 @@ def main(io_group, file_prefix=_default_file_prefix,
                                                                        r_term, i_rx, exclude=iog_exclude[iog])
                     unconfigured.extend(out_of_network)
 
-            network_file = network_base_FSD.write_network_to_file(c, file_prefix, io_group_pacman_tile_,
-                                                                  unconfigured, asic_version=io_group_asic_version_[iog])
+                network_file = network_base_FSD.write_network_to_file(c, f'iog_{io_group}-tile_{tile}', {io_group : [tile] },
+                                                                      unconfigured, asic_version=io_group_asic_version_[iog])
             end = time.time()
 
             # write directly to controller_config.json
             # works with one iog for now
-            with open('controller_config.json', 'w') as controller_config:
-                d = dict()
-                d[str(iog)] = network_file
-                json.dump(d, controller_config, indent=4)
+            if False:
+                with open('controller_config.json', 'w') as controller_config:
+                    d = dict()
+                    d[str(iog)] = network_file
+                    json.dump(d, controller_config, indent=4)
 
-                print('Writing to controller_config.json')
+                    print('Writing to controller_config.json')
             print('Time elapsed: ', end-start, ' s.')
             return c, c.io
 
@@ -134,6 +148,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--io_group', default=None,
                         type=int, help='''io group to network''')
+    parser.add_argument('--pacman_tile', default=None, \
+                        type=int, help='''PACMAN tile to work with''') 
     parser.add_argument('--file_prefix', default=_default_file_prefix,
                         type=str, help='''String prepended to filename''')
     parser.add_argument('--disable_logger', default=_default_disable_logger,
