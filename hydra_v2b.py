@@ -17,6 +17,7 @@ from time import perf_counter
 import shutil
 from base import config_loader
 from tqdm import tqdm
+from analysis import plot_hydra_network_10x16
 
 from RUNENV import io_group_asic_version_, io_group_pacman_tile_, iog_exclude
 
@@ -129,6 +130,8 @@ def main(io_group, file_prefix=_default_file_prefix,
 
                 network_file = network_base_FSD.write_network_to_file(c, f'iog_{io_group}-tile_{tile}', {io_group : [tile] },
                                                                       unconfigured, asic_version=io_group_asic_version_[iog])
+                if True:
+                    plot_hydra_network_10x16.main(network_file, io_group=io_group)
             end = time.time()
 
             # write directly to controller_config.json

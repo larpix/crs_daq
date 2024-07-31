@@ -315,7 +315,9 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
                     continue
                 if last_chip_id % 10 == 0 and daughter_id == last_chip_id + 1:
                     continue
-
+                # Manual re-routing to avoid issues on 10x16 v2d tiles
+                if daughter_id == 27 and last_chip_id == 26: continue
+                if daughter_id == 158 and last_chip_id == 157: continue
                 cks = []
                 for ck in c.chips:
                     if ck.io_channel in root_ioc:
@@ -538,6 +540,9 @@ def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,
                                           chip_id)
                 if chip_id in exclude[utility_base.io_channel_to_tile(parent.io_channel)]:
                     continue
+                # Manual re-routing to avoid issues on 10x16 v2d tiles
+                if chip_id == 27 and parent.chip_id == 26: continue
+                if chip_id == 158 and parent.chip_id == 157: continue
                 ok, diff = uart_base.setup_parent_piso(c, io, parent,
                                                        daughter, verbose,
                                                        tx_diff, tx_slice)

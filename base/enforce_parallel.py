@@ -2,6 +2,7 @@ import larpix
 from tqdm import tqdm
 from base import utility_base
 from copy import deepcopy
+import numpy as np
 
 
 def get_chips_by_io_group_io_channel(network_config, tiles=None, use_keys=None):
@@ -42,7 +43,9 @@ def enforce_parallel(c, network_keys, unmask_last=True):
     p_bar.refresh()
     ok, diff = False, {}
     masks = {}
-
+    csas={}
+    ptmasks={}
+    
     unconfigured = deepcopy(network_keys)
 
     while True:
@@ -60,6 +63,12 @@ def enforce_parallel(c, network_keys, unmask_last=True):
             for chip in current_chips:
                 masks[str(chip)] = c[chip].config.channel_mask
                 c[chip].config.channel_mask = [1]*64
+               
+                ptmasks[str(chip)] = c[chip].config.periodic_trigger_mask
+                c[chip].config.periodic_trigger_mask = [1]*64
+
+                csas[str(chip)] = c[chip].config.csa_enable
+                c[chip].config.csa_enable = [0]*64
 
         if not working:
             break
@@ -105,11 +114,20 @@ def enforce_parallel(c, network_keys, unmask_last=True):
 
     N_WRITE_UNMASK = 10
 
+    send = False
     if unmask_last:
         for chip in reversed(list(masks.keys())):
             c[chip].config.channel_mask = masks[chip]
-        for __ in range(N_WRITE_UNMASK):
-            c.multi_write_configuration(
-                [(chip, range(131, 139)) for chip in chips], connection_delay=0.02, msg_length=len(network_keys))
+            c[chip].config.csa_enable = csas[chip]
+            c[chip].config.periodic_trigger_mask = ptmasks[chip]
+            if send==False:
+                if np.any( np.logical_not(masks[chip])): send=True
+        
+        if send:
+            if True:
+                for __ in range(N_WRITE_UNMASK):
+                    c.multi_write_configuration( [ (chip, list(range(131, 139))+list(range(66, 74))+list(range(155,163))) for chip in c.chips if chip.io_group in c.io._io_group_table.keys() ], connection_delay=0.001, msg_length=len(network_keys) )
 
+            else:
+                pass
     return ok, diff, unconfigured
