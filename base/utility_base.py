@@ -289,9 +289,6 @@ def reconcile_registers(c, chip_key_register_pairs, verbose, timeout=0.1,
     ok, diff = c.enforce_registers(chip_key_register_pairs, timeout=timeout,
                                    connection_delay=connection_delay,
                                    n=n, n_verify=n_verify, msg_length=1)
-    ok, diff = c.verify_configuration([e[0] for e in chip_key_register_pairs], timeout=timeout,
-                                   connection_delay=connection_delay,
-                                   n=n_verify, msg_length=1)
     if not ok:
         print(diff)
     # print(c.reads[-1])

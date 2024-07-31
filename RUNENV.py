@@ -19,7 +19,7 @@ current_dir_='/home/jchakrani/larpix/FSD/v2d/10x16/crs_daq/'
 
 #####################################################
 ## Mappings of io_group-->pacman version and io_group/tile-->ASIC version
-io_group_pacman_tile_={1:[1, 2, 3, 4, 5, 6, 7, 8]}#, 2:[2]}
+io_group_pacman_tile_={1:[1, 2]}#, 2:[2]}
 iog_pacman_version_={1: 'v1rev4'}#, 2:'v1rev4'}
 io_group_asic_version_={1:'2d'}
 #####################################################
