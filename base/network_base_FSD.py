@@ -256,7 +256,7 @@ def find_daughter_id(parent_piso, parent_chip_id, parent_io_channel):
 
 # @timebudget
 def initial_network(c, io, io_group, root_keys, verbose, asic_version,
-                    ref_current_trim, tx_diff, tx_slice, r_term, i_rx, exclude=None):
+                    ref_current_trim, tx_diff, tx_slice, r_term, i_rx, exclude=None, exclude_links=None):
     root_ioc = [rk.io_channel for rk in root_keys]
     waitlist = set()
     cnt_configured, cnt_unconfigured = 0, 0
@@ -315,6 +315,21 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
                     continue
                 if last_chip_id % 10 == 0 and daughter_id == last_chip_id + 1:
                     continue
+
+                skip_link = False
+                for link in exclude_links[utility_base.io_channel_to_tile(root.io_channel)]:
+                    if link[0] == last_chip_id and link[1] == daughter_id:
+                        print('Will skip: ', link)
+                        skip_link = True
+                        break
+                    if link[0] == daughter_id and link[1] == last_chip_id:
+                        print('Will skip: ', link)
+                        skip_link = True
+                        break
+                if skip_link:
+                    print('Skipping link: ', (last_chip_id, parent.chip_id))
+                    continue
+
                 # Manual re-routing to avoid issues on 10x16 v2d tiles
                 if daughter_id == 27 and last_chip_id == 26: continue
                 if daughter_id == 158 and last_chip_id == 157: continue
@@ -523,7 +538,7 @@ def find_potential_parents(chip_id, network, verbose):
 
 # @timebudget
 def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,
-                     ref_current_trim, tx_diff, tx_slice, r_term, i_rx, exclude=None):
+                     ref_current_trim, tx_diff, tx_slice, r_term, i_rx, exclude=None, exclude_links=None):
     print('\n\n----- Iterating waitlist ----\n')
     flag = True
     outstanding = []
@@ -540,9 +555,25 @@ def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,
                                           chip_id)
                 if chip_id in exclude[utility_base.io_channel_to_tile(parent.io_channel)]:
                     continue
+
+                skip_link = False
+                for link in exclude_links[utility_base.io_channel_to_tile(parent.io_channel)]:
+                    if link[0] == chip_id and link[1] == parent.chip_id:
+                        print('Will skip: ', link)
+                        skip_link = True
+                        break
+                    if link[0] == parent.chip_id and link[1] == chip_id:
+                        print('Will skip: ', link)
+                        skip_link = True
+                        break
+                if skip_link:
+                    print('Skipping link: ', (chip_id, parent.chip_id))
+                    continue
+
                 # Manual re-routing to avoid issues on 10x16 v2d tiles
                 if chip_id == 27 and parent.chip_id == 26: continue
                 if chip_id == 158 and parent.chip_id == 157: continue
+                
                 ok, diff = uart_base.setup_parent_piso(c, io, parent,
                                                        daughter, verbose,
                                                        tx_diff, tx_slice)
@@ -702,7 +733,7 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
 
     now = time.strftime("%Y_%m_%d_%H_%M_%Z")
     if file_prefix != None:
-        fname = file_prefix+'-network-'+now+'.json'
+        fname = file_prefix+'-hydra-network.json'
     if file_prefix == None:
         fname = 'network-'+now+'.json'
     with open(fname, 'w') as out:

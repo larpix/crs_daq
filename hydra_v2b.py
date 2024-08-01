@@ -19,7 +19,7 @@ from base import config_loader
 from tqdm import tqdm
 from analysis import plot_hydra_network_10x16
 
-from RUNENV import io_group_asic_version_, io_group_pacman_tile_, iog_exclude
+from RUNENV import io_group_asic_version_, io_group_pacman_tile_, iog_exclude, iog_exclude_links
 
 _default_file_prefix = None
 _default_disable_logger = True
@@ -113,7 +113,8 @@ def main(io_group, file_prefix=_default_file_prefix,
                                                      verbose,
                                                      io_group_asic_version_[
                                                          iog], ref_current_trim,
-                                                     tx_diff, tx_slice, r_term, i_rx, exclude=iog_exclude[iog])
+                                                     tx_diff, tx_slice, r_term, i_rx, 
+                                                     exclude=iog_exclude[iog], exclude_links=iog_exclude_links[iog])
 
                 unconfigured = []
                 if True:
@@ -125,7 +126,8 @@ def main(io_group, file_prefix=_default_file_prefix,
                                                                            iog],
                                                                        ref_current_trim,
                                                                        tx_diff, tx_slice,
-                                                                       r_term, i_rx, exclude=iog_exclude[iog])
+                                                                       r_term, i_rx, 
+                                                                       exclude=iog_exclude[iog], exclude_links=iog_exclude_links[iog])
                     unconfigured.extend(out_of_network)
 
                 network_file = network_base_FSD.write_network_to_file(c, f'iog_{io_group}-tile_{tile}', {io_group : [tile] },

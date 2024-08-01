@@ -28,6 +28,9 @@ io_group_asic_version_={1:'2d'}
 ## Chips to exclude by io_group, tile from new networks being created.
 ## For example, {1: {}, 2:{ 1 : [11, 12], 4: [55] }} excludes on io_group 2 chips 11,12 on tile 1, and chip 55 on tile 4 
 iog_exclude={1:{1:[], 2:[], 3:[], 4:[], 5:[], 6:[], 7:[], 8:[]} }
+
+## Links to exclude between two chips  by io_group, tile in network
+iog_exclude_links={1:{1:[(26, 27)], 2:[(26, 27), (145, 146)], 3:[(26, 27)], 4:[(26, 27)], 5:[(26, 27)], 6:[(26, 27)], 7:[(26, 27)], 8:[(26, 27)]} }
 ####################################################
 
 ###################################################

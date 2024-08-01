@@ -84,7 +84,7 @@ def enforce_parallel(c, network_keys, unmask_last=True):
             ok, diff = c.enforce_configuration(
                 diff.keys(), timeout=0.02, connection_delay=0.01, n=15, n_verify=3, msg_length=len(diff.keys()))
             if not ok:
-                print('Re-re-configuring: ', diff.keys())
+                print('Could not configure: ', diff.keys())
 
                 # ok, diff = c.enforce_configuration(
                 #     diff.keys(), timeout=0.02, connection_delay=0.01, n=15, n_verify=5, msg_length=1)
