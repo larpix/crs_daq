@@ -301,7 +301,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
                     last_daughter.append((last_chip_id, daughter_id))
                 else:
                     bail = True
-                if daughter_id in exclude[utility_base.io_channel_to_tile(root.io_channel)]:
+                if daughter_id in exclude[ str(utility_base.io_channel_to_tile(root.io_channel)) ]:
                     print('bailing due to excluded chip!')
                     bail = True
                     excluded = True
@@ -317,7 +317,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
                     continue
 
                 skip_link = False
-                for link in exclude_links[utility_base.io_channel_to_tile(root.io_channel)]:
+                for link in exclude_links[str(utility_base.io_channel_to_tile(root.io_channel))]:
                     if link[0] == last_chip_id and link[1] == daughter_id:
                         print('Will skip: ', link)
                         skip_link = True
@@ -553,11 +553,11 @@ def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,
             for parent in potential_parents:
                 daughter = larpix.key.Key(parent.io_group, parent.io_channel,
                                           chip_id)
-                if chip_id in exclude[utility_base.io_channel_to_tile(parent.io_channel)]:
+                if chip_id in exclude[str(utility_base.io_channel_to_tile(parent.io_channel))]:
                     continue
 
                 skip_link = False
-                for link in exclude_links[utility_base.io_channel_to_tile(parent.io_channel)]:
+                for link in exclude_links[str(utility_base.io_channel_to_tile(parent.io_channel))]:
                     if link[0] == chip_id and link[1] == parent.chip_id:
                         print('Will skip: ', link)
                         skip_link = True

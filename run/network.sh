@@ -5,67 +5,44 @@ if ! [ -f .default_asic_configs_.json ]; then
 fi
 
 default_file=$(jq '.default_asic_config_paths_file_' <<< cat RUN_CONFIG.json)
-has_default_m00=$(jq -r 'has("1")' <<< cat .default_asic_configs_.json)
-has_default_m01=$(jq -r 'has("2")' <<< cat .default_asic_configs_.json)
-has_default_m10=$(jq -r 'has("3")' <<< cat .default_asic_configs_.json)
-has_default_m11=$(jq -r 'has("4")' <<< cat .default_asic_configs_.json)
-has_default_m20=$(jq -r 'has("5")' <<< cat .default_asic_configs_.json)
-has_default_m21=$(jq -r 'has("6")' <<< cat .default_asic_configs_.json)
-has_default_m30=$(jq -r 'has("7")' <<< cat .default_asic_configs_.json)
-has_default_m31=$(jq -r 'has("8")' <<< cat .default_asic_configs_.json)
+has_default_iog1=$(jq -r 'has("1")' <<< cat .default_asic_configs_.json)
+has_default_iog2=$(jq -r 'has("2")' <<< cat .default_asic_configs_.json)
+has_default_iog3=$(jq -r 'has("3")' <<< cat .default_asic_configs_.json)
+has_default_iog4=$(jq -r 'has("4")' <<< cat .default_asic_configs_.json)
 
-write_default_m0=false
-write_default_m1=false
-write_default_m2=false
-write_default_m3=false
+write_default_iog1=false
+write_default_iog2=false
+write_default_iog3=false
+write_default_iog4=false
 write_any=false
 
-if ! $has_default_m00; then
-	write_default_m0=true
+if ! $has_default_iog1; then
+	write_default_iog1=true
 	write_any=true
 fi
 
-if ! $has_default_m01; then
-	write_default_m0=true
+if ! $has_default_iog2; then
+	write_default_iog2=true
 	write_any=true
 fi
 
-if ! $has_default_m10; then
-	write_default_m1=true
+if ! $has_default_iog3; then
+	write_default_iog3=true
 	write_any=true
 fi
 
-if ! $has_default_m11; then
-	write_default_m1=true
+if ! $has_default_iog4; then
+	write_default_iog4=true
 	write_any=true
 fi
 
-if ! $has_default_m20; then
-	write_default_m2=true
-	write_any=true
-fi
-
-if ! $has_default_m21; then
-	write_default_m2=true
-	write_any=true
-fi
-
-if ! $has_default_m30; then
-	write_default_m3=true
-	write_any=true
-fi
-
-if ! $has_default_m31; then
-	write_default_m3=true
-	write_any=true
-fi
 
 now=`date +%Y_%m_%d_%H_%M_%S_%Z`
 config_dir="asic_configs/asic_configs-$now"
-config_dir_m0="$config_dir/m0"
-config_dir_m1="$config_dir/m1"
-config_dir_m2="$config_dir/m2"
-config_dir_m3="$config_dir/m3"
+config_dir_iog1="$config_dir/m0"
+config_dir_iog2="$config_dir/m1"
+config_dir_iog3="$config_dir/m2"
+config_dir_iog4="$config_dir/m3"
 
 if $write_any; then	
 
@@ -73,48 +50,79 @@ if $write_any; then
 
 fi
 
-if [[ "$1" == *"0"* ]]; then
-	if $write_default_m0; then
-		mkdir $config_dir_m0
-		echo "Saving Module0 configuration files to: $config_dir_m0"
-	fi
-
-	echo "config dir: $config_dir_m0"
-	python network_larpix.py --controller_config configs/controller_config.json --pacman_config io/pacman_m0.json --config_path $config_dir_m0 --pid_logged &
-	PID=$!
-	sed -i "s/MOD0_PID=[0-9]*/MOD0_PID=${PID}/" .envrc
-	
-fi
 
 if [[ "$1" == *"1"* ]]; then
-	if $write_default_m1; then
-		mkdir $config_dir_m1
-		echo "Saving Module1 configuration files to: $config_dir_m1"
+	if $write_default_iog1; then
+		mkdir $config_dir_iog1
+		echo "Saving Module1 configuration files to: $config_dir_iog1"
 	fi
-	python network_larpix.py --controller_config configs/controller_config.json --pacman_config io/pacman_m1.json --config_path $config_dir_m1 --pid_logged &
-	PID=$!
-	sed -i "s/MOD1_PID=[0-9]*/MOD1_PID=${PID}/" .envrc
+	
+	echo "config dir: $config_dir_iog1"
+	echo "launching network into screen 'IOG1_network'"
+
+	if ! screen -list | grep -q "IOG1_network"; then
+		screen -S IOG1_network -dm bash -c "python network_larpix.py --controller_config configs/controller_config.json --pacman_config io/pacman_iog1.json --config_path $config_dir_iog1 --pid_logged"
+	#PID=$!
+	else
+		echo "warning: nothing happened, screen already running with same name. Kill this screen to continue"
+	#
+	fi
 	
 fi
 
 if [[ "$1" == *"2"* ]]; then
-	if $write_default_m2; then
-		mkdir $config_dir_m2
-		echo "Saving Module2 configuration files to: $config_dir_m2"
-        fi
-	python network_larpix.py --controller_config configs/controller_config.json --pacman_config io/pacman_m2.json --config_path $config_dir_m2 --pid_logged  &
-	PID=$!
-	sed -i "s/MOD2_PID=[0-9]*/MOD2_PID=${PID}/" .envrc
+	if $write_default_iog2; then
+		mkdir $config_dir_iog2
+		echo "Saving IOG2 configuration files to: $config_dir_iog2"
+	fi
+	
+	echo "config dir: $config_dir_iog2"
+	echo "launching network into screen 'IOG2_network'"
+
+	if ! screen -list | grep -q "IOG2_network"; then
+		screen -S module1_network -dm bash -c "python network_larpix.py --controller_config configs/controller_config.json --pacman_config io/pacman_iog2.json --config_path $config_dir_iog2 --pid_logged"
+	#PID=$!
+	else
+		echo "warning: nothing happened, screen already running with same name. Kill this screen to continue"
+	#
+	fi
 	
 fi
 
 if [[ "$1" == *"3"* ]]; then
-	if $write_default_m3; then
-		mkdir $config_dir_m3
-		echo "Saving Module3 configuration files to: $config_dir_m3"
-        fi
-	python network_larpix.py --controller_config configs/controller_config.json --pacman_config io/pacman_m3.json --config_path $config_dir_m3 --pid_logged  &
-	PID=$!
-	sed -i "s/MOD3_PID=[0-9]*/MOD3_PID=${PID}/" .envrc
+	if $write_default_iog3; then
+		mkdir $config_dir_iog3
+		echo "Saving Module1 configuration files to: $config_dir_iog3"
+	fi
+	
+	echo "config dir: $config_dir_iog3"
+	echo "launching network into screen 'module1_network'"
+
+	if ! screen -list | grep -q "IOG3_network"; then
+		screen -S IOG3_network -dm bash -c "python network_larpix.py --controller_config configs/controller_config.json --pacman_config io/pacman_iog3.json --config_path $config_dir_iog3 --pid_logged"
+	#PID=$!
+	else
+		echo "warning: nothing happened, screen already running with same name. Kill this screen to continue"
+	#
+	fi
 	
 fi
+
+if [[ "$1" == *"4"* ]]; then
+	if $write_default_m4; then
+		mkdir $config_dir_iog4
+		echo "Saving IOG4 configuration files to: $config_dir_iog4"
+	fi
+	
+	echo "config dir: $config_dir_iog4"
+	echo "launching network into screen 'module1_network'"
+
+	if ! screen -list | grep -q "IOG4_network"; then
+		screen -S module1_network -dm bash -c "python network_larpix.py --controller_config configs/controller_config.json --pacman_config io/pacman_iog4.json --config_path $config_dir_iog4 --pid_logged"
+	else
+		echo "warning: nothing happened, screen already running with same name. Kill this screen to continue"
+	#
+	fi
+	
+fi
+

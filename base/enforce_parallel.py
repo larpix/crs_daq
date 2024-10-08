@@ -4,6 +4,15 @@ from base import utility_base
 from copy import deepcopy
 import numpy as np
 
+tag_to_config_map = {
+
+        'MOD1' : 0,
+        'MOD2' : 1,
+        'MOD3' : 2,
+        'MOD4' : 3,
+         None  : 0
+
+}
 
 def get_chips_by_io_group_io_channel(network_config, tiles=None, use_keys=None):
 
@@ -31,7 +40,7 @@ def get_chips_by_io_group_io_channel(network_config, tiles=None, use_keys=None):
     return all_keys
 
 
-def enforce_parallel(c, network_keys, unmask_last=True):
+def enforce_parallel(c, network_keys, unmask_last=True, pbar_desc='p', pbar_position=0):
 
     ichip = -1
 

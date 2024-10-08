@@ -6,6 +6,7 @@ import larpix.io
 from runenv import runenv as RUN
 import argparse
 from base import config_loader
+from base import network_base_FSD
 from base import network_base
 from tqdm import tqdm
 from base import pacman_base
@@ -81,7 +82,7 @@ def main(verbose,\
         io_group = io_group_ip_pair[0]
         tiles=None
         if not io_group_tiles is None:
-            if not io_group in io_group_tiles.keys(): continue
+            if not (io_group in io_group_tiles.keys()): continue
             else:
                 tiles = io_group_tiles[io_group]
 
@@ -90,10 +91,8 @@ def main(verbose,\
 
         config = configs[str(io_group)]
         dd=utility_base.update_json(network_config_paths_file_, io_group, config)
-        if io_group_asic_version_[io_group]=='2b':
-            if verbose: print('loading network_v2b') 
-            c =  network_base.network_v2b(config, tiles=tiles, io_group=io_group, pacman_config=pacman_config)
-        
+        if io_group_asic_version_[io_group] in ['2b', '2d']:
+                c =  network_base_FSD.network_v2b(config, tiles=tiles, io_group=io_group)
         elif io_group_asic_version_[io_group] in [2, 'lightpix-1']:
             if verbose: print('loading network_v2a')
             c = network_base.network_v2a(config, tiles=tiles, io_group=io_group, pacman_config=pacman_config) 
