@@ -1,43 +1,28 @@
 import larpix
 from tqdm import tqdm
-from base import pacman_base
 from base import utility_base
-import numpy as np
 from copy import deepcopy
+import numpy as np
 
-tag_to_config_map = {
-
-        'IOG1' : 0,
-        'IOG2' : 1,
-        'IOG3' : 2,
-        'IOG4' : 3,
-        'IOG5' : 4,
-        'IOG6' : 5,
-        'IOG7' : 6,
-        'IOG8' : 7,
-        'MOD0' : 0,
-        'MOD1' : 1,
-        'MOD2' : 2,
-        'MOD3' : 3,
-         None  : 0
-
-}
 
 def get_chips_by_io_group_io_channel(network_config, tiles=None, use_keys=None):
-    
+
     dc = larpix.Controller()
     dc.load(network_config)
     all_keys = []
     for io_group, io_channels in dc.network.items():
         for io_channel in io_channels:
             if not tiles is None:
-                if not utility_base.io_channel_to_tile(io_channel) in tiles: continue
-            keys = dc.get_network_keys(io_group, io_channel, root_first_traversal=True)
-            
+                if not utility_base.io_channel_to_tile(io_channel) in tiles:
+                    continue
+            keys = dc.get_network_keys(
+                io_group, io_channel, root_first_traversal=True)
+
             if not use_keys is None:
                 remove = []
                 for key in keys:
-                    if not key in use_keys : remove.append(key)
+                    if not key in use_keys:
+                        remove.append(key)
                 for key in remove:
                     keys.remove(key)
 
@@ -45,26 +30,32 @@ def get_chips_by_io_group_io_channel(network_config, tiles=None, use_keys=None):
 
     return all_keys
 
-def enforce_parallel(c, network_keys, unmask_last=True, pbar_position=0, pbar_desc='configuring...', ignore_diff=False):
-    
-    ichip = -1  
+
+def enforce_parallel(c, network_keys, unmask_last=True):
+
+    ichip = -1
+
+    chips = [network_keys[net][inet]
+             for net in range(len(network_keys)) for inet in range(len(network_keys[net]))]
+
     nchip = sum([len(net) for net in network_keys])
-    p_bar = tqdm(range(nchip), position=pbar_position, desc=pbar_desc, maxinterval=0.25, leave=False)
+    p_bar = tqdm(range(nchip))
     p_bar.refresh()
     ok, diff = False, {}
-    masks={}
+    masks = {}
     csas={}
     ptmasks={}
-   
+    
     unconfigured = deepcopy(network_keys)
 
     while True:
         current_chips = []
         ichip += 1
-        working=False
+        working = False
         for inet, net in enumerate(network_keys):
-            if ichip>=len(net): continue
-            working=True
+            if ichip >= len(net):
+                continue
+            working = True
             current_chips.append(net[ichip])
             unconfigured[inet].remove(net[ichip])
 
@@ -79,25 +70,49 @@ def enforce_parallel(c, network_keys, unmask_last=True, pbar_position=0, pbar_de
                 csas[str(chip)] = c[chip].config.csa_enable
                 c[chip].config.csa_enable = [0]*64
 
-        if not working: break
+        if not working:
+            break
 
-        ok, diff = c.enforce_configuration(current_chips, timeout=0.02, connection_delay=0.01, n=5, n_verify=5)
+        ok, diff = c.enforce_configuration(
+            current_chips, timeout=0.02, connection_delay=0.01, n=3, n_verify=3, msg_length=len(current_chips))
+
+        ok, diff = c.verify_configuration(
+            current_chips, timeout=0.02, connection_delay=0.01, n=3, msg_length=len(current_chips))
+
         if not ok:
-            if len(diff.keys()) < 20:
-                print(diff.keys(), diff)
-                ok, diff = c.enforce_configuration(current_chips, timeout=0.025, connection_delay=0.01, n=10, n_verify=10)
+            print('Re-configuring: ', diff.keys())
+            ok, diff = c.enforce_configuration(
+                diff.keys(), timeout=0.02, connection_delay=0.01, n=15, n_verify=3, msg_length=len(diff.keys()))
+            if not ok:
+                print('Could not configure: ', diff.keys())
 
-        if not ok: 
-            p_bar.update(len(current_chips) - len(diff.keys()))
-            p_bar.refresh() 
-            if not ignore_diff: return ok, diff, unconfigured
-        
+                # ok, diff = c.enforce_configuration(
+                #     diff.keys(), timeout=0.02, connection_delay=0.01, n=15, n_verify=5, msg_length=1)
+        # ok, diff = c.enforce_configuration(
+        #     current_chips, timeout=0.01, connection_delay=0.001, n=12, n_verify=4)
+
+        # ok, diff = utility_base.simple_reconcile_configuration(
+        #     c, current_chips)
+
+        # for cc in current_chips:
+        #     print(cc)
+        #     for reg in range(c[current_chips[0]].config.num_registers):
+        #         print(reg)
+
+        #         ok, diff = c.enforce_registers(
+        #             [(cc, reg)], timeout=0.01, connection_delay=0.001, n=15, n_verify=15)
+        #         if not ok:
+        #             break
+        # if not ok:
+            # raise RuntimeError('Enforcing failed', diff)
+            # print(diff)
+            # return ok, diff, unconfigured
         p_bar.update(len(current_chips))
         p_bar.refresh()
 
     p_bar.close()
 
-    N_WRITE_UNMASK=10 
+    N_WRITE_UNMASK = 10
 
     send = False
     if unmask_last:
@@ -111,10 +126,8 @@ def enforce_parallel(c, network_keys, unmask_last=True, pbar_position=0, pbar_de
         if send:
             if True:
                 for __ in range(N_WRITE_UNMASK):
-                    c.multi_write_configuration( [ (chip, list(range(131, 139))+list(range(66, 74))+list(range(155,163))) for chip in c.chips if chip.io_group in c.io._io_group_table.keys() ], connection_delay=0.001 )
+                    c.multi_write_configuration( [ (chip, list(range(131, 139))+list(range(66, 74))+list(range(155,163))) for chip in c.chips if chip.io_group in c.io._io_group_table.keys() ], connection_delay=0.001, msg_length=len(network_keys) )
 
             else:
                 pass
     return ok, diff, unconfigured
-
-

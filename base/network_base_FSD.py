@@ -9,13 +9,21 @@ import numpy as np
 # from timebudget import timebudget
 # import asyncio
 
-ref_current_trim = 0
-i_tx_diff = 0
-tx_slices = 15
-r_term = 2
-i_rx = 8
+# root
+ref_current_trim_root = 0
+i_tx_diff_root = 0
+tx_slices_root = 15
+r_term_root = 2
+i_rx_root = 8
 
-_default_clk_ctrl = 1
+# non-root
+ref_current_trim_nonroot = 0
+i_tx_diff_nonroot = 0
+tx_slices_nonroot = 15
+r_term_nonroot = 2
+i_rx_nonroot = 8
+
+_default_clk_ctrl = 0
 _uart_phase = 2
 
 clk_ctrl_2_clk_ratio_map = {
@@ -52,7 +60,20 @@ def network_ext_node_from_tuple(c, iog_ioc_cid):
     return
 
 
+def network_ext_node_from_tuple(c, io_group, io_channel, chip_id):
+    c.add_network_node(io_group, io_channel,
+                       c.network_names, 'ext', root=True)
+    c.add_network_link(io_group, io_channel, 'miso_us',
+                       ('ext', chip_id), 0)
+    c.add_network_link(io_group, io_channel, 'miso_ds',
+                       (chip_id, 'ext'), 0)
+    c.add_network_link(io_group, io_channel, 'mosi',
+                       ('ext', chip_id), 0)
+    return
+
 # @timebudget
+
+
 def configure_chip_id(c, io_group, ioc, chip_id, asic_version):
     setup_key = larpix.key.Key(io_group, ioc, 1)
     if setup_key not in c.chips:
@@ -71,7 +92,7 @@ def configure_chip_id(c, io_group, ioc, chip_id, asic_version):
 # @timebudget
 def configure_root_chip(c, chip_key, asic_version, ref_current_trim,
                         tx_diff, tx_slice, r_term, i_rx):
-    if asic_version == '2b':
+    if asic_version in ['2b', '2d']:
         c[chip_key].config.ref_current_trim = ref_current_trim
         c.write_configuration(chip_key, 'ref_current_trim')
         registers = []
@@ -85,16 +106,17 @@ def configure_root_chip(c, chip_key, asic_version, ref_current_trim,
         for reg in registers:
             c.write_configuration(chip_key, reg)
         c[chip_key].config.enable_posi = [0]*4
-        c[chip_key].config.enable_posi[1] = 1
+        c[chip_key].config.enable_posi[3] = 1
         c.write_configuration(chip_key, 'enable_posi')
         c.write_configuration(chip_key, 'enable_posi')
-        c[chip_key].config.i_tx_diff0 = tx_diff
-        c.write_configuration(chip_key, 'i_tx_diff0')
-        c.write_configuration(chip_key, 'i_tx_diff0')
-        c[chip_key].config.tx_slices0 = tx_slice
-        c.write_configuration(chip_key, 'tx_slices0')
+        c[chip_key].config.i_tx_diff2 = tx_diff
+        c.write_configuration(chip_key, 'i_tx_diff2')
+        c.write_configuration(chip_key, 'i_tx_diff2')
+        c[chip_key].config.tx_slices2 = tx_slice
+        c.write_configuration(chip_key, 'tx_slices2')
+        c.write_configuration(chip_key, 'tx_slices2')
         c[chip_key].config.enable_piso_downstream = [0]*4
-        c[chip_key].config.enable_piso_downstream[0] = 1
+        c[chip_key].config.enable_piso_downstream[2] = 1
         c.write_configuration(chip_key, 'enable_piso_downstream')
         c[chip_key].config.enable_piso_upstream = [0]*4
         c.write_configuration(chip_key, 'enable_piso_upstream')
@@ -192,23 +214,30 @@ def append_upstream_chip_ids(io_channel, chip_id, waitlist):
     initial = len(waitlist)
     addendum = waitlist
     if io_channel in list(range(1, 33, 4)):
-        for i in range(chip_id, 31):
-            addendum.add(i)
-            addendum.add(i-10)
-            addendum.add(i+10)
-    if io_channel in list(range(2, 33, 4)):
         for i in range(chip_id, 51):
             addendum.add(i)
+            addendum.add(i-10)
             addendum.add(i+10)
+            addendum.add(i+20)
+    if io_channel in list(range(2, 33, 4)):
+        for i in range(chip_id, 91):
+            addendum.add(i)
+            addendum.add(i-10)
+            addendum.add(i+10)
+            addendum.add(i+20)
     if io_channel in list(range(3, 33, 4)):
-        for i in range(chip_id, 81):
-            addendum.add(i)
-            addendum.add(i-10)
-    if io_channel in list(range(4, 33, 4)):
-        for i in range(chip_id, 101):
+        for i in range(chip_id, 131):
             addendum.add(i)
             addendum.add(i-10)
             addendum.add(i+10)
+            addendum.add(i+20)
+    if io_channel in list(range(4, 33, 4)):
+        for i in range(chip_id, 171):
+            addendum.add(i)
+            addendum.add(i-20)
+            addendum.add(i-10)
+            addendum.add(i+10)
+    # print(addendum)
     return addendum
 
 
@@ -218,20 +247,21 @@ def find_daughter_id(parent_piso, parent_chip_id, parent_io_channel):
         daughter_id = parent_chip_id-10
     if parent_piso == 1:
         daughter_id = parent_chip_id+10
-    if parent_piso == 2:
-        daughter_id = parent_chip_id+1
     if parent_piso == 0:
+        daughter_id = parent_chip_id+1
+    if parent_piso == 2:
         daughter_id = parent_chip_id-1
     return daughter_id
 
 
 # @timebudget
 def initial_network(c, io, io_group, root_keys, verbose, asic_version,
-                    ref_current_trim, tx_diff, tx_slice, r_term, i_rx):
+                    ref_current_trim, tx_diff, tx_slice, r_term, i_rx, exclude=None, exclude_links=None):
     root_ioc = [rk.io_channel for rk in root_keys]
     waitlist = set()
     cnt_configured, cnt_unconfigured = 0, 0
     firstIteration = True
+
     for root in root_keys:
         if firstIteration == False:
             print('\n CONFIGURED: ', cnt_configured,
@@ -254,29 +284,55 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
         bail = False
         last_chip_id = root.chip_id
         last_daughter = []
-        while last_chip_id <= root.chip_id+9:
+        while last_chip_id <= root.chip_id+29:
             if bail == True:
                 break
-            for parent_piso_us in [3, 1, 2]:
+            excluded = False
+            ok_daughters = []
+            for parent_piso_us in [0, 1, 3]:
                 if bail == True:
                     break
+                excluded = False
                 daughter_id = find_daughter_id(parent_piso_us, last_chip_id,
                                                root.io_channel)
+                print('LOOKING AT DAUGHTER: ', daughter_id)
                 # UGLY HACK
                 if (last_chip_id, daughter_id) not in last_daughter:
                     last_daughter.append((last_chip_id, daughter_id))
                 else:
                     bail = True
+                if daughter_id in exclude[utility_base.io_channel_to_tile(root.io_channel)]:
+                    print('bailing due to excluded chip!')
+                    bail = True
+                    excluded = True
                 if verbose:
                     print('last chip id: ', last_chip_id,
                           '\tdaughter chip id: ', daughter_id)
 
-                # UGLY HACK
-#                if last_chip_id==60 and daughter_id in [50,70,61]: bail=True
-#                if last_chip_id==80 and daughter_id in [70,90,81]: bail=True
-
-                if daughter_id < 11 or daughter_id > 110:
+                if daughter_id < 11 or daughter_id > 170:
                     continue
+                if last_chip_id % 10 == 1 and daughter_id % 10 == 0:
+                    continue
+                if last_chip_id % 10 == 0 and daughter_id == last_chip_id + 1:
+                    continue
+
+                skip_link = False
+                for link in exclude_links[utility_base.io_channel_to_tile(root.io_channel)]:
+                    if link[0] == last_chip_id and link[1] == daughter_id:
+                        print('Will skip: ', link)
+                        skip_link = True
+                        break
+                    if link[0] == daughter_id and link[1] == last_chip_id:
+                        print('Will skip: ', link)
+                        skip_link = True
+                        break
+                if skip_link:
+                    print('Skipping link: ', (last_chip_id, parent.chip_id))
+                    continue
+
+                # Manual re-routing to avoid issues on 10x16 v2d tiles
+                if daughter_id == 27 and last_chip_id == 26: continue
+                if daughter_id == 158 and last_chip_id == 157: continue
                 cks = []
                 for ck in c.chips:
                     if ck.io_channel in root_ioc:
@@ -293,7 +349,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
                 ok, diff = uart_base.setup_parent_piso(c, io, parent,
                                                        daughter, verbose,
                                                        tx_diff, tx_slice)
-                if not ok:
+                if not ok or excluded:
                     print('\t\t==> PARENT PISO US ', parent,
                           'failed to configure')
                     uart_base.disable_parent_piso_us(c, parent, daughter,
@@ -319,7 +375,8 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
                     cnt_configured += 1
                     print(daughter, '\tconfigured: ', cnt_configured,
                           '\t unconfigured: ', cnt_unconfigured)
-                    last_chip_id = daughter.chip_id
+                    ok_daughters.append(daughter.chip_id)
+                    # last_chip_id = daughter.chip_id
                 if not ok:
                     print('\t\t==> DAUGHTER ', daughter,
                           'failed to configure')
@@ -331,17 +388,23 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
                                                   verbose)
                     c.remove_chip(daughter)
 
-                    if parent_piso_us == 2:
+                    if parent_piso_us == 0:
                         waitlist = append_upstream_chip_ids(root.io_channel,
                                                             daughter.chip_id,
                                                             waitlist)
                         bail = True
-                    if parent_piso_us != 2:
+                    if parent_piso_us != 0:
                         cnt_unconfigured = len(waitlist)
                         print(daughter, '\tconfigured: ', cnt_configured,
                               '\t unconfigured ', cnt_unconfigured)
                 io.set_reg(0x18, 0, io_group=io_group)
-            # last_chip_id=daughter.chip_id
+            if len(ok_daughters) > 0:
+                ok_daughters.sort()
+                # 0*len(ok_daughters)//2
+                last_chip_id = ok_daughters[len(ok_daughters)//2]
+                # last_chip_id = ok_daughters[0]
+            else:
+                print('STOPPING AT: ', last_chip_id)
         firstIteration = False
     return
 
@@ -371,11 +434,14 @@ def initial_network_from_root(c, io, io_group, root_key, verbose, asic_version,
     while last_chip_id <= root_key.chip_id+9:
         if bail == True:
             break
-        for parent_piso_us in [3, 1, 2]:
+        for parent_piso_us in [0, 3, 1]:
             if bail == True:
                 break
             daughter_id = find_daughter_id(parent_piso_us, last_chip_id,
                                            root_key.io_channel)
+            if daughter_id < 11 or daughter_id > 170:
+                continue
+
             cks = []
             for ck in c.chips:
                 if ck.io_channel != root_ioc:
@@ -427,12 +493,12 @@ def initial_network_from_root(c, io, io_group, root_key, verbose, asic_version,
                                               verbose)
                 c.remove_chip(daughter)
 
-                if parent_piso_us == 2:
+                if parent_piso_us == 0:
                     waitlist = append_upstream_chip_ids(root_key.io_channel,
                                                         daughter.chip_id,
                                                         waitlist)
                     bail = True
-                if parent_piso_us != 2:
+                if parent_piso_us != 0:
                     cnt_unconfigured = len(waitlist)
                     print(daughter, '\tconfigured: ', cnt_configured,
                           '\t unconfigured ', cnt_unconfigured)
@@ -451,7 +517,7 @@ def find_waitlist(c, io_group, ioc_range):
         if chip_key.io_channel not in ioc_range:
             continue
         network[chip_key.chip_id] = chip_key
-    for chip_id in range(11, 111):
+    for chip_id in range(11, 171):
         if chip_id not in network.keys():
             waitlist.append(chip_id)
     return waitlist, network
@@ -460,7 +526,7 @@ def find_waitlist(c, io_group, ioc_range):
 # @timebudget
 def find_potential_parents(chip_id, network, verbose):
     parents = []
-    for i in [10, -10, 1, -1]:
+    for i in [-1, 1, 10, -10]:
         if chip_id % 10 == 0 and (chip_id+i) % 10 == 1:
             continue
         if (chip_id+i) % 10 == 0 and chip_id % 10 == 1:
@@ -472,7 +538,7 @@ def find_potential_parents(chip_id, network, verbose):
 
 # @timebudget
 def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,
-                     ref_current_trim, tx_diff, tx_slice, r_term, i_rx):
+                     ref_current_trim, tx_diff, tx_slice, r_term, i_rx, exclude=None, exclude_links=None):
     print('\n\n----- Iterating waitlist ----\n')
     flag = True
     outstanding = []
@@ -487,7 +553,27 @@ def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,
             for parent in potential_parents:
                 daughter = larpix.key.Key(parent.io_group, parent.io_channel,
                                           chip_id)
+                if chip_id in exclude[utility_base.io_channel_to_tile(parent.io_channel)]:
+                    continue
 
+                skip_link = False
+                for link in exclude_links[utility_base.io_channel_to_tile(parent.io_channel)]:
+                    if link[0] == chip_id and link[1] == parent.chip_id:
+                        print('Will skip: ', link)
+                        skip_link = True
+                        break
+                    if link[0] == parent.chip_id and link[1] == chip_id:
+                        print('Will skip: ', link)
+                        skip_link = True
+                        break
+                if skip_link:
+                    print('Skipping link: ', (chip_id, parent.chip_id))
+                    continue
+
+                # Manual re-routing to avoid issues on 10x16 v2d tiles
+                if chip_id == 27 and parent.chip_id == 26: continue
+                if chip_id == 158 and parent.chip_id == 157: continue
+                
                 ok, diff = uart_base.setup_parent_piso(c, io, parent,
                                                        daughter, verbose,
                                                        tx_diff, tx_slice)
@@ -541,9 +627,9 @@ def configure_asic_network_links(c):
                 daughter_chip_id = chip_key.chip_id-10
             if uart == 1:
                 daughter_chip_id = chip_key.chip_id+10
-            if uart == 2:
-                daughter_chip_id = chip_key.chip_id+1
             if uart == 0:
+                daughter_chip_id = chip_key.chip_id+1
+            if uart == 2:
                 daughter_chip_id = chip_key.chip_id-1
             c.add_network_link(chip_key.io_group, chip_key.io_channel,
                                'miso_us',
@@ -556,9 +642,9 @@ def configure_asic_network_links(c):
                 daughter_chip_id = chip_key.chip_id-10
             if uart == 1:
                 daughter_chip_id = chip_key.chip_id+10
-            if uart == 2:
-                daughter_chip_id = chip_key.chip_id+1
             if uart == 0:
+                daughter_chip_id = chip_key.chip_id+1
+            if uart == 2:
                 daughter_chip_id = chip_key.chip_id-1
             c.add_network_link(chip_key.io_group, chip_key.io_channel,
                                'miso_ds',
@@ -571,9 +657,9 @@ def configure_asic_network_links(c):
                 mother_chip_id = chip_key.chip_id-10
             if uart == 2:
                 mother_chip_id = chip_key.chip_id+10
-            if uart == 3:
-                mother_chip_id = chip_key.chip_id+1
             if uart == 1:
+                mother_chip_id = chip_key.chip_id+1
+            if uart == 3:
                 mother_chip_id = chip_key.chip_id-1
             c.add_network_link(chip_key.io_group, chip_key.io_channel,
                                'mosi',
@@ -586,10 +672,10 @@ def miso_us_chip_id_list(chip2chip_pair, miso_us):
     if chip2chip_pair[0] == 'ext' or chip2chip_pair[1] == 'ext':
         miso_us[3] = chip2chip_pair[1]
         return miso_us
-    if chip2chip_pair[1]-chip2chip_pair[0] == 1:
-        miso_us[3] = chip2chip_pair[1]  # piso 2
     if chip2chip_pair[1]-chip2chip_pair[0] == -1:
-        miso_us[1] = chip2chip_pair[1]  # piso 0
+        miso_us[1] = chip2chip_pair[1]  # piso 2
+    if chip2chip_pair[1]-chip2chip_pair[0] == 1:
+        miso_us[3] = chip2chip_pair[1]  # piso 0
     if chip2chip_pair[1]-chip2chip_pair[0] == -10:
         miso_us[0] = chip2chip_pair[1]  # piso 3
     if chip2chip_pair[1]-chip2chip_pair[0] == 10:
@@ -630,9 +716,9 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
                 if c.network[iog][ioc]['miso_us'].nodes[node]['root'] == True:
                     temp["root"] = True
                 d["network"][iog][ioc]["nodes"].append(temp)
-    d["network"]["miso_us_uart_map"] = [3, 0, 1, 2]
-    d["network"]["miso_ds_uart_map"] = [1, 2, 3, 0]
-    d["network"]["mosi_uart_map"] = [2, 3, 0, 1]
+    d["network"]["miso_us_uart_map"] = [3, 2, 1, 0]
+    d["network"]["miso_ds_uart_map"] = [1, 0, 3, 2]
+    d["network"]["mosi_uart_map"] = [2, 1, 0, 3]
 
     d["missing"] = {}
     for pair in unconfigured:
@@ -647,7 +733,7 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
 
     now = time.strftime("%Y_%m_%d_%H_%M_%Z")
     if file_prefix != None:
-        fname = file_prefix+'-network-'+now+'.json'
+        fname = file_prefix+'-hydra-network.json'
     if file_prefix == None:
         fname = 'network-'+now+'.json'
     with open(fname, 'w') as out:
@@ -657,7 +743,7 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
     return fname
 
 
-def network_v2b(controller_config, verbose=False, **kwargs):
+def network_v2b(controller_config, tiles=None, verbose=False, **kwargs):
 
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True)
@@ -668,22 +754,50 @@ def network_v2b(controller_config, verbose=False, **kwargs):
         c.load(controller_config)
 
     for io_group, io_channels in c.network.items():
-        if True:
+        if tiles is None:
             if verbose:
                 print('resetting io group:', io_group)
             c.io.reset_larpix(length=2048, io_group=io_group)
             time.sleep(2048*(1/(10e6)))
             c.io.reset_larpix(length=2048, io_group=io_group)
             time.sleep(2048*(1/(10e6)))
-
+        else:
+            if verbose:
+                print('resetting tiles {} on io group:'.format(tiles), io_group)
+            c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
+            time.sleep(2048*(1/(10e6)))
+            c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
+            time.sleep(2048*(1/(10e6)))
     # throttle the data rate to insure no FIFO collisions
     c.io.group_packets_by_io_group = False
     for io_group, io_channels in c.network.items():
         for io_channel in io_channels:
-            c.init_network(io_group, io_channel, modify_mosi=False)
+            if not tiles is None:
+                if not utility_base.io_channel_to_tile(io_channel) in tiles:
+                    continue
+            c.init_network(io_group, io_channel, modify_mosi=True)
 
        # write tx, rx, etc configs
     for chip_key in c.chips.keys():
+        if not tiles is None:
+            if not utility_base.io_channel_to_tile(chip_key.io_channel) in tiles:
+                continue
+        if chip_key.chip_id in [21, 61, 101, 151]:
+
+            ref_current_trim = ref_current_trim_root
+            i_tx_diff = i_tx_diff_root
+            tx_slices = tx_slices_root
+            r_term = r_term_root
+            i_rx = i_rx_root
+
+        else:
+
+            ref_current_trim = ref_current_trim_nonroot
+            i_tx_diff = i_tx_diff_nonroot
+            tx_slices = tx_slices_nonroot
+            r_term = r_term_nonroot
+            i_rx = i_rx_nonroot
+
         c[chip_key].config.ref_current_trim = ref_current_trim
         c.write_configuration(chip_key, 'ref_current_trim')
         registers = []
@@ -698,10 +812,40 @@ def network_v2b(controller_config, verbose=False, **kwargs):
             setattr(c[chip_key].config, f'tx_slices{uart}', tx_slices)
             registers.append(
                 c[chip_key].config.register_map[f'tx_slices{uart}'])
+
+#        ok, diff = c.enforce_configuration([chip_key], timeout=0.01, connection_delay=0.003, n=20, n_verify=7)
+#        if not ok:
+#            raise RuntimeError('Enforcing failed', diff)
         for reg in registers:
-            c.write_configuration(chip_key, reg)
+            c.write_configuration(chip_key, reg, connection_delay=0.005)
+#            c.write_configuration(chip_key, reg, connection_delay=0.005)
+#            c.write_configuration(chip_key, reg, connection_delay=0.005)
         for reg in registers:
-            c.write_configuration(chip_key, reg)
+            #            c.write_configuration(chip_key, reg, connection_delay=0.005)
+            #            c.write_configuration(chip_key, reg, connection_delay=0.005)
+            c.write_configuration(chip_key, reg, connection_delay=0.005)
+       # ok, diff = c.enforce_configuration([chip_key], timeout=0.01, connection_delay=0.003, n=20, n_verify=7)
+        # if not ok:
+        #    raise RuntimeError('Enforcing failed', diff)
+
+    # # set uart speed (v2a at 2.5 MHz transmit clock, v2b fine at 5 MHz transmit clock)
+    # for io_group, io_channels in c.network.items():
+    #     for io_channel in io_channels:
+    #         chip_keys = c.get_network_keys(
+    #             io_group, io_channel, root_first_traversal=False)
+    #         for chip_key in chip_keys:
+    #             c[chip_key].config.clk_ctrl = _default_clk_ctrl
+    #             c.write_configuration(
+    #                 chip_key, 'clk_ctrl', connection_delay=0.5)
+    #             c.write_configuration(
+    #                 chip_key, 'clk_ctrl', connection_delay=0.5)
+    #             c.write_configuration(
+    #                 chip_key, 'clk_ctrl', connection_delay=0.5)
+
+    # for io_group, io_channels in c.network.items():
+    #     for io_channel in io_channels:
+    #         c.io.set_uart_clock_ratio(
+    #             io_channel, clk_ctrl_2_clk_ratio_map[_default_clk_ctrl], io_group=io_group)
 
     # issue soft reset (resets state machines, configuration memory untouched)
     for io_group, io_channels in c.network.items():

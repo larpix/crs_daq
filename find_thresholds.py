@@ -18,7 +18,7 @@ from base import utility_base
 from base.utility_base import *
 from tqdm import tqdm
 MAX_TOGGLE_ITS=16
-_default_controller_config=None
+_default_controller_config='controller_config.json'
 _default_pedestal_file=None
 _default_trim_sigma_file='channel_scale_factor.json'
 _default_disabled_list=None
@@ -285,7 +285,7 @@ def enable_frontend(c, pacman_configs, channels, csa_disable, config, all_networ
                         csa_disable[asic_id].append(int(channel))
                         disabled_channels=True
 
-		#write channel mask
+        #write channel mask
                 if disabled_channels:
                     high_rate=True
                     for _ in range(10): c.multi_write_configuration([ (chip, list(range(66, 74))+list(range(131, 139)))], connection_delay=0.01)       
@@ -616,4 +616,3 @@ if __name__ == '__main__':
                         help='''Print to screen debugging output''')
     args = parser.parse_args()
     c = main(**vars(args))
-
