@@ -18,8 +18,13 @@ import shutil
 from base import config_loader
 from tqdm import tqdm
 from analysis import plot_hydra_network_10x16
+import sys
+from runenv import runenv as RUN
 
-from RUNENV import io_group_asic_version_, io_group_pacman_tile_, iog_exclude, iog_exclude_links
+module = sys.modules[__name__]
+for var in RUN.config.keys():
+    setattr(module, var, getattr(RUN, var))
+
 
 _default_file_prefix = None
 _default_disable_logger = True
