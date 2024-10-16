@@ -59,17 +59,21 @@ def main(file_count, runtime, message, packet, filename, file_tag, pacman_config
             os.mkdir(copy_configs_here)
         os.system('python archive.py --ignore_busy --monitor_dir {} &'.format(copy_configs_here))
 
-    # dump ASIC configs to temporary directory to embed in data files
-    os.system('./dump_temp_archive.sh &')
-
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
 
     #data taking loop
     ctr=0
     while (ctr<file_count or file_count < 0) and not base.utility_base._dump_and_exit_:
-        
+                
         run_start = datetime_now()
+        
+        # dump ASIC configs to temporary directory to embed in data files
+        # note that this archiviving command is called inside the loop, so it will be updated for each file
+        # i.e. if changes are made during the run, they will be picked up automatically in the next file
+        os.system('./dump_temp_archive.sh &')
+
+
         if filename is None or ctr>0: filename = destination_dir_ + '/' + utility_base.data_filename(c, packet, file_tag)
         elif ctr==0: filename = destination_dir_ + '/' + filename 
         

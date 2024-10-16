@@ -223,16 +223,15 @@ def flush_data(c, runtime=0.1, rate_limit=0., max_iterations=10):
         if len(c.reads[-1])/runtime <= rate_limit:
             break
 
+def data_filename(c, packet, tag=None):
+    now=time.strftime("%Y_%m_%d_%H_%M_%S_%Z")
+    type_str = 'binary'
+    if packet: type_str='packet'
 
-def data_filename(c, packet):
-    now = time.strftime("%Y_%m_%d_%H_%M_%S_%Z")
-    if packet == True:
-        fname = 'packets-'+now+'.h5'
-    else:
-        fname = 'binary-'+now+'.h5'
+    if tag is None:
+        return '{}-{}.h5'.format(type_str, now)
 
-    return fname
-
+    return '{}-{}-{}.h5'.format(type_str, tag, now)
 
 def data(c, runtime, packet, LRS=False, fname=None):
     if packet==True:
