@@ -58,10 +58,15 @@ def convert_io_channel_to_uart(io_channel):
 def enable_pacman_uart_from_io_channel(io, io_group, io_channel):
     bits=list('11111111111111111111111111111111')
 
-    uart = convert_io_channel_to_uart(io_channel)
+    uart=None
+    if type(io_channel) is int: uart = [convert_io_channel_to_uart(io_channel)]
+
+    if type(io_channel) is list: uart = [convert_io_channel_to_uart(io_ch) for io_ch in io_channel]
     if uart is None:
         return
-    bits[-1*uart]='0'
+
+    for u in uart:
+        bits[-1*u]='0'
 
     io.set_reg(0x201c, int("".join(bits),2), io_group=io_group)
     return

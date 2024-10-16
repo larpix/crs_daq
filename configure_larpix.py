@@ -39,7 +39,7 @@ def main(verbose, \
         #list of network keys in order from root chip, for parallel configuration enforcement
         all_network_keys = []
        
-
+        
         for io_group_ip_pair in pacman_configs['io_group']:
             io_group = io_group_ip_pair[0]   
             
@@ -48,7 +48,9 @@ def main(verbose, \
                 print('Loading current config...')
                 CONFIG=utility_base.get_from_json(asic_config_paths_file_,io_group)
             else:
-                CONFIG='{}/{}'.format(asic_config, config_subdir)
+                CONFIG=asic_config
+                if not config_subdir is None:
+                    CONFIG='{}/{}'.format(asic_config, config_subdir)
                 utility_base.update_json(asic_config_paths_file_, io_group,CONFIG )
 
             network_config_file = utility_base.get_from_json(network_config_paths_file_, io_group)
