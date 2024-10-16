@@ -21,6 +21,10 @@ for var in RUN.config.keys():
 ##########################################################################
 #---------------PACMAN UART INVERSION/DISABLE/ENABLE---------------------#
 ##########################################################################
+# Temporary rev5 firmware
+# rx_en register: 0x201c
+# 1: disable
+# 0: enable (default)
 
 def invert_pacman_uart(io, io_group, asic_version, tile):
     if asic_version!='2b': return
@@ -37,58 +41,77 @@ def invert_pacman_uart(io, io_group, asic_version, tile):
         io.set_reg(inversion_registers[ioc], 0b11, io_group=io_group)
     return
 
+def convert_io_channel_to_uart(io_channel):
+    io_channel_to_uart = {1:1, 2:2, 3:3, 4:4,
+                         5:5, 6:6, 7:7, 8:8,
+                         9:9, 10:10, 11:11, 12:None,
+                         13:12, 14:13, 15:14, 16:None,
+                         17:15, 18:16, 19:17, 20:None,
+                         21:18, 22:19, 23:20, 24:None,
+                         25:21, 26:22, 27:23, 28:None,
+                         29:24, 30:25, 31:26, 32:None,
+                         33:27, 34:28, 35:29, 36:None,
+                         37:30, 38:31, 39:32, 40:None
+                         }
+    return io_channel_to_uart[io_channel]
+
 def enable_pacman_uart_from_io_channel(io, io_group, io_channel):
-    bits=list('00000000000000000000000000000000')
-    for ioc in io_channel:
-        bits[-1*ioc]='1'
-    io.set_reg(0x18, int("".join(bits),2), io_group=io_group)
+    bits=list('11111111111111111111111111111111')
+
+    uart = convert_io_channel_to_uart(io_channel)
+    if uart is None:
+        return
+    bits[-1*uart]='0'
+
+    io.set_reg(0x201c, int("".join(bits),2), io_group=io_group)
     return
 
 def enable_all_pacman_uart_from_io_group(io, io_group, true_all=False):
-    bits=list('111111111111111111111111111111')
+    bits=list('00000000000000000000000000000000')
     if not true_all:
         enable_pacman_uart_from_tile(io, io_group, io_group_pacman_tile_[io_group])
     else:
-        io.set_reg(0x18, int("".join(bits),2), io_group=io_group)
+        io.set_reg(0x201c, int("".join(bits),2), io_group=io_group)
     return
 
 
 
 def enable_pacman_uart_from_tile(io, io_group, tile):
-    bits=list('00000000000000000000000000000000')
+    bits=list('11111111111111111111111111111111')
     io_channel=utility_base.tile_to_io_channel(tile)
     for ioc in io_channel:
-        bits[-1*ioc]='1'
-    io.set_reg(0x18, int("".join(bits),2), io_group=io_group)
+        uart = convert_io_channel_to_uart(ioc)
+        if uart is None:
+            continue
+        bits[-1*uart]='0'
+    io.set_reg(0x201c, int("".join(bits),2), io_group=io_group)
     return
 
 
 
 def enable_pacman_uart_from_io_channels(io, io_group, io_channels):
-    bits=list('00000000000000000000000000000000')
+    bits=list('11111111111111111111111111111111')
     for ioc in io_channels:
-        bits[-1*ioc]='1'
-    io.set_reg(0x18, int("".join(bits),2), io_group=io_group)
-    return
-
-
-
-def enable_pacman_uart_from_io_channel(io, io_group, io_channels):
-    bits=list('00000000000000000000000000000000')
-    for io_channel in io_channels:
-        try:
-            bits[-1*io_channel]='1'
-        except:
-            print('failed attemping to enable  io_channell:', io_channel)
-    io.set_reg(0x18, int("".join(bits),2), io_group=io_group)
+        uart = convert_io_channel_to_uart(ioc)
+        if uart is None:
+            continue
+        bits[-1*uart]='0'
+    io.set_reg(0x201c, int("".join(bits),2), io_group=io_group)
     return
 
     
     
 def disable_all_pacman_uart(io, io_group):
-    io.set_reg(0x18, 0x0, io_group=io_group)
+    io.set_reg(0x201c, 0xffffffff, io_group=io_group)
     return
 
+
+def set_packet_delay(io, io_group, delay=0xff):
+    for uart in range(32):
+        reg = 0x03014 + uart * 0x1000
+        v = ( io.get_reg(reg, io_group=io_group) & 0xff ) + (delay << 8)
+        io.set_reg(reg, v, io_group=io_group)
+    return
 
 
 ##########################################################################
@@ -210,7 +233,16 @@ def power_readback(io, io_group, pacman_version, tile):
     readback={}
     for i in tile:
         readback[i]=[]
-        if pacman_version=='v1rev4':
+        if pacman_version=='v1rev5':
+            vdda=io.get_reg(0x24030+(i-1), io_group=io_group)
+            vddd=io.get_reg(0x24040+(i-1), io_group=io_group)
+            idda=io.get_reg(0x24050+(i-1), io_group=io_group)
+            iddd=io.get_reg(0x24060+(i-1), io_group=io_group)
+            print('Tile ',i,'  VDDA: ',vdda,' mV  IDDA: ', idda/8,' mA  ',
+                  'VDDD: ',vddd,' mV  IDDD: ',iddd/8,' mA')
+            readback[i]=[vdda, idda/8, vddd, iddd/8]
+
+        elif pacman_version=='v1rev4':
             vdda=io.get_reg(0x24030+(i-1), io_group=io_group)
             vddd=io.get_reg(0x24040+(i-1), io_group=io_group)
             idda=io.get_reg(0x24050+(i-1), io_group=io_group)
@@ -218,6 +250,7 @@ def power_readback(io, io_group, pacman_version, tile):
             print('Tile ',i,'  VDDA: ',vdda,' mV  IDDA: ',int(idda*0.1),' mA  ',
                   'VDDD: ',vddd,' mV  IDDD: ',int(iddd>>12),' mA')
             readback[i]=[vdda, idda*0.1, vddd, iddd>>12]
+
         elif pacman_version=='v1rev3' or 'v1revS1':
             vdda=io.get_reg(0x00024001+(i-1)*32+1, io_group=io_group)
             idda=io.get_reg(0x00024001+(i-1)*32, io_group=io_group)

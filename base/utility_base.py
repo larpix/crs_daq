@@ -365,7 +365,7 @@ def simple_reconcile_configuration(c, chip_keys):
             print('Enforcing: ', (reg, max_regs), ' for ', chip_key)
             c.reads = []
             ok, d = c.enforce_registers(
-                [(chip_key, range(reg, max_regs))], n=10, n_verify=3, timeout=0.01, connection_delay=0.05)
+                [(chip_key, range(reg, max_regs))], n=10, n_verify=3, timeout=0.01, connection_delay=0.05, msg_len=1)
             # c.multi_read_configuration(
             #     [(chip_key, range(reg, max_regs))], timeout=0.1, connection_delay=0.1)
             if not ok:
@@ -397,7 +397,7 @@ def simple_reconcile_configuration(c, chip_keys):
 
 
 def reconcile_configuration(c, chip_keys, verbose,
-                            timeout=0.01, connection_delay=0.01,
+                            timeout=0.02, connection_delay=0.02,
                             n=2, n_verify=2):
     if isinstance(chip_keys, (str, larpix.key.Key)):
         chip_keys = [chip_keys]
@@ -429,7 +429,7 @@ def reconcile_registers(c, chip_key_register_pairs, verbose, timeout=0.1,
                         connection_delay=0.01, n=2, n_verify=2):
     ok, diff = c.enforce_registers(chip_key_register_pairs, timeout=timeout,
                                    connection_delay=connection_delay,
-                                   n=n, n_verify=n_verify, msg_length=1)
+                                   n=n, n_verify=n_verify)
     if not ok:
         print(diff)
     # print(c.reads[-1])
@@ -527,7 +527,7 @@ def partition_chip_keys_by_io_group_tile(chip_keys):
             io_group_list.append(chip.io_group)
     d = {}
     for iog in io_group_list:
-        for i in range(1, 9):
+        for i in range(1, 11):
             d[(iog, i)] = []
     for key in d.keys():
         for ck in chip_keys:
@@ -539,7 +539,7 @@ def partition_chip_keys_by_io_group_tile(chip_keys):
 
 def partition_chip_keys_by_tile(chip_keys):
     d = {}
-    for i in range(1, 9):
+    for i in range(1, 11):
         d[i] = []
     for ck in chip_keys:
         d[io_channel_to_tile(ck.io_channel)].append(ck)

@@ -13,7 +13,9 @@ import os
 
 _default_verbose=False
 skip_readback=False
-
+# 0x201c
+# 1: disable
+# 0: enable (default)
 
 from runenv import runenv as RUN
 module = sys.modules[__name__]
@@ -69,7 +71,7 @@ def main(verbose, pacman_config):
         VDDA_REG=None
         VDDD_REG=None
         
-        if pacman_version=='v1rev4':
+        if pacman_version=='v1rev5':
             VDDD_REG=0x24020
             VDDA_REG=0x24010
             for PACMAN_TILE in io_group_pacman_tile_[io_group]:
@@ -97,8 +99,8 @@ def main(verbose, pacman_config):
         tile_enable_sum=0
         tile_enable_val = 0
         for PACMAN_TILE in io_group_pacman_tile_[io_group]:
-            tile_enable_sum = pow(2,PACMAN_TILE-1) + tile_enable_sum
-            tile_enable_val=tile_enable_sum+0x0200  #enable one tile at a time    
+            tile_enable_sum = + tile_enable_sum
+            tile_enable_val= c.io.get_reg(0x00000010, io_group=io_group) + pow(2, PACMAN_TILE-1)
             c.io.set_reg(0x00000010,tile_enable_val,io_group)
             time.sleep(0.1)
             if verbose: print('enabling tilereg 0x10: {0:b}'.format(tile_enable_val) )
@@ -117,6 +119,9 @@ def main(verbose, pacman_config):
         #disable trigger forwarding
         c.io.set_reg(0x2014, 0xffffffff, io_group=io_group)
         time.sleep(0.01)
+        # Set sync mask
+        c.io.set_reg(0x18, 0x3ff, io_group=io_group)
+        pacman_base.set_packet_delay(c.io, io_group)
         
         utility_base.update_json(asic_config_paths_file_, io_group,None )
         utility_base.update_json(network_config_paths_file_, io_group,None )

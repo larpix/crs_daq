@@ -135,7 +135,8 @@ def setup_root(c, io, io_group, io_channel, chip_id, verbose, asic_version,
     configure_root_chip(c, chip_key, asic_version, ref_current_trim,
                         tx_diff, tx_slice, r_term, i_rx)
 
-    io.set_reg(0x18, 2**(io_channel-1), io_group=io_group)
+    pacman_base.enable_pacman_uart_from_io_channel(io, io_group, io_channel)
+
     print('reconcile config')
     print(chip_key, 'downstream enabled:',
           c[chip_key].config.enable_piso_downstream)
@@ -143,14 +144,12 @@ def setup_root(c, io, io_group, io_channel, chip_id, verbose, asic_version,
     if ok:
         if verbose:
             print(chip_key, ' configured')
-#        io.set_reg(0x18, 0, io_group=io_group)
         return chip_key
     if not ok:
         if verbose:
             print(chip_key, ' NOT configured')
         uart_base.reset_uarts(c, chip_key, verbose)
         c.remove_chip(chip_key)
-#        io.set_reg(0x18, 0, io_group=io_group)
         return None
 
 
@@ -170,13 +169,15 @@ async def setup_root_async(c, io, io_group, ioc, chip_id, verbose,
     asic_base.disable_chip_csa_trigger(c, chip_key)
     configure_root_chip(c, chip_key, asic_version, ref_current_trim,
                         tx_diff, tx_slice, r_term, i_rx)
-    io.set_reg(0x18, 2**(ioc-1), io_group=io_group)
+    
+    pacman_base.enable_pacman_uart_from_io_channel(io, io_group, ioc)
+
     ok = await utility_base.reconcile_configuration_bool(c, chip_key, verbose)
     # ok, diff = await utility_base.reconcile_configuration(c, chip_key, verbose)
     if ok:
         if verbose:
             print(chip_key, ' configured')
-        io.set_reg(0x18, 0, io_group=io_group)
+        pacman_base.disable_all_pacman_uart(io, io_group)
         return await chip_key
     if not ok:
         if verbose:
@@ -188,7 +189,7 @@ async def setup_root_async(c, io, io_group, ioc, chip_id, verbose,
         #                                                            chip_key, \
 #                                                                    verbose)
         c.remove_chip(chip_key)
-        io.set_reg(0x18, 0, io_group=io_group)
+        pacman_base.disable_all_pacman_uart(io, io_group)
         return await None
     return await None
 
@@ -267,7 +268,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
             print('\n CONFIGURED: ', cnt_configured,
                   '\t UNCONFIGURED: ', cnt_unconfigured)
 
-        io.set_reg(0x18, 2**(root.io_channel-1), io_group=io_group)
+        pacman_base.enable_pacman_uart_from_io_channel(io, io_group, root.io_channel)
         ok, diff = utility_base.reconcile_configuration(c, root, verbose)
         if ok:
             cnt_configured += 1
@@ -279,7 +280,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
             continue
         print(root, '\tconfigured: ', cnt_configured,
               '\t unconfigured: ', cnt_unconfigured)
-        io.set_reg(0x18, 0, io_group=io_group)
+        pacman_base.disable_all_pacman_uart(io, io_group)
 
         bail = False
         last_chip_id = root.chip_id
@@ -397,7 +398,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
                         cnt_unconfigured = len(waitlist)
                         print(daughter, '\tconfigured: ', cnt_configured,
                               '\t unconfigured ', cnt_unconfigured)
-                io.set_reg(0x18, 0, io_group=io_group)
+                pacman_base.disable_all_pacman_uart(io, io_group)
             if len(ok_daughters) > 0:
                 ok_daughters.sort()
                 # 0*len(ok_daughters)//2
@@ -415,7 +416,7 @@ def initial_network_from_root(c, io, io_group, root_key, verbose, asic_version,
     root_ioc = root_key.io_channel
     waitlist = set()
     cnt_configured, cnt_unconfigured = 0, 0
-    io.set_reg(0x18, 2**(root_key.io_channel-1), io_group=io_group)
+    pacman_base.enable_pacman_uart_from_io_channel(io, io_group, root_key.io_channel)
     ok, diff = utility_base.reconcile_configuration(c, root_key, verbose)
     if ok:
         cnt_configured += 1
@@ -427,7 +428,7 @@ def initial_network_from_root(c, io, io_group, root_key, verbose, asic_version,
         return
     print(root_key, '\tconfigured: ', cnt_configured,
           '\t unconfigured: ', cnt_unconfigured)
-    io.set_reg(0x18, 0, io_group=io_group)
+    pacman_base.disable_all_pacman_uart(io, io_group)
 
     bail = False
     last_chip_id = root_key.chip_id
@@ -502,7 +503,7 @@ def initial_network_from_root(c, io, io_group, root_key, verbose, asic_version,
                     cnt_unconfigured = len(waitlist)
                     print(daughter, '\tconfigured: ', cnt_configured,
                           '\t unconfigured ', cnt_unconfigured)
-            io.set_reg(0x18, 0, io_group=io_group)
+            pacman_base.disable_all_pacman_uart(io, io_group)
             last_chip_id = daughter.chip_id
     return
 
@@ -582,7 +583,7 @@ def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,
                           'failed to configure')
                     uart_base.disable_parent_piso_us(c, parent, daughter,
                                                      verbose, tx_diff, tx_slice)
-                    io.set_reg(0x18, 0, io_group=io_group)
+                    pacman_base.disable_all_pacman_uart(io, io_group)
                     continue
 
                 ok, diff, piso = uart_base.setup_daughter(c, io, parent,
@@ -606,7 +607,7 @@ def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,
                                                   verbose)
                     c.remove_chip(daughter)
                     outstanding.append((daughter, piso))
-                io.set_reg(0x18, 0, io_group=io_group)
+                pacman_base.disable_all_pacman_uart(io, io_group)
 
         if n_waitlist == len(waitlist):
             print('\n', len(waitlist), ' NON-CONFIGURED chips\n', waitlist, '\n')

@@ -2,6 +2,7 @@ from base import utility_base
 from base import network_base_FSD
 from base import uart_base
 from base import asic_base
+from base import pacman_base
 import stepbystep_v2d_5x5
 # from timebudget import timebudget
 
@@ -27,7 +28,7 @@ def reset_uarts(c, chip_key, verbose):
 # @timebudget
 def setup_parent_piso(c, io, parent, daughter, verbose, tx_diff, tx_slice):
     enable_parent_piso_us(c,  parent, daughter, verbose, tx_diff, tx_slice)
-    io.set_reg(0x18, 2**(parent.io_channel-1), io_group=parent.io_group)
+    pacman_base.enable_pacman_uart_from_io_channel(io, parent.io_group, parent.io_channel)
     # ok, diff = c.enforce_configuration(parent, timeout=0.001, connection_delay=0.005, n=10, n_verify=3)
     ok, diff = utility_base.reconcile_configuration(
         c, parent, verbose, timeout=0.02, connection_delay=0.01, n=3, n_verify=2)
