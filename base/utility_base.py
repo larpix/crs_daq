@@ -424,11 +424,11 @@ def reconcile_configuration_bool(c, chip_keys, verbose,
                                     n=n, n_verify=n_verify)
 
 
-def reconcile_registers(c, chip_key_register_pairs, verbose, timeout=0.1,
-                        connection_delay=0.01, n=2, n_verify=2):
+def reconcile_registers(c, chip_key_register_pairs, verbose, timeout=0.15,
+                        connection_delay=0.01, n=2, n_verify=3):
     ok, diff = c.enforce_registers(chip_key_register_pairs, timeout=timeout,
                                    connection_delay=connection_delay,
-                                   n=n, n_verify=n_verify)
+                                   n=n, n_verify=n_verify, msg_length=1)
     if not ok:
         print(diff)
     # print(c.reads[-1])
