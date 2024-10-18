@@ -74,7 +74,7 @@ def parse_file(filename, max_entries):
 
     print("Number of packets in parsed files =", len(unique_id))
     for chip in tqdm.tqdm(range(11, 171), desc='looping over chip_id'):
-        _iomask = chips==chip
+        _iomask = chips == chip
         _adc = adc[_iomask]
         _unique_id = unique_id[_iomask]
         for i in set(_unique_id):
@@ -186,8 +186,8 @@ def plot_xy(d, metric, geometry_yaml, normalization):
                     pixel_pitch + pixel_pitch / 2 - y_size / 2
 
                 x, y = _rotate_pixel((x, y), tile_orientation)
-                x += tile_positions[tile][2] 
-                y += tile_positions[tile][1] 
+                x += tile_positions[tile][2]
+                y += tile_positions[tile][1]
 
                 geometry[(io_group, io_group_io_channel_to_tile[(
                     io_group, io_channel)], chip, channel)] = x, y
@@ -202,72 +202,78 @@ def plot_xy(d, metric, geometry_yaml, normalization):
         chip_vertical_lines = np.linspace(xmin, xmax, 33)
         chip_horizontal_lines = np.linspace(ymin, ymax, 101)
 
-
         # Plot metrics
 
-        fig, ax = plt.subplots(2, 2, figsize=(30, 40))
+        fig, ax = plt.subplots(1, 2, figsize=(18, 15))
 
         uniques = np.array(list(d.keys()))
-        for io_group in range(1, 5):
 
-            mask = unique_to_io_group(uniques) == io_group
+        for tpc in range(1, 3):
 
-            print('Getting {} for io_group {}'.format(metric, io_group))
-            d_keys = uniques[mask]
-            print('\tNumber of channels: ', len(d_keys))
+            io_groups = [1, 2] if tpc == 1 else [3, 4]
 
-            ax[(io_group-1) % 2, (io_group-1)//2].set_xlabel('X Position [mm]')
-            ax[(io_group-1) % 2, (io_group-1)//2].set_ylabel('Y Position [mm]')
+            ax[tpc-1].set_xlabel('X Position [mm]')
+            ax[tpc-1].set_ylabel('Y Position [mm]')
 
-            ax[(io_group-1) % 2, (io_group-1) //
-                2].set_xlim(xmin*1.05, xmax*1.05)
-            ax[(io_group-1) % 2, (io_group-1) //
-                2].set_ylim(ymin*1.05, ymax*1.05)
+            ax[tpc-1].set_xlim(xmin*1.05, xmax*1.05)
+            ax[tpc-1].set_ylim(ymin*1.05, ymax*1.05)
 
             for vl in tile_vertical_lines:
-                ax[(io_group-1) % 2, (io_group-1)//2].vlines(x=vl, ymin=ymin, ymax=ymax,
-                                                                colors=['k'], linestyle='dashed')
+                ax[tpc-1].vlines(x=vl, ymin=ymin, ymax=ymax,
+                                 colors=['k'], linestyle='dashed')
             for hl in tile_horizontal_lines:
-                ax[(io_group-1) % 2, (io_group-1)//2].hlines(y=hl, xmin=xmin, xmax=xmax,
-                                                                colors=['k'], linestyle='dashed')
+                ax[tpc-1].hlines(y=hl, xmin=xmin, xmax=xmax,
+                                 colors=['k'], linestyle='dashed')
             for vl in chip_vertical_lines:
-                ax[(io_group-1) % 2, (io_group-1)//2].vlines(x=vl, ymin=ymin, ymax=ymax,
-                                                                colors=['k'], linestyle='dotted')
+                ax[tpc-1].vlines(x=vl, ymin=ymin, ymax=ymax,
+                                 colors=['k'], linestyle='dotted')
             for hl in chip_horizontal_lines:
-                ax[(io_group-1) % 2, (io_group-1)//2].hlines(y=hl, xmin=xmin, xmax=xmax,
-                                                                colors=['k'], linestyle='dotted')
-
-            ax[(io_group-1) % 2, (io_group-1)//2].set_aspect('equal')
+                ax[tpc-1].hlines(y=hl, xmin=xmin, xmax=xmax,
+                                 colors=['k'], linestyle='dotted')
 
             plt.text(0.95, 1.01, 'LArPix', ha='center',
-                     va='center', transform=ax[(io_group-1) % 2, (io_group-1)//2].transAxes)
+                     va='center', transform=ax[tpc-1].transAxes)
 
-            for key in d_keys:
-                channel_id = unique_to_channel_id(key)
-                chip_id = unique_to_chip_id(key)
-                tile = unique_to_tiles(key) + 10 * (io_group - 1)
+            ax[tpc-1].set_aspect('equal')
 
-                if chip_id not in range(11, 171):
-                    continue
-                if channel_id not in range(64):
-                    continue
+            for io_group in io_groups:
 
-                x, y = geometry[(io_group, tile, chip_id, channel_id)]                
-                pitch = pixel_pitch
+                mask = unique_to_io_group(uniques) == io_group
 
-                weight = d[key][metric]/normalization
+                print('Getting {} for io_group {}'.format(metric, io_group))
+                d_keys = uniques[mask]
+                print('\tNumber of channels: ', len(d_keys))
 
-                if weight > 1.0:
-                    weight = 1.0
+                a, b = geometry[(io_group, 10*(io_group-1)+1, 71, 1)]
 
-                r = Rectangle((x-(pitch/2.), y-(pitch/2.)),
-                              pitch, pitch, color=cmap(weight))
-                ax[(io_group-1) % 2, (io_group-1)//2].add_patch(r)
+                ax[tpc-1].text(a, b+25,
+                               f'io_group = {io_group}', ha='center')
+
+                for key in d_keys:
+                    channel_id = unique_to_channel_id(key)
+                    chip_id = unique_to_chip_id(key)
+                    tile = unique_to_tiles(key) + 10 * (io_group - 1)
+
+                    if chip_id not in range(11, 171):
+                        continue
+                    if channel_id not in range(64):
+                        continue
+
+                    x, y = geometry[(io_group, tile, chip_id, channel_id)]
+                    pitch = pixel_pitch
+
+                    weight = d[key][metric]/normalization
+
+                    if weight > 1.0:
+                        weight = 1.0
+
+                    r = Rectangle((x-(pitch/2.), y-(pitch/2.)),
+                                  pitch, pitch, color=cmap(weight))
+                    ax[tpc-1].add_patch(r)
 
             colorbar = fig.colorbar(cm.ScalarMappable(norm=Normalize(
-                vmin=0, vmax=normalization), cmap=cmap), ax=ax[(io_group-1) % 2, (io_group-1)//2])
-            ax[(io_group-1) % 2, (io_group-1) //
-                2].set_title('io_group = ' + str(io_group))
+                vmin=0, vmax=normalization), cmap=cmap), ax=ax[tpc-1])
+            ax[tpc-1].set_title('tpc = ' + str(tpc))
             if metric == 'mean':
                 colorbar.set_label('[ADC]')
             if metric == 'std':
@@ -275,6 +281,7 @@ def plot_xy(d, metric, geometry_yaml, normalization):
             if metric == 'rate':
                 colorbar.set_label('[Hz]')
         print('Saving...')
+        plt.tight_layout()
         plt.savefig('fsd-xy-'+metric+'.png')
         plt.close()
         print('Saved to: fsd-xy-'+metric+'.png')
