@@ -245,7 +245,7 @@ def plot_xy(d, metric, geometry_yaml, normalization):
             for key in d_keys:
                 channel_id = unique_to_channel_id(key)
                 chip_id = unique_to_chip_id(key)
-                tile = unique_to_tiles(key) + 10 * (io_group - 1))
+                tile = unique_to_tiles(key) + 10 * (io_group - 1)
 
                 if chip_id not in range(11, 171):
                     continue
