@@ -11,6 +11,9 @@ import logging
 import sys
 import os
 
+
+logger = logging.getLogger(__name__)
+
 _default_verbose=False
 skip_readback=False
 # 0x201c
@@ -41,6 +44,8 @@ def main(verbose, pacman_config):
     config_path = None
    
 
+    logger.info('starting power up')
+    
     for io_group_ip_pair in pacman_configs['io_group']:
         io_group = io_group_ip_pair[0]
         print('Configuring IO Group {}'.format(io_group))
@@ -125,7 +130,9 @@ def main(verbose, pacman_config):
         
         utility_base.update_json(asic_config_paths_file_, io_group,None )
         utility_base.update_json(network_config_paths_file_, io_group,None )
-        
+            
+    logger.info('completed')
+    
     return
 
 

@@ -97,7 +97,7 @@ if [[ "$1" == *"3"* ]]; then
 	fi
 	
 	echo "config dir: $config_dir_iog3"
-	echo "launching network into screen 'module1_network'"
+	echo "launching network into screen 'IOG3_network'"
 
 	if ! screen -list | grep -q "IOG3_network"; then
 		screen -S IOG3_network -dm bash -c "python network_larpix.py --controller_config configs/controller_config.json --pacman_config io/pacman_iog3.json --config_path $config_dir_iog3 --pid_logged"

@@ -281,7 +281,7 @@ def data(c, runtime, packet, LRS=False, fname=None):
                     last_counter=counter
                 data_rate_start = now
                 data_rate_counter = 0
-            if now>(run_start+runtime): break
+            if now>(run_start+runtime) or _dump_and_exit_: break
         c.stop_listening()
         if LRS: 
             subprocess.call(["echo 0 > ~/.adc_watchdog_file"],shell=True) #stop LRS

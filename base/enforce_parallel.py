@@ -3,7 +3,9 @@ from tqdm import tqdm
 from base import utility_base
 from copy import deepcopy
 import numpy as np
+import logging
 
+logger = logging.getLogger(__name__)
 tag_to_config_map = {
 
         'MOD1' : 0,
@@ -93,8 +95,13 @@ def enforce_parallel(c, network_keys, unmask_last=True, pbar_desc='p', pbar_posi
             ok, diff = c.enforce_configuration(
                 diff.keys(), timeout=0.2, connection_delay=0.1, n=15, n_verify=3)
             if not ok:
+                logger.info('could not configure:' + str(diff))
                 print('Could not configure: ', diff)
-                break
+                if len(diff.keys())<3:
+                    ok=True
+                    for key in diff.keys():
+                        if len(diff[key])>2: ok=False
+                if not ok: break
 
                 # ok, diff = c.enforce_configuration(
                 #     diff.keys(), timeout=0.02, connection_delay=0.01, n=15, n_verify=5, msg_length=1)

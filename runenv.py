@@ -3,6 +3,13 @@ warnings.filterwarnings("ignore")
 import json
 import os
 import sys
+import logging
+#set up logger
+
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename='.larpix.log', encoding='utf-8', level=logging.DEBUG, format='%(asctime)s [%(filename)s] %(message)s', datefmt='%m/%d/%Y %H:%M:%S %Z ')
+
 
 class runenv:
        
@@ -95,6 +102,6 @@ class runenv:
                 d={}
                 with open(self.disabled_list_log_file_, 'w') as f:
                     json.dump(d, f)
-
+            
 if __name__=='__main__':
     runenv()

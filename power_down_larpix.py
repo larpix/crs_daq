@@ -9,6 +9,10 @@ import json
 import os
 from runenv import runenv as RUN
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
+
 module = sys.modules[__name__]
 for var in RUN.config.keys():
     setattr(module, var, getattr(RUN, var))
@@ -17,7 +21,7 @@ for var in RUN.config.keys():
 _default_verbose=False
 
 def main(verbose, pacman_config):
-    
+    logging.info('power_down_larpix.py')    
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
 
@@ -37,6 +41,7 @@ def main(verbose, pacman_config):
 
         utility_base.update_json(asic_config_paths_file_, io_group,None )
         utility_base.update_json(network_config_paths_file_, io_group,None )
+    logger.info('powered down')
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()

@@ -22,6 +22,8 @@ module = sys.modules[__name__]
 for var in RUN.config.keys():
     setattr(module, var, getattr(RUN, var))
 
+
+logger = logging.getLogger(__name__)
 _default_verbose = False
 _default_controller_config = None
 _update_default=False
@@ -119,15 +121,15 @@ def main(verbose,\
         DCONFIGS[io_group]=DCONFIG
 
     nc = larpix.Controller()
-    nc.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
-    
+    nc.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config) 
+    logger.info('starting networking: io_groups={}'.format( pacman_configs['io_group'] ))
     for io_group_ip_pair in pacman_configs['io_group']:
         io_group = io_group_ip_pair[0]
         for iog in DCONFIGS.keys():
             config_loader.load_config_from_directory(nc, DCONFIGS[iog])
-
         pacman_base.enable_pacman_uart_from_io_channel(nc.io, io_group, list(set([chip.io_channel for chip in nc.chips])))
     pos=0
+
     tag='networking...'
     if pid_logged:
         pid = os.getpid()
@@ -138,6 +140,8 @@ def main(verbose,\
         raise RuntimeError('Unconfigured chips!', diff)
     
     if pid_logged: print('\n{} networked successfully'.format(tag))
+    
+    logger.info('completed networking: io_groups={}'.format( pacman_configs['io_group'] ))
     return c
 
 if __name__=='__main__':

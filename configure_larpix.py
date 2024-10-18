@@ -14,10 +14,12 @@ import json
 import sys
 import os
 from runenv import runenv as RUN
-
+import logging
 module = sys.modules[__name__]
 for var in RUN.config.keys():
     setattr(module, var, getattr(RUN, var))
+
+logger = logging.getLogger(__name__)
 
 _default_verbose=False
 
@@ -89,7 +91,7 @@ def main(verbose, \
         for io_group_ip_pair in pacman_configs['io_group']:
             io_group = io_group_ip_pair[0]
             pacman_base.enable_all_pacman_uart_from_io_group(c.io, io_group)
-       
+            #logger.info('starting configuration enforce: io_group={}'.format(io_group))       
 
         pos=0
         tag='configuring...'
@@ -97,13 +99,15 @@ def main(verbose, \
             pid = os.getpid()
             tag = utility_base.get_from_process_log(pid)
             pos = enforce_parallel.tag_to_config_map[tag]
-
+        
+        logger.info('started configuring: io_groups={}'.format( pacman_configs['io_group'] ))
         #enforce all configurations in parallel (one chip per io channel per cycle)
         ok, diff, unconfigured = enforce_parallel.enforce_parallel(c, all_network_keys, unmask_last=unmask_last, pbar_desc=tag, pbar_position=pos)
         if not ok:
             raise RuntimeError(diff)
 
         if pid_logged: print('\n{} configured successfully'.format(tag))
+        logger.info('completed configuring: io_groups={}'.format( pacman_configs['io_group'] ))
         return
 
 

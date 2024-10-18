@@ -19,6 +19,8 @@ module = sys.modules[__name__]
 for var in RUN.config.keys():
     setattr(module, var, getattr(RUN, var))
 
+logger = logging.getLogger(__name__)
+
 _default_verbose=False
 
 def main(verbose, \

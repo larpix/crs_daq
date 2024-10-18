@@ -1266,7 +1266,7 @@
                             null,
                             null,
                             158,
-                            149
+                            null
                         ]
                     },
                     {
@@ -1387,15 +1387,6 @@
                         ]
                     },
                     {
-                        "chip_id": 149,
-                        "miso_us": [
-                            null,
-                            null,
-                            null,
-                            150
-                        ]
-                    },
-                    {
                         "chip_id": 154,
                         "miso_us": [
                             null,
@@ -1414,12 +1405,12 @@
                         ]
                     },
                     {
-                        "chip_id": 150,
+                        "chip_id": 159,
                         "miso_us": [
                             null,
                             null,
-                            160,
-                            null
+                            null,
+                            160
                         ]
                     },
                     {
@@ -1443,7 +1434,7 @@
                     {
                         "chip_id": 160,
                         "miso_us": [
-                            null,
+                            150,
                             null,
                             null,
                             null
@@ -1459,7 +1450,7 @@
                         ]
                     },
                     {
-                        "chip_id": 159,
+                        "chip_id": 150,
                         "miso_us": [
                             null,
                             null,
