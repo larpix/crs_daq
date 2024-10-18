@@ -67,7 +67,7 @@ def enable_pacman_uart_from_io_channel(io, io_group, io_channel):
         return
 
     for u in uart:
-        if u is None: return
+        if u is None: continue
         bits[-1*u]='0'
     io.set_reg(0x201c, int("".join(bits),2), io_group=io_group)
     return
