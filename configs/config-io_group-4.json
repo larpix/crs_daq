@@ -1,1 +1,15 @@
-{"_config_type": "controller", "_include": ["configs/iog-4-pacman-tile-1-hydra-network.json", "configs/iog-4-pacman-tile-2-hydra-network.json", "configs/iog-4-pacman-tile-3-hydra-network.json", "configs/iog-4-pacman-tile-4-hydra-network.json", "configs/iog-4-pacman-tile-5-hydra-network.json", "configs/iog-4-pacman-tile-6-hydra-network.json", "configs/iog-4-pacman-tile-7-hydra-network.json", "configs/iog-4-pacman-tile-8-hydra-network.json"]}
+{
+    "_config_type": "controller",
+    "_include": [ 
+        "configs/iog_4-tile_1-hydra-network.json",
+        "configs/iog_4-tile_2-hydra-network.json",
+        "configs/iog_4-tile_3-hydra-network.json",
+        "configs/iog_4-tile_4-hydra-network.json",
+        "configs/iog_4-tile_5-hydra-network.json",
+        "configs/iog_4-tile_6-hydra-network.json",
+	"configs/iog_4-tile_7-hydra-network.json",
+        "configs/iog_4-tile_8-hydra-network.json",
+        "configs/iog_4-tile_9-hydra-network.json",
+        "configs/iog_4-tile_10-hydra-network.json"
+    ]
+}
