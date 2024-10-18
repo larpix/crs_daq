@@ -49,7 +49,7 @@ def main(verbose, pacman_config):
     while True:
         print()
         print(dt.datetime.now())
-        for io_group in range(1, 4):
+        for io_group in range(1, 5):
             print('Looking at IO Group {}'.format(io_group))
 
             readback = pacman_base.power_readback(
@@ -80,7 +80,7 @@ def main(verbose, pacman_config):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--pacman_config', default="/home/acd/acdaq/CRS_DAQ/daq0/crs_daq/io/pacman.json",
+    parser.add_argument('--pacman_config', default="io/pacman.json",
                         type=str, help='''Config specifying PACMANs''')
     parser.add_argument('--verbose', '-v', action='store_true',
                         default=_default_verbose)

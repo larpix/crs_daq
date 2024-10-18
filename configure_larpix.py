@@ -100,7 +100,7 @@ def main(verbose, \
             tag = utility_base.get_from_process_log(pid)
             pos = enforce_parallel.tag_to_config_map[tag]
         
-        logger.info('started configuring: io_groups={}'.format( pacman_configs['io_group'] ))
+        logger.info('started configuring: io_groups={}, {}/{}'.format( pacman_configs['io_group'], str(asic_config), str(config_subdir) ))
         #enforce all configurations in parallel (one chip per io channel per cycle)
         ok, diff, unconfigured = enforce_parallel.enforce_parallel(c, all_network_keys, unmask_last=unmask_last, pbar_desc=tag, pbar_position=pos)
         if not ok:

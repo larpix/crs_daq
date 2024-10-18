@@ -7,6 +7,9 @@ import argparse
 import json
 from matplotlib.patches import Rectangle
 from matplotlib.collections import PatchCollection
+import logging
+
+logger = logging.getLogger('plotting_logger')
 
 _default_controller_config = None
 _default_io_group = 1
