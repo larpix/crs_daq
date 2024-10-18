@@ -22,12 +22,23 @@ module = sys.modules[__name__]
 for var in RUN.config.keys():
     setattr(module, var, getattr(RUN, var))
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename=log_filename, encoding='utf-8', level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+logger_tag='network_larpix-pacman_config-{}:'
+
+detail_log='{}/network_larpix-{}.txt'.format(log_dir, utility_base.now())
+
+def write(message):
+    with open(detail_log, 'a') as file:
+        file.write('_______\n{}:\n {}\n_______\n'.format(utility_base.now(), message ))
+    return
+
 _default_verbose = False
 _default_controller_config = None
 _update_default=False
 
-def enforce_iterative(nc, all_network_keys, n=3, configs=None, pbar_desc='p', pbar_position=0):
-    ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys, pbar_desc=pbar_desc, pbar_position=pbar_position)
+def enforce_iterative(nc, all_network_keys, n=3, configs=None, pbar_desc='p', pbar_position=0, write_function=None):
+    ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys, pbar_desc=pbar_desc, pbar_position=pbar_position, write_function=write_function)
     if ok: return ok, diff, unconfigured
     elif n==0: 
         return ok, diff, unconfigured 
@@ -56,7 +67,7 @@ def enforce_iterative(nc, all_network_keys, n=3, configs=None, pbar_desc='p', pb
            
             all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(config, use_keys=all_keys)
 
-        return enforce_iterative(nc, all_network_keys, n=n-1, configs=configs, pbar_desc=pbar_desc, pbar_position=pbar_position)
+        return enforce_iterative(nc, all_network_keys, n=n-1, configs=configs, pbar_desc=pbar_desc, pbar_position=pbar_position, write_function=write_function)
 
 def main(verbose,\
         controller_config, \
@@ -66,6 +77,9 @@ def main(verbose,\
         pid_logged=False,
         update_default=_update_default):
     
+    global logger_tag
+    logger_tag = logger_tag.format(pacman_config.split('.json')[0])
+
     pacman_configs = {}
     with open(pacman_config, 'r') as f:
         pacman_configs = json.load(f)
@@ -120,6 +134,10 @@ def main(verbose,\
 
     nc = larpix.Controller()
     nc.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
+      
+    logger.info( logger_tag + ' starting configuration enforce '  )
+
+    write('testing!')
     
     for io_group_ip_pair in pacman_configs['io_group']:
         io_group = io_group_ip_pair[0]
@@ -133,11 +151,15 @@ def main(verbose,\
         pid = os.getpid()
         tag = utility_base.get_from_process_log(pid)
         pos = enforce_parallel.tag_to_config_map[tag]
-    ok, diff, unconfigured = enforce_iterative(nc, all_network_keys, configs=configs, pbar_desc=tag, pbar_position=pos)
+    ok, diff, unconfigured = enforce_iterative(nc, all_network_keys, configs=configs, pbar_desc=tag, pbar_position=pos, write_function=write)
     if not ok:
+        logger.info( logger_tag + ' {} unconfigured chips!'.format(len(diff.keys())))
         raise RuntimeError('Unconfigured chips!', diff)
     
     if pid_logged: print('\n{} networked successfully'.format(tag))
+   
+
+    logger.info( logger_tag + ' completed successfully! '  )
     return c
 
 if __name__=='__main__':

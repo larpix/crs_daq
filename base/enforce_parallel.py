@@ -40,7 +40,7 @@ def get_chips_by_io_group_io_channel(network_config, tiles=None, use_keys=None):
     return all_keys
 
 
-def enforce_parallel(c, network_keys, unmask_last=True, pbar_desc='p', pbar_position=0):
+def enforce_parallel(c, network_keys, unmask_last=True, pbar_desc='p', pbar_position=0, write_function=None):
 
     ichip = -1
 
@@ -56,7 +56,7 @@ def enforce_parallel(c, network_keys, unmask_last=True, pbar_desc='p', pbar_posi
     ptmasks={}
     
     unconfigured = deepcopy(network_keys)
-
+    
     while True:
         current_chips = []
         ichip += 1
@@ -89,11 +89,13 @@ def enforce_parallel(c, network_keys, unmask_last=True, pbar_desc='p', pbar_posi
             current_chips, timeout=0.02, connection_delay=0.01, n=3, msg_length=len(current_chips))
 
         if not ok:
-            print('Re-configuring: ', diff.keys())
             ok, diff = c.enforce_configuration(
-                diff.keys(), timeout=0.02, connection_delay=0.01, n=15, n_verify=3, msg_length=len(diff.keys()))
+                diff.keys(), timeout=0.04, connection_delay=0.01, n=10, n_verify=3, msg_length=len(diff.keys()))
             if not ok:
-                print('Could not configure: ', diff.keys())
+                print('Could not configure: ', diff.keys(), diff)
+                if not write_function is None:
+                    message='Could not configure:' + str(diff) 
+                    write_function(message)
 
                 # ok, diff = c.enforce_configuration(
                 #     diff.keys(), timeout=0.02, connection_delay=0.01, n=15, n_verify=5, msg_length=1)

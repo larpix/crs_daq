@@ -19,6 +19,17 @@ module = sys.modules[__name__]
 for var in RUN.config.keys():
     setattr(module, var, getattr(RUN, var))
 
+logger = logging.getLogger(__name__)
+logging.basicConfig(filename=log_filename, encoding='utf-8', level=logging.DEBUG, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+logger_tag='configure_larpix-pacman_config-{}:'
+
+detail_log='{}/configure_larpix-{}.txt'.format(log_dir, utility_base.now())
+
+def write(message):
+    with open(detail_log, 'a') as file:
+        file.write('{}: {}\n'.format(utility_base.now(), message ))
+    return
+
 _default_verbose=False
 
 def main(verbose, \
@@ -32,6 +43,9 @@ def main(verbose, \
         pacman_configs = {}
         with open(pacman_config, 'r') as f:
             pacman_configs = json.load(f)
+        
+        global logger_tag
+        logger_tag = logger_tag.format(pacman_config.split('.json')[0])
         
         c = larpix.Controller()
         c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
@@ -51,18 +65,18 @@ def main(verbose, \
                 CONFIG=asic_config
                 if not config_subdir is None:
                     CONFIG='{}/{}'.format(asic_config, config_subdir)
+          
                 utility_base.update_json(asic_config_paths_file_, io_group,CONFIG )
 
             network_config_file = utility_base.get_from_json(network_config_paths_file_, io_group)
             all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel( network_config_file ) 
             config_loader.load_config_from_directory(c, CONFIG) 
-            
+           
             #make the network keys io channel agnostic
             remove = [] 
             for i in range(len(all_network_keys)):
                 for j in range(len(all_network_keys[i])):
                     if not all_network_keys[i][j] in c.chips:
-                        
                         found=False
                         chip = all_network_keys[i][j]
                         tile =  utility_base.io_channel_to_tile(chip.io_channel)
@@ -90,7 +104,6 @@ def main(verbose, \
             io_group = io_group_ip_pair[0]
             pacman_base.enable_all_pacman_uart_from_io_group(c.io, io_group)
        
-
         pos=0
         tag='configuring...'
         if pid_logged:
@@ -98,12 +111,16 @@ def main(verbose, \
             tag = utility_base.get_from_process_log(pid)
             pos = enforce_parallel.tag_to_config_map[tag]
 
+        logger.info( logger_tag + ' starting configuration enforce '  )
+
         #enforce all configurations in parallel (one chip per io channel per cycle)
-        ok, diff, unconfigured = enforce_parallel.enforce_parallel(c, all_network_keys, unmask_last=unmask_last, pbar_desc=tag, pbar_position=pos)
+        ok, diff, unconfigured = enforce_parallel.enforce_parallel(c, all_network_keys, unmask_last=unmask_last, pbar_desc=tag, pbar_position=pos, write_function=write)
         if not ok:
             raise RuntimeError(diff)
 
         if pid_logged: print('\n{} configured successfully'.format(tag))
+        
+        logger.info( logger_tag + ' completed successfully! '  )
         return
 
 
