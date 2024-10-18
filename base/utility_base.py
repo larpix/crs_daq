@@ -331,70 +331,6 @@ def get_from_json(file, key, meta_field='configs'):
 
     return d[meta_field][str(key)]
 
-
-def simple_reconcile_configuration(c, chip_keys):
-    if isinstance(chip_keys, (str, larpix.key.Key)):
-        chip_keys = [chip_keys]
-
-    ok = True
-    d = dict()
-
-    nr = 5
-    # for reg in range(0, c[chip_keys[0]].config.num_registers, nr):
-    #     max_regs = c[chip_keys[0]].config.num_registers-1 if reg + \
-    #         nr >= c[chip_keys[0]].config.num_registers else reg+nr
-    #     print([(chip_key, range(reg, max_regs)) for chip_key in chip_keys])
-    #     ok, d = c.enforce_registers(
-    #         [(chip_key, range(reg, max_regs)) for chip_key in chip_keys], n=15, n_verify=15, timeout=0.01, connection_delay=0.001)
-    #     if not ok:
-    #         print('******** Unable to enforce...')
-    #         break
-    for chip_key in chip_keys:
-        print(chip_key)
-        # c[chip_key].config.v_cm_lvds_tx0 = 6
-        # c[chip_key].config.v_cm_lvds_tx1 = 6
-        # c[chip_key].config.v_cm_lvds_tx2 = 6
-        # c[chip_key].config.v_cm_lvds_tx3 = 6
-        nr = 300
-        for reg in range(0, c[chip_key].config.num_registers, nr):
-            # for _ in range(12):
-            #     c.write_configuration(chip_key, reg, connection_delay=0.03)
-            max_regs = c[chip_key].config.num_registers-1 if reg + \
-                nr >= c[chip_key].config.num_registers else reg+nr
-            print('Enforcing: ', (reg, max_regs), ' for ', chip_key)
-            c.reads = []
-            ok, d = c.enforce_registers(
-                [(chip_key, range(reg, max_regs))], n=10, n_verify=3, timeout=0.01, connection_delay=0.05, msg_len=1)
-            # c.multi_read_configuration(
-            #     [(chip_key, range(reg, max_regs))], timeout=0.1, connection_delay=0.1)
-            if not ok:
-                # print(c[chip_key].config.register_map_inv)
-                print('******** Unable to enforce...')
-                print(d)
-                return ok, d
-
-            # gc.collect()
-            # time.sleep(1.0)
-
-        # for _ in range(5):
-        #     _, read_chip_id = read(c, chip_key, 'chip_id')
-        #     print(read_chip_id)
-        #     if chip_key.chip_id == read_chip_id:
-        #         break
-        # if chip_key.chip_id != read_chip_id:
-        #     print('******** ERROOOORRRR *********')
-        #     ok = False
-        #     d[chip_key] = (chip_key.chip_id, read_chip_id)
-
-            # check
-            # r, v = read(c, chip_key, reg)
-
-            # print('\t', reg, ': (', v, ', ', getattr(
-            #     c[chip_key].config, c[chip_key].config.register_map_inv[reg][0]), ')')
-
-    return ok, d
-
-
 def reconcile_configuration(c, chip_keys, verbose,
                             timeout=0.02, connection_delay=0.02,
                             n=2, n_verify=2):
@@ -424,11 +360,11 @@ def reconcile_configuration_bool(c, chip_keys, verbose,
                                     n=n, n_verify=n_verify)
 
 
-def reconcile_registers(c, chip_key_register_pairs, verbose, timeout=0.15,
-                        connection_delay=0.01, n=2, n_verify=3):
+def reconcile_registers(c, chip_key_register_pairs, verbose, timeout=0.1,
+                        connection_delay=0.01, n=2, n_verify=2):
     ok, diff = c.enforce_registers(chip_key_register_pairs, timeout=timeout,
                                    connection_delay=connection_delay,
-                                   n=n, n_verify=n_verify, msg_length=1)
+                                   n=n, n_verify=n_verify)
     if not ok:
         print(diff)
     # print(c.reads[-1])

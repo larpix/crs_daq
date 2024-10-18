@@ -9,19 +9,11 @@ import numpy as np
 # from timebudget import timebudget
 # import asyncio
 
-# root
-ref_current_trim_root = 0
-i_tx_diff_root = 0
-tx_slices_root = 15
-r_term_root = 2
-i_rx_root = 8
-
-# non-root
-ref_current_trim_nonroot = 0
-i_tx_diff_nonroot = 0
-tx_slices_nonroot = 15
-r_term_nonroot = 2
-i_rx_nonroot = 8
+ref_current_trim = 0
+i_tx_diff = 4
+tx_slices = 7
+r_term = 2
+i_rx = 8
 
 _default_clk_ctrl = 0
 _uart_phase = 2
@@ -99,7 +91,7 @@ def configure_root_chip(c, chip_key, asic_version, ref_current_trim,
         for uart in range(4):
             setattr(c[chip_key].config, f'i_rx{uart}', i_rx)
             registers.append(c[chip_key].config.register_map[f'i_rx{uart}'])
-            setattr(c[chip_key].config, f'r_term{uart}', i_rx)
+            setattr(c[chip_key].config, f'r_term{uart}', r_term)
             registers.append(c[chip_key].config.register_map[f'r_term{uart}'])
         for reg in registers:
             c.write_configuration(chip_key, reg)
@@ -783,21 +775,6 @@ def network_v2b(controller_config, tiles=None, verbose=False, **kwargs):
         if not tiles is None:
             if not utility_base.io_channel_to_tile(chip_key.io_channel) in tiles:
                 continue
-        if chip_key.chip_id in [21, 61, 101, 151]:
-
-            ref_current_trim = ref_current_trim_root
-            i_tx_diff = i_tx_diff_root
-            tx_slices = tx_slices_root
-            r_term = r_term_root
-            i_rx = i_rx_root
-
-        else:
-
-            ref_current_trim = ref_current_trim_nonroot
-            i_tx_diff = i_tx_diff_nonroot
-            tx_slices = tx_slices_nonroot
-            r_term = r_term_nonroot
-            i_rx = i_rx_nonroot
 
         c[chip_key].config.ref_current_trim = ref_current_trim
         c.write_configuration(chip_key, 'ref_current_trim')
@@ -805,7 +782,7 @@ def network_v2b(controller_config, tiles=None, verbose=False, **kwargs):
         for uart in range(4):
             setattr(c[chip_key].config, f'i_rx{uart}', i_rx)
             registers.append(c[chip_key].config.register_map[f'i_rx{uart}'])
-            setattr(c[chip_key].config, f'r_term{uart}', i_rx)
+            setattr(c[chip_key].config, f'r_term{uart}', r_term)
             registers.append(c[chip_key].config.register_map[f'r_term{uart}'])
             setattr(c[chip_key].config, f'i_tx_diff{uart}', i_tx_diff)
             registers.append(
@@ -818,13 +795,13 @@ def network_v2b(controller_config, tiles=None, verbose=False, **kwargs):
 #        if not ok:
 #            raise RuntimeError('Enforcing failed', diff)
         for reg in registers:
-            c.write_configuration(chip_key, reg, connection_delay=0.005)
+            c.write_configuration(chip_key, reg)
 #            c.write_configuration(chip_key, reg, connection_delay=0.005)
 #            c.write_configuration(chip_key, reg, connection_delay=0.005)
         for reg in registers:
             #            c.write_configuration(chip_key, reg, connection_delay=0.005)
             #            c.write_configuration(chip_key, reg, connection_delay=0.005)
-            c.write_configuration(chip_key, reg, connection_delay=0.005)
+            c.write_configuration(chip_key, reg)
        # ok, diff = c.enforce_configuration([chip_key], timeout=0.01, connection_delay=0.003, n=20, n_verify=7)
         # if not ok:
         #    raise RuntimeError('Enforcing failed', diff)

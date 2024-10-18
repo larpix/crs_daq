@@ -83,17 +83,18 @@ def enforce_parallel(c, network_keys, unmask_last=True, pbar_desc='p', pbar_posi
             break
 
         ok, diff = c.enforce_configuration(
-            current_chips, timeout=0.02, connection_delay=0.01, n=3, n_verify=3, msg_length=len(current_chips))
+            current_chips, timeout=0.1, connection_delay=0.1, n=5, n_verify=3)
 
-        ok, diff = c.verify_configuration(
-            current_chips, timeout=0.02, connection_delay=0.01, n=3, msg_length=len(current_chips))
+        # ok, diff = c.verify_configuration(
+        #     current_chips, timeout=0.02, connection_delay=0.01, n=5)#, msg_length=len(current_chips))
 
         if not ok:
-            print('Re-configuring: ', diff.keys())
+            print('Re-configuring: ', diff)
             ok, diff = c.enforce_configuration(
-                diff.keys(), timeout=0.02, connection_delay=0.01, n=15, n_verify=3, msg_length=len(diff.keys()))
+                diff.keys(), timeout=0.2, connection_delay=0.1, n=15, n_verify=3)
             if not ok:
-                print('Could not configure: ', diff.keys())
+                print('Could not configure: ', diff)
+                break
 
                 # ok, diff = c.enforce_configuration(
                 #     diff.keys(), timeout=0.02, connection_delay=0.01, n=15, n_verify=5, msg_length=1)
@@ -135,7 +136,9 @@ def enforce_parallel(c, network_keys, unmask_last=True, pbar_desc='p', pbar_posi
         if send:
             if True:
                 for __ in range(N_WRITE_UNMASK):
-                    c.multi_write_configuration( [ (chip, list(range(131, 139))+list(range(66, 74))+list(range(155,163))) for chip in c.chips if chip.io_group in c.io._io_group_table.keys() ], connection_delay=0.001, msg_length=len(network_keys) )
+                    for chip in c.chips:
+                        if chip.io_group in c.io._io_group_table.keys():
+                            c.multi_write_configuration( [ (chip, list(range(131, 139))+list(range(66, 74))+list(range(155,163)))])
 
             else:
                 pass
