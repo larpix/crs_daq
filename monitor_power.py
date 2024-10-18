@@ -9,11 +9,11 @@ import larpix.io
 
 import datetime as dt
 
-import influxdb_client
-from influxdb_client.client.write_api import SYNCHRONOUS
+# import influxdb_client
+# from influxdb_client.client.write_api import SYNCHRONOUS
 
 # urllib3 has functions to help with url timeout problems
-import urllib3
+# import urllib3
 
 import warnings
 
