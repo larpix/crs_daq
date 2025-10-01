@@ -42,12 +42,11 @@ def setup_parent_piso(c, io, parent, daughter, verbose, tx_diff, tx_slice):
 
 # @timebudget
 def setup_daughter(c, io, parent, daughter, verbose, asic_version,
-                   ref_current_trim, tx_diff, tx_slice, r_term, i_rx):
+                   v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx):
     daughter = network_base_FSD.configure_chip_id(c, parent.io_group,
                                                   parent.io_channel,
                                                   daughter.chip_id, asic_version)
     uart_base.enable_daughter_posi(c, parent, daughter, verbose, r_term, i_rx)
-    asic_base.set_ref_current_trim(c, daughter, ref_current_trim)
     piso = uart_base.enable_daughter_piso(c, parent, daughter, verbose,
                                           tx_diff, tx_slice)
     asic_base.disable_chip_csa_trigger(c, daughter)

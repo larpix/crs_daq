@@ -1056,3 +1056,8 @@ def set_ref_current_trim(c, chip_key, ref_current_trim):
     c[chip_key].config.ref_current_trim=ref_current_trim
     c.write_configuration(chip_key, 'ref_current_trim')
     return
+    
+def set_v_cm_lvds_tx(c, chip_key, v_cm_lvds_tx):
+    c[chip_key].config.v_cm_lvds_tx=v_cm_lvds_tx
+    c.write_configuration(chip_key, 'v_cm_lvds_tx')
+    return

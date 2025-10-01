@@ -62,7 +62,7 @@ def parse_file(filename, max_entries=-1):
     unixtime = f['packets'][:]['timestamp'][f['packets']
                                             [:]['packet_type'] == 4]
     livetime = np.max(unixtime)-np.min(unixtime)
-    data_mask = f['packets'][:]['packet_type'] == 0
+    data_mask = f['packets'][:]['packet_type'] == 1
     valid_parity_mask = f['packets'][:]['valid_parity'] == 1
     mask = np.logical_and(data_mask, valid_parity_mask)
     adc = f['packets']['dataword'][mask][:max_entries]
@@ -233,16 +233,16 @@ def main(filename=_default_filename,
     d = parse_file(filename)
     normalization = 50
     if metric == 'mean':
-        normalization = 50
+        normalization = 400
     if metric == 'std':
-        normalization = 5
+        normalization = 10
     if metric == 'rate':
         normalization = 5
 
     if metric == '':
         # plot all
         # mean
-        normalization = 50
+        normalization = 400
         metric = 'mean'
         plot_xy(d, metric, geometry_yaml, normalization, filename)
         #plot_1d(d, metric)

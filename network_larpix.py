@@ -7,6 +7,7 @@ from runenv import runenv as RUN
 import argparse
 from base import config_loader
 from base import network_base_FSD
+from base import network_base_FSD_v3
 from base import network_base
 from tqdm import tqdm
 from base import pacman_base
@@ -25,10 +26,16 @@ for var in RUN.config.keys():
 
 logger = logging.getLogger(__name__)
 _default_verbose = False
-_default_controller_config = None
+_default_controller_config = 'configs/controller_config.json'
 _update_default=False
 
-def enforce_iterative(nc, all_network_keys, n=3, configs=None, pbar_desc='p', pbar_position=0):
+def enforce_iterative(nc, all_network_keys, n=1, configs=None, pbar_desc='p', pbar_position=0):
+    # while True:
+    #     nc.verify_registers([('1-1-151', [122])])
+    #     time.sleep(1)
+    #     nc.verify_registers([('1-1-152', [122])])
+    #     time.sleep(1)
+
     ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys, pbar_desc=pbar_desc, pbar_position=pbar_position)
     if ok: return ok, diff, unconfigured
     elif n==0: 
@@ -55,6 +62,9 @@ def enforce_iterative(nc, all_network_keys, n=3, configs=None, pbar_desc='p', pb
 
             elif io_group_asic_version_[io_group] in [2, 'lightpix-1']:
                 c = network_base.network_v2a(config, tiles=tiles, io_group=io_group)
+           
+            elif io_group_asic_version_[io_group] in [3]:
+                c = network_base_FSD_v3.network_v3(config, tiles=tiles, io_group=io_group)
            
             all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(config, use_keys=all_keys)
 
@@ -95,10 +105,13 @@ def main(verbose,\
         dd=utility_base.update_json(network_config_paths_file_, io_group, config)
         if io_group_asic_version_[io_group] in ['2b', '2d']:
                 c =  network_base_FSD.network_v2b(config, tiles=tiles, io_group=io_group)
+        elif io_group_asic_version_[io_group] in [3]:
+                c =  network_base_FSD_v3.network_v3(config, tiles=tiles, io_group=io_group)
         elif io_group_asic_version_[io_group] in [2, 'lightpix-1']:
             if verbose: print('loading network_v2a')
             c = network_base.network_v2a(config, tiles=tiles, io_group=io_group, pacman_config=pacman_config) 
             if verbose: print('done') 
+
         all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(config, tiles)
         
         _tiles = []
@@ -121,7 +134,7 @@ def main(verbose,\
         DCONFIGS[io_group]=DCONFIG
 
     nc = larpix.Controller()
-    nc.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config) 
+    nc.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config, asic_version=3) 
     logger.info('starting networking: io_groups={}'.format( pacman_configs['io_group'] ))
     for io_group_ip_pair in pacman_configs['io_group']:
         io_group = io_group_ip_pair[0]
@@ -135,6 +148,7 @@ def main(verbose,\
         pid = os.getpid()
         tag = utility_base.get_from_process_log(pid)
         pos = enforce_parallel.tag_to_config_map[tag]
+
     ok, diff, unconfigured = enforce_iterative(nc, all_network_keys, configs=configs, pbar_desc=tag, pbar_position=pos)
     if not ok:
         raise RuntimeError('Unconfigured chips!', diff)

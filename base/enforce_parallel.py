@@ -4,6 +4,7 @@ from base import utility_base
 from copy import deepcopy
 import numpy as np
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 tag_to_config_map = {

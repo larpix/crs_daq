@@ -65,7 +65,19 @@ def main(verbose, pacman_config):
         # set up mclk in pacman
         c.io.set_reg(0x101c, 0x4, io_group=io_group)
         time.sleep(0.1)
-        
+
+
+        for PACMAN_TILE in io_group_pacman_tile_[io_group]:
+            for IO_CHAN in utility_base.tile_to_io_channel([PACMAN_TILE]):
+                c.io.set_uart_clock_ratio(IO_CHAN,   1)
+                time.sleep(0.015)
+                c.io.set_uart_clock_ratio(IO_CHAN+1, 1)
+                time.sleep(0.015)
+                c.io.set_uart_clock_ratio(IO_CHAN+2, 1)
+                time.sleep(0.015)
+                c.io.set_uart_clock_ratio(IO_CHAN+3, 1)
+
+
         if verbose:
             print('enabling power')  
         # enable pacman power
@@ -126,6 +138,9 @@ def main(verbose, pacman_config):
         time.sleep(0.01)
         # Set sync mask
         c.io.set_reg(0x18, 0x3ff, io_group=io_group)
+
+        pacman_base.disable_all_pacman_uart(c.io, io_group)
+
         pacman_base.set_packet_delay(c.io, io_group)
         
         utility_base.update_json(asic_config_paths_file_, io_group,None )

@@ -36,7 +36,7 @@ def main(verbose, \
             pacman_configs = json.load(f)
         
         c = larpix.Controller()
-        c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
+        c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config, asic_version=3)
         
         #list of network keys in order from root chip, for parallel configuration enforcement
         all_network_keys = []
