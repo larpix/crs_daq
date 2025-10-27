@@ -111,7 +111,7 @@ def main(io_group, file_prefix=_default_file_prefix,
                     root_keys)
 
                 for iog_tile in iog_tile_to_root_keys.keys():
-                    network_base_FSD_v3.initial_network(c, c.io, iog_tile[0],
+                    network_base_FSD_v3.initial_pitchfork_network(c, c.io, iog_tile[0],
                                                      iog_tile_to_root_keys[iog_tile],
                                                      verbose,
                                                      io_group_asic_version_[
@@ -121,9 +121,10 @@ def main(io_group, file_prefix=_default_file_prefix,
 
                 unconfigured = []
                 if True:
-                    out_of_network = network_base_FSD_v3.iterate_waitlist(c, c.io, iog,
+                    out_of_network = network_base_FSD_v3.iterate_waitlist_linear(c, c.io, iog,
                                                                        utility_base.tile_to_io_channel(
                                                                            [tile]),
+                                                                       v3_10x16_root_ids,
                                                                        verbose,
                                                                        io_group_asic_version_[
                                                                            iog],

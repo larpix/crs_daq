@@ -373,6 +373,137 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
         firstIteration = False
     return
 
+#Connection steps copied out of initial_network for easy factorization 
+def try_establish_link(c, io, io_group, root, parent_id, daughter_id, verbose, asic_version,
+                    v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx, exclude=None, exclude_links=None):
+
+    #Break if daughter ASIC is excluded
+    if daughter_id in exclude[ str(utility_base.io_channel_to_tile(root.io_channel)) ]:
+        print('bailing due to excluded chip!')
+        return False
+    if verbose:
+        print('last chip id: ', parent_id,
+                '\tdaughter chip id: ', daughter_id)
+
+    #Break if vertical link from parent to daughter is excluded
+    skip_link = False
+    for link in exclude_links[str(utility_base.io_channel_to_tile(root.io_channel))]:
+        if link[0] == parent_id and link[1] == daughter_id:
+            print('Will skip: ', link)
+            skip_link = True
+            break
+        if link[0] == daughter_id and link[1] == parent_id:
+            print('Will skip: ', link)
+            skip_link = True
+            break
+    if skip_link:
+        print('Skipping link: ', (parent_id, parent.chip_id))
+        return False
+
+    parent = larpix.key.Key(root.io_group, root.io_channel,
+                            parent_id)
+    daughter = larpix.key.Key(root.io_group, root.io_channel,
+                                daughter_id)
+
+    ok, diff = uart_base.setup_parent_piso(c, io, parent,
+                                            daughter, verbose,
+                                            tx_diff, tx_slice)
+    if not ok:
+        print('\t\t==> PARENT PISO US ', parent,
+                'failed to configure')
+        uart_base.disable_parent_piso_us(c, parent, daughter,
+                                            verbose, tx_diff,
+                                            tx_slice)
+        return False
+
+    ok, diff, piso = uart_base.setup_daughter(c, io, parent,
+                                                daughter, verbose,
+                                                asic_version,
+                                                v_cm_lvds_tx,
+                                                tx_diff, tx_slice,
+                                                r_term, i_rx)
+
+    if not ok:
+        print('\t\t==> DAUGHTER ', daughter,
+                'failed to configure')
+        uart_base.reset_uarts(c, daughter, verbose)
+        uart_base.disable_parent_piso_us(c, parent, daughter,
+                                            verbose, tx_diff,
+                                            tx_slice)
+        uart_base.disable_parent_posi(c, parent, daughter,
+                                        verbose)
+        c.remove_chip(daughter)
+        return False
+
+    return True
+
+#Draw left-right symmetric, mostly vertical networks
+def initial_pitchfork_network(c, io, io_group, root_keys, verbose, asic_version,
+                    v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx, exclude=None, exclude_links=None):
+    root_ioc = [rk.io_channel for rk in root_keys]
+    waitlist = set()
+    cnt_configured, cnt_unconfigured = 0, 0
+
+    for root in root_keys:
+
+        pacman_base.enable_pacman_uart_from_io_channel(io, io_group, root.io_channel)
+        ok, diff = utility_base.reconcile_configuration(c, root, verbose)
+        if ok:
+            cnt_configured += 1
+        if not ok:
+            waitlist = append_upstream_chip_ids(root.io_channel,
+                                                root.chip_id, waitlist)
+            cnt_unconfigured = len(waitlist)
+            print('Parent ', root, ' failed to configure')
+            continue
+        print(root, '\tconfigured: ', cnt_configured,
+              '\t unconfigured: ', cnt_unconfigured)
+        pacman_base.disable_all_pacman_uart(io, io_group)
+
+        #Four stem chips from which to make vertical links
+        left_half = (root.chip_id < 91)
+        stems = [i*(-1)**left_half for i in [0, 10, -10, -20]]
+
+        for stem in stems:
+            stem_id = stem + root.chip_id
+            bail = False
+
+            #Connect lateral chip to root
+            if stem != 0:
+
+                #If parent is in network, connect stem
+                parent_id = ((abs(stem)-10)/20 * stem) + root.chip_id
+                ok = False
+                cks = []
+                for ck in c.chips:
+                    if ck.io_channel in root_ioc:
+                        cks.append(ck.chip_id)
+                if parent_id in cks:
+                    ok = try_establish_link(c, io, io_group, root, parent_id, stem_id, verbose, asic_version,
+                        v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx, exclude, exclude_links)
+                
+                if ok:
+                    cnt_configured += 1 
+                else:
+                    bail = True
+                    waitlist.add(stem_id)
+
+            #Connect vertically down from stem
+            for last_chip_id in range(stem_id, stem_id+9):
+                if bail:
+                    waitlist.add(last_chip_id+1)
+                    continue
+
+                ok = try_establish_link(c, io, io_group, root, last_chip_id, last_chip_id+1, verbose, asic_version,
+                        v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx, exclude, exclude_links)
+                if ok:
+                    cnt_configured += 1 
+                else:
+                    bail = True
+                    waitlist.add(last_chip_id+1)
+
+    return
+
 
 # @timebudget
 def initial_network_from_root(c, io, io_group, root_key, verbose, asic_version,
@@ -501,6 +632,34 @@ def find_potential_parents(chip_id, network, verbose):
     return parents
 
 
+def find_potential_parents_symmetric(chip_id, network, root_ids):
+    parents = []
+
+    #ASICs on the left half look left for parents and vice versa
+    prefer_left = (chip_id < 91)
+
+    #Switch preferred direction for the single tine side
+    min_dist = 9999
+    for root in root_ids:
+        dist = chip_id//10 - root//10
+        if abs(dist) < abs(min_dist):
+            min_dist = dist
+    if min_dist == -1 and prefer_left:
+        prefer_left = False
+    elif min_dist == 1 and not prefer_left:
+        prefer_left = True
+
+
+    for i in [-1, 1, 10*(-1)**prefer_left, -10*(-1)**prefer_left]:
+        if chip_id % 10 == 0 and (chip_id+i) % 10 == 1:
+            continue
+        if (chip_id+i) % 10 == 0 and chip_id % 10 == 1:
+            continue
+        if chip_id+i in network.keys():
+            parents.append(network[chip_id+i])
+    return parents
+
+
 # @timebudget
 def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,
                      v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx, exclude=None, exclude_links=None):
@@ -573,6 +732,88 @@ def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,
                     outstanding.append((daughter, piso))
                 pacman_base.disable_all_pacman_uart(io, io_group)
 
+        if n_waitlist == len(waitlist):
+            print('\n', len(waitlist), ' NON-CONFIGURED chips\n', waitlist, '\n')
+            flag = False
+        else:
+            print('\n\n*****RE-TESTING ', len(waitlist), ' CHIPS\n', waitlist)
+    return outstanding
+
+
+def iterate_waitlist_linear(c, io, io_group, io_channels, root_ids, verbose, asic_version,
+                     v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx, exclude=None, exclude_links=None):
+
+    print('\n\n----- Iterating waitlist ----\n')
+    flag = True
+    outstanding = []
+    while flag == True:
+        waitlist, network = find_waitlist(c, io_group, io_channels)
+        n_waitlist = len(waitlist)
+        resolved = []
+        oustanding = []
+
+        for chip_id in waitlist:
+            potential_parents = find_potential_parents_symmetric(
+                chip_id, network, root_ids)
+            for parent in potential_parents:
+                daughter = larpix.key.Key(parent.io_group, parent.io_channel,
+                                          chip_id)
+                if chip_id in exclude[str(utility_base.io_channel_to_tile(parent.io_channel))]:
+                    continue
+
+                skip_link = False
+                for link in exclude_links[str(utility_base.io_channel_to_tile(parent.io_channel))]:
+                    if link[0] == chip_id and link[1] == parent.chip_id:
+                        print('Will skip: ', link)
+                        skip_link = True
+                        break
+                    if link[0] == parent.chip_id and link[1] == chip_id:
+                        print('Will skip: ', link)
+                        skip_link = True
+                        break
+                if skip_link:
+                    print('Skipping link: ', (chip_id, parent.chip_id))
+                    continue
+
+                # Manual re-routing to avoid issues on 10x16 v2d tiles
+                if chip_id == 27 and parent.chip_id == 26: continue
+                if chip_id == 158 and parent.chip_id == 157: continue
+                
+                ok, diff = uart_base.setup_parent_piso(c, io, parent,
+                                                       daughter, verbose,
+                                                       tx_diff, tx_slice)
+                if not ok:
+                    print('\t\t==> PARENT PISO US ', parent,
+                          'failed to configure')
+                    uart_base.disable_parent_piso_us(c, parent, daughter,
+                                                     verbose, tx_diff, tx_slice)
+                    pacman_base.disable_all_pacman_uart(io, io_group)
+                    continue
+
+                ok, diff, piso = uart_base.setup_daughter(c, io, parent,
+                                                          daughter, verbose,
+                                                          asic_version,
+                                                          v_cm_lvds_tx,
+                                                          tx_diff, tx_slice,
+                                                          r_term, i_rx)
+                if ok:
+                    resolved.append(chip_id)
+                    print('WAITLIST RESOLVED\t', daughter)
+                    break
+                if not ok:
+                    print('\t\t==> DAUGHTER ', daughter,
+                          ' failed to configure')
+                    uart_base.reset_uarts(c, daughter, verbose)
+                    uart_base.disable_parent_piso_us(c, parent, daughter,
+                                                     verbose, tx_diff,
+                                                     tx_slice)
+                    uart_base.disable_parent_posi(c, parent, daughter,
+                                                  verbose)
+                    c.remove_chip(daughter)
+                    outstanding.append((daughter, piso))
+                pacman_base.disable_all_pacman_uart(io, io_group)
+
+        for chip_id in resolved: waitlist.remove(chip_id)
         if n_waitlist == len(waitlist):
             print('\n', len(waitlist), ' NON-CONFIGURED chips\n', waitlist, '\n')
             flag = False
