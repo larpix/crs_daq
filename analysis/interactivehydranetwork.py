@@ -100,7 +100,7 @@ def interactive_network_editor(geometry_yaml, network_json, io_group=1):
                 dx, dy = x1 - x0, y1 - y0
                 ax.arrow(
                     x0, y0, dx * 0.8, dy * 0.8,
-                    head_width=2, head_length=3,
+                    head_width=3, head_length=3,
                     fc=color, ec=color, alpha=0.8,
                     length_includes_head=True,
                     zorder=3  # draw on top of labels
