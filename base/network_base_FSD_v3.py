@@ -774,10 +774,6 @@ def iterate_waitlist_linear(c, io, io_group, io_channels, root_ids, verbose, asi
                 if skip_link:
                     print('Skipping link: ', (chip_id, parent.chip_id))
                     continue
-
-                # Manual re-routing to avoid issues on 10x16 v2d tiles
-                if chip_id == 27 and parent.chip_id == 26: continue
-                if chip_id == 158 and parent.chip_id == 157: continue
                 
                 ok, diff = uart_base.setup_parent_piso(c, io, parent,
                                                        daughter, verbose,
@@ -797,6 +793,7 @@ def iterate_waitlist_linear(c, io, io_group, io_channels, root_ids, verbose, asi
                                                           tx_diff, tx_slice,
                                                           r_term, i_rx)
                 if ok:
+                    network[chip_id] = daughter
                     resolved.append(chip_id)
                     print('WAITLIST RESOLVED\t', daughter)
                     break
