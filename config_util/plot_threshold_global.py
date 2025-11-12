@@ -11,20 +11,23 @@ def main(*files, inc=0, **kwargs):
                 
                 glob = config['threshold_global']
                 globs.append(glob)
-
+                if glob < 10:
+                    print(file, glob)
+                if glob > 20:
+                    print(file, glob)
 
         vals, bins = np.histogram(globs, range=(-0.5, 31.5), bins=32)
         globs=np.array(globs)
         for val in  set(globs) :
             print('{}: {}'.format(val, np.sum(globs==val)))
 
-        return
+        # return
         fig=plt.figure()
         ax=fig.add_subplot()
-        ax.hist(trims,range=(-0.5, 31.5), bins=32 )
+        ax.hist(globs,range=(-0.5, 20.5), bins=20 )
         ax.grid()
-        ax.set_xlabel('pixel trim dac', fontsize=14)
-        ax.set_ylabel('channel count', fontsize=14)
+        ax.set_xlabel('threshold_global', fontsize=14)
+        ax.set_ylabel('chip count', fontsize=14)
         fig.savefig('ptd.png')
                 
 if __name__ == "__main__":

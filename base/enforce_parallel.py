@@ -70,6 +70,7 @@ def enforce_parallel(c, network_keys, unmask_last=True, pbar_desc='p', pbar_posi
             working = True
             current_chips.append(net[ichip])
             unconfigured[inet].remove(net[ichip])
+        
 
         if unmask_last:
             for chip in current_chips:
@@ -81,7 +82,6 @@ def enforce_parallel(c, network_keys, unmask_last=True, pbar_desc='p', pbar_posi
 
                 csas[str(chip)] = c[chip].config.csa_enable
                 c[chip].config.csa_enable = [0]*64
-
         if not working:
             break
 
@@ -139,8 +139,7 @@ def enforce_parallel(c, network_keys, unmask_last=True, pbar_desc='p', pbar_posi
             c[chip].config.csa_enable = csas[chip]
             c[chip].config.periodic_trigger_mask = ptmasks[chip]
             if send==False:
-                if np.any( np.logical_not(masks[chip])): send=True
-        
+                if np.any( csas[chip]): send=True
         if send:
             if True:
                 for __ in range(N_WRITE_UNMASK):

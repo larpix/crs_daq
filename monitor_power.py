@@ -49,7 +49,7 @@ def main(verbose, pacman_config):
     while True:
         print()
         print(dt.datetime.now())
-        for io_group in range(1, 5):
+        for io_group in range(1, 2):
             print('Looking at IO Group {}'.format(io_group))
 
             readback = pacman_base.power_readback(
