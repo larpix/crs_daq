@@ -73,6 +73,11 @@ def interactive_network_editor(geometry_yaml, network_json, io_group=1):
                 return int(ioc)
         return 1
 
+    def get_neighbors(chip_id):
+        """Return the four neighboring chip IDs (top, right, bottom, left)."""
+        stride = 10  # adjust if your grid stride is different
+        return [chip_id - 1, chip_id + 1, chip_id - stride, chip_id + stride]
+
     def compute_reachable_and_root_colors():
         """Compute reachable chips and assign root colors."""
         reachable = set()
@@ -186,6 +191,12 @@ def interactive_network_editor(geometry_yaml, network_json, io_group=1):
             preview_arrow = None
         chip_end = get_chip_from_event(event)
         if chip_end is not None and chip_end != drag_start:
+            # Only allow valid neighbors
+            if chip_end not in get_neighbors(drag_start):
+                print(f"Invalid connection: {chip_end} is not a neighbor of {drag_start}")
+                drag_start = None
+                return
+
             # Save previous parent so undo can restore it
             prev_parent = incoming.get(chip_end, None)
 
@@ -240,89 +251,66 @@ def interactive_network_editor(geometry_yaml, network_json, io_group=1):
         key = (event.key or "")  
 
         # Save
-        if key == 's':
+        if 's' == key:
             export_to_json()
             print("Saved via keyboard shortcut")
             return
 
-        # Undo: ctrl/cmd + z without shift
+        # Undo: ctrl/cmd + z
         if ('cmd+z' in key) or ('ctrl+z' in key):
             on_undo(None)
             return
 
-        # Redo: ctrl/cmd + shift + z
-        if ('cmd+Z' in key) or ('ctrl+Z' in key):
-            on_redo(None)
-            return
-
-        # Optional: Ctrl+Y is redo on Windows
-        if key == 'ctrl+y':
+        # Redo: ctrl/cmd + shift + z or ctrl+y
+        if ('cmd+Z' in key) or ('ctrl+Z' in key) or ('ctrl+y' in key):
             on_redo(None)
             return
 
     def on_undo(event):
-        nonlocal reachable, chip_root_color
-        nonlocal undo_stack, redo_stack
+        nonlocal reachable, chip_root_color, undo_stack, redo_stack
 
         if not undo_stack:
             print("Nothing to undo.")
             return
 
         action = undo_stack.pop()
-        # push the popped action onto redo stack
         redo_stack.append(action)
 
         if action[0] == "add_arrow":
             _, src, dst, prev_parent = action
             print(f"Undo: removing arrow {src} -> {dst}, restoring prev parent {prev_parent}")
-
-            # Remove the arrow that was added
-            if dst in outgoing.get(src, set()):
-                outgoing[src].discard(dst)
+            outgoing[src].discard(dst)
             if incoming.get(dst) == src:
                 incoming[dst] = None
-
-            # Restore the previous parent if it existed
             if prev_parent is not None:
                 outgoing.setdefault(prev_parent, set()).add(dst)
                 incoming[dst] = prev_parent
 
-        # Recompute graph connectivity + colors and redraw
         reachable, chip_root_color = compute_reachable_and_root_colors()
         draw_network()
 
-
     def on_redo(event):
-        nonlocal reachable, chip_root_color
-        nonlocal undo_stack, redo_stack
+        nonlocal reachable, chip_root_color, undo_stack, redo_stack
 
         if not redo_stack:
             print("Nothing to redo.")
             return
 
         action = redo_stack.pop()
-        # push action back onto undo stack (so it can be undone again)
         undo_stack.append(action)
 
         if action[0] == "add_arrow":
             _, src, dst, prev_parent = action
             print(f"Redo: reapplying arrow {src} -> {dst}, removing prev parent {prev_parent}")
-
-            # If a previous parent exists now (could have changed), remove it
             if prev_parent is not None:
-                if dst in outgoing.get(prev_parent, set()):
-                    outgoing[prev_parent].discard(dst)
+                outgoing.get(prev_parent, set()).discard(dst)
                 if incoming.get(dst) == prev_parent:
                     incoming[dst] = None
-
-            # Reapply arrow
             outgoing.setdefault(src, set()).add(dst)
             incoming[dst] = src
 
-        # Recompute and redraw
         reachable, chip_root_color = compute_reachable_and_root_colors()
         draw_network()
-
 
 
     # ---------------- Connect ----------------
@@ -332,6 +320,7 @@ def interactive_network_editor(geometry_yaml, network_json, io_group=1):
     fig.canvas.mpl_connect('motion_notify_event', on_motion)
     fig.canvas.mpl_connect('key_press_event', on_key)
     plt.show()
+
 
 
 # Example usage:
