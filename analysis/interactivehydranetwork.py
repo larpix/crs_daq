@@ -194,21 +194,54 @@ def interactive_network_editor(geometry_yaml, network_json, io_group=1):
         new_data = copy.deepcopy(data)
         io_key = str(io_group)
         filename = input(f"Enter output filename [{default_name}]: ").strip() or default_name
-        if not filename.endswith('.json'): filename += '.json'
+        if not filename.endswith('.json'):
+            filename += '.json'
+
+        total_connections = 0
         for ioc in new_data['network'][io_key]:
             for node in new_data['network'][io_key][ioc]['nodes']:
                 cid_str = node.get('chip_id')
-                if cid_str=='ext': continue
-                try: cid=int(cid_str)
-                except: continue
-                if cid not in outgoing: continue
-                targets = list(outgoing[cid])
-                new_miso = [None]*4
-                for i, t in enumerate(targets[:4]):
-                    new_miso[i] = t
+                if cid_str == 'ext':
+                    continue
+                try:
+                    cid = int(cid_str)
+                except:
+                    continue
+                if cid not in outgoing:
+                    continue
+
+                # initialize miso_us as [None, None, None, None] = [left, up, right, down]
+                new_miso = [None] * 4
+                for tgt in outgoing[cid]:
+                    if tgt not in chipid_pos:
+                        continue
+                    dx = chipid_pos[tgt]['avgX'] - chipid_pos[cid]['avgX']
+                    dy = chipid_pos[tgt]['avgY'] - chipid_pos[cid]['avgY']
+
+                    # Assign index based on direction
+                    if abs(dx) > abs(dy):
+                        # Mostly horizontal
+                        if dx < 0:
+                            idx = 0  # left
+                        else:
+                            idx = 2  # right
+                    else:
+                        # Mostly vertical
+                        if dy > 0:
+                            idx = 1  # up
+                        else:
+                            idx = 3  # down
+
+                    new_miso[idx] = tgt
+                    total_connections += 1
+
                 node['miso_us'] = new_miso
-        with open(filename, 'w') as f: json.dump(new_data,f,indent=2)
-        print(f"Saved {filename}")
+
+        with open(filename, 'w') as f:
+            json.dump(new_data, f, indent=2)
+
+        print(f"Saved {total_connections} connections to '{filename}'")
+
 
     def on_key(event):
         key = event.key or ""
@@ -267,7 +300,7 @@ make diagonals not allowed, skipping over chips not allowed
  - set distance limit
  - max 3 arrows pointing out
  - max 1 arrow pointing in
-!does it automatically add the .json when you save the file name
+does it automatically add the .json when you save the file name
 !make sure it correctly saves the json file-> it works on this code but not the original hydra network plotting code
  - index 0=left
  - index 1=up
@@ -279,14 +312,14 @@ if the user disconnected some chips from the root chips:
  !- all the arrows should be originating from the root chip -- no arrows can go into the root chips
  !- when exporting, send a message saying those chips are disconnected
 Visuals: 
- !- replace the circle labels with dotted squares
+ - replace the circle labels with dotted squares
  !- have it highlight when you hover over the circle to show it registered
- !- highlight the missing tiles like in the original plotting code
+ - highlight the missing tiles like in the original plotting code
  - highlight the root chips like in original plotting code
  - make arrows fatter/more visible
- !- make sure the mm dist is accurate + set xlabels
+ - make sure the mm dist is accurate + set xlabels
 
 '''
 
 #test: pass created .json file through this script AND the original plotting script
-# (.v3venv) jchakrani@labpix:~/larpix/FSD/v3/10x16/test_hydra_interface/crs_daq$ python analysis/plot_hydra_network_10x16.py --controller_config configs/iog_1-tile_1-hydra-network_test.json 
+# (.v3venv) jchakrani@labpix:~/larpix/FSD/v3/10x16/test_hydra_interface/crs_daq$ python analysis/plot_hydra_network_10x16.py --controller_config newedit.json 
