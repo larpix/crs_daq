@@ -8,20 +8,29 @@ colors = ['c', 'm', 'y', 'g']
 def load_hydra(geometry_yaml, network_json, io_group=1):
     with open(geometry_yaml) as fi:
         geo = yaml.safe_load(fi)
-    chip_pix = {chip_id+1: pix for chip_id, pix in geo['chips']}
+
+    chip_pix = {chip_id + 1: pix for chip_id, pix in geo['chips']}
     chipid_pos = {}
     for chipid, pix in chip_pix.items():
         xs, ys = zip(*[(geo['pixels'][p][1], geo['pixels'][p][2]) for p in pix])
-        avgX = (max(xs)+min(xs))/2
-        avgY = (max(ys)+min(ys))/2
+        avgX = (max(xs) + min(xs)) / 2
+        avgY = (max(ys) + min(ys)) / 2
         chipid_pos[chipid] = dict(
-            avgX=avgX, avgY=avgY, minX=min(xs), maxX=max(xs), minY=min(ys), maxY=max(ys)
+            avgX=avgX, avgY=avgY,
+            minX=min(xs), maxX=max(xs),
+            minY=min(ys), maxY=max(ys)
         )
 
     with open(network_json, 'r') as f:
         data = json.load(f)
 
     hydra = data['network'][str(io_group)]
+
+    # --- parse missing chips (if present) ---
+    missing_raw = data.get("missing", {}) or {}
+    # support both {"123": true} and {123: true} styles
+    missing_chips = {int(k) for k in missing_raw.keys()} if missing_raw else set()
+
     chip_connections = {}
     ioc_chip = {}
     for ioc in hydra:
@@ -34,18 +43,34 @@ def load_hydra(geometry_yaml, network_json, io_group=1):
             for target in node['miso_us']:
                 if target is not None:
                     chip_connections.setdefault(chip, []).append(target)
-    return data, chipid_pos, chip_connections, ioc_chip, geo
+
+    return data, chipid_pos, chip_connections, ioc_chip, geo, missing_chips
+
 
 def interactive_network_editor(geometry_yaml, network_json, io_group=1):
-    data, chipid_pos, connections, ioc_chip, geo = load_hydra(geometry_yaml, network_json, io_group)
+    data, chipid_pos, connections, ioc_chip, geo, missing_chips = load_hydra(
+    geometry_yaml, network_json, io_group
+    )
 
     chips = sorted(chipid_pos.keys())
-    outgoing = {cid: set(connections.get(cid, [])) for cid in chips}
-    incoming = {cid: None for cid in chips}
+
+    # Chips that actually participate in the JSON network (ignore purely geometry-only chips)
+    network_chips = set()
+    for ioc in ioc_chip:
+        network_chips.update(ioc_chip[ioc])
+
+    # Build outgoing/incoming only for network chips (so "missing" and unused chips won't become roots)
+    outgoing = {cid: set(connections.get(cid, [])) for cid in network_chips}
+    incoming = {cid: None for cid in network_chips}
+
     for src, targets in outgoing.items():
         for t in targets:
-            incoming[t] = src
-    root_chips = {cid for cid in chips if incoming[cid] is None}
+            # if multiple parents exist, keep the first one (deterministic enough for visuals)
+            if t in incoming and incoming[t] is None:
+                incoming[t] = src
+
+    # Roots = chips that (a) are in the network, (b) are NOT marked missing, and (c) have no parent
+    root_chips = {cid for cid in network_chips if (cid not in missing_chips) and (incoming.get(cid) is None)}
 
     drag_start = None
     preview_arrow = None
@@ -63,7 +88,17 @@ def interactive_network_editor(geometry_yaml, network_json, io_group=1):
                 return int(ioc)
         return 1
 
-    # --- Compute reachable and root colors ---
+    # chips that actually appear in the network
+    network_chips = set()
+    for ioc in ioc_chip:
+        network_chips |= set(ioc_chip[ioc])
+    # Also include any chip that has outgoing connections (to cover disconnected-but-not-missing)
+    network_chips |= {c for c, t in outgoing.items() if t}
+
+    # real roots = appear in network + no incoming edges
+    root_chips = {cid for cid in network_chips if incoming[cid] is None}
+
+    # reachable is now computed only from actual roots
     def compute_reachable_and_root_colors():
         reachable = set()
         chip_root_color = {}
@@ -102,24 +137,35 @@ def interactive_network_editor(geometry_yaml, network_json, io_group=1):
         # Draw rectangles for each chip
         for chip in chips:
             pos = chipid_pos[chip]
-            color = 'white'
+
+            # Default (in the layout but not involved) -> gray disconnected
+            face = 'gray'
             edge = 'none'
-            alpha = 0.5           
-            if chip not in reachable: 
-                color = 'red'
-                alpha=0.5
+            alpha = 0.5
+
+            if chip in missing_chips:
+                face = 'gray'
                 edge = 'k'
-            if chip in root_chips: 
-                color = 'blue'
-                alpha=0.5
+                alpha = 0.5
+            elif chip in root_chips:
+                face = 'blue'
                 edge = 'k'
+                alpha = 0.5
+            elif chip in reachable:
+                face = 'white'
+                edge = 'none'
+                alpha = 0.5
+            else:
+                face = 'red'   # reachable computation says it's outside the reachable set for its root
+                edge = 'k'
+                alpha = 0.5
+
             rect = Rectangle((pos['minX'], pos['minY']),
                             pos['maxX'] - pos['minX'],
                             pos['maxY'] - pos['minY'],
-                            facecolor=color, edgecolor=edge, alpha=alpha)
+                            facecolor=face, edgecolor=edge, alpha=alpha)
             ax.add_patch(rect)
-            ax.annotate(str(chip), (pos['avgX'], pos['avgY']),
-                        ha='center', va='center', color='k')
+            ax.annotate(str(chip), (pos['avgX'], pos['avgY']), ha='center', va='center', color='k')
             fig.canvas.draw_idle()
 
         # Draw arrows
@@ -289,7 +335,6 @@ def interactive_network_editor(geometry_yaml, network_json, io_group=1):
 # Example usage:
 #>>> from interactivehydranetwork import interactive_network_editor
 #>>> interactive_network_editor('layout-3.0.0.yaml', 'iog_1-tile_3-hydra-network.json', io_group=1)
-
 
 
 
