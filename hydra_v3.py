@@ -35,7 +35,7 @@ _default_v_cm_lvds_tx = 5
 _default_tx_diff = 7
 _default_tx_slice = 15
 _default_r_term = 7
-_default_i_rx = 7
+_default_i_rx = 3
 _default_recheck = False
 
 v2d_10x16_root_ids = [21, 61, 101, 151]

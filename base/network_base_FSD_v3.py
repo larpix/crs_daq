@@ -12,7 +12,7 @@ import numpy as np
 i_tx_diff = 7
 tx_slices = 15
 r_term = 7
-i_rx = 7
+i_rx = 3
 v_cm_lvds_tx = 5
 
 _default_clk_ctrl = 0
@@ -718,7 +718,9 @@ def network_v3(controller_config, tiles=None, verbose=False, **kwargs):
     else:
         c.load(controller_config)
 
+
     for io_group, io_channels in c.network.items():
+        pacman_base.disable_all_pacman_uart(c.io, io_group)
         if tiles is None:
             if verbose:
                 print('resetting io group:', io_group)
@@ -769,13 +771,13 @@ def network_v3(controller_config, tiles=None, verbose=False, **kwargs):
 #        if not ok:
 #            raise RuntimeError('Enforcing failed', diff)
         for reg in registers:
-            c.write_configuration(chip_key, reg)
-#            c.write_configuration(chip_key, reg, connection_delay=0.005)
-#            c.write_configuration(chip_key, reg, connection_delay=0.005)
-        for reg in registers:
-            #            c.write_configuration(chip_key, reg, connection_delay=0.005)
-            #            c.write_configuration(chip_key, reg, connection_delay=0.005)
-            c.write_configuration(chip_key, reg)
+            # c.write_configuration(chip_key, reg)
+            c.write_configuration(chip_key, reg, connection_delay=0.005)
+            c.write_configuration(chip_key, reg, connection_delay=0.005)
+        # for reg in registers:
+        #     #            c.write_configuration(chip_key, reg, connection_delay=0.005)
+        #     #            c.write_configuration(chip_key, reg, connection_delay=0.005)
+        #     c.write_configuration(chip_key, reg)
        # ok, diff = c.enforce_configuration([chip_key], timeout=0.01, connection_delay=0.003, n=20, n_verify=7)
         # if not ok:
         #    raise RuntimeError('Enforcing failed', diff)

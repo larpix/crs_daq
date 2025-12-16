@@ -44,7 +44,7 @@ def parse_file(filename, max_entries=-1):
     unixtime = f['packets'][:]['timestamp'][f['packets']
                                             [:]['packet_type'] == 4]
     livetime = np.max(unixtime)-np.min(unixtime)
-    data_mask = f['packets'][:]['packet_type'] == 0
+    data_mask = f['packets'][:]['packet_type'] == 1
     valid_parity_mask = f['packets'][:]['valid_parity'] == 1
     mask = np.logical_and(data_mask, valid_parity_mask)
     adc = f['packets']['dataword'][mask][:max_entries]
@@ -122,14 +122,18 @@ def toggle_trims_write_increments(d,min_rate,max_rate,file,toggle_filename):
                     if not key in toggle_list.keys(): toggle_list[key]=[]
                     toggle_list[key].append( (int(channel_id), -1) )
                     nchan+=1
-            
-            for chipid in range(11,171):
-                key='{}-{}-{}'.format(io_group, tile, chipid)
-                if not key in toggle_list.keys(): toggle_list[key]=[]
+
+            for chipid in range(11, 171):
+                key = '{}-{}-{}'.format(io_group, tile, chipid)
+                if not key in toggle_list.keys():
+                    toggle_list[key] = []
                 for chanid in range(64):
-                    if (chipid, chanid) in used_chip_chan: continue
-                    toggle_list[key].append( (int(chanid), -1) )
-                    nchan+=1
+                    if (chipid, chanid) in used_chip_chan:
+                        continue
+                    # print(chipid, chanid)
+                    if min_rate > 0:
+                        toggle_list[key].append((int(chanid), -1))
+                        nchan += 1
 
             print('Number of channels toggled on tile {}-{}: {}'.format(io_group, tile, nchan))
     
@@ -145,6 +149,8 @@ def main(filename=_default_filename,
          max_rate=_default_max_rate,
          toggle_filename=None,
          **kwargs):
+    print('MIN RATE: ', min_rate)
+    print('MAX RATE: ', max_rate)
 
     d = parse_file( filename )
 

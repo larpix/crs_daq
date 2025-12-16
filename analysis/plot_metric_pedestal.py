@@ -18,7 +18,9 @@ _default_geometry_yaml = 'analysis/layout-3.0.0.yaml'
 _default_metric = ''
 
 pitch = 3.8  # mm
+periodic_trigger_cycles = 0.4  # MHz
 
+verbose = True
 
 def unique_channel_id(d):
     return ((d['io_group'].astype(int)*1000+d['io_channel'].astype(int))*1000
@@ -67,8 +69,8 @@ def parse_file(filename, max_entries=-1):
     adc = f['packets']['dataword'][mask][:max_entries]
     unique_id = unique_channel_id(f['packets'][mask][:max_entries])
     unique_id_set = np.unique(unique_id)
-    chips = f['packets']['chip_id'][mask][:max_entries]
-
+    chips = f['packets']['chip_id'][mask][:max_entries]   
+ 
     print("Number of packets in parsed files =", len(unique_id))
     for chip in tqdm.tqdm(range(11, 171), desc='looping over chip_id'):
         _iomask = chips==chip
@@ -77,10 +79,15 @@ def parse_file(filename, max_entries=-1):
         for i in set(_unique_id):
             id_mask = _unique_id == i
             masked_adc = _adc[id_mask]
+
+            # remove zero datawords
+            non_zero_masked_adc = [x for x in masked_adc if x != 0]        
+
             d[i] = dict(
-                mean=np.mean(masked_adc),
-                std=np.std(masked_adc),
-                rate=len(masked_adc) / (livetime + 1e-9))
+                mean=np.mean(non_zero_masked_adc),
+                std=np.std(non_zero_masked_adc),
+                rate=len(non_zero_masked_adc) / (livetime + 1e-9))
+
     return d
 
 def plot_1d(d, metric):
@@ -100,35 +107,83 @@ def plot_1d(d, metric):
 
             fig, ax = plt.subplots(figsize=(8, 8))
             d_keys = np.array(list(d.keys()))[mask]
-            a = [d[key][metric] for key in d_keys]
+            a = [d[key][metric] for key in d_keys] 
 
             min_bin = int(min(a))  # -1
             max_bin = int(max(a))  # +1
             n_bins = max_bin-min_bin
+            if metric == 'rate':
+                n_bins = 100
 
-            mode_metric = mode(a)
-            print(f"{metric} mode = {mode_metric}")
+            # remove zero datawords before calculating the stdev
+            non_zero_a = [x for x in a if x != 0]
+            std_metric = stdev(non_zero_a)             
+        
+           
+
+            if metric == 'mean':
+                metric_name = 'adc_mean_per_channel'            
+            elif metric == 'std':
+                metric_name = 'adc_std_per_channel'               
+            else:
+                mode_metric = mode(a)
+                mean_metric = mean(a)            
+                std_metric  = stdev(a) 
+                
+                metric_name = 'data_rate_per_channel'
+                
+            print(f"\n{metric_name }: mode ({mode_metric:.2f}), stdev ({std_metric:.2f}), mean ({mean_metric:.2f})")
 
             ax.hist(a, bins=np.linspace(min_bin, max_bin, n_bins))
             ax.grid(True)
             ax.set_ylabel('Channel Count')
             #ax.set_title('Tile ID '+str(tile_id))
-            ax.set_title(f'Tile ID {tile_id} ({metric} mode = {mode_metric:.1f})')
+            ax.set_title(f'Tile ID {tile_id} (mode = {mode_metric:.1f})')
             ax.set_yscale('log')
-            ax.set_xlim(0,1)
             plt.text(0.95, 1.01, 'LArPix', ha='center',
-                     va='center', transform=ax.transAxes)
-
+                     va='center', transform=ax.transAxes)        
+            
             if metric == 'mean':
                 ax.set_xlabel('ADC Mean')
                 plt.savefig('tile-id-'+str(tile_id)+'-1d-mean.png')
+
+                channel_count = 0
+                mode_plus_3sd = mode_metric + 3 * std_metric
+                mode_minus_3sd = mode_metric - 3 * std_metric
+                for i in range(len(a)):
+                    if a[i] > mode_metric + 50:
+                        channel_count +=1
+                    elif a[i] < mode_metric -50:
+                        channel_count +=1
+                            
+                min_adc = min(num for num in a if num != 0)
+                adc_range = max(a)-min_adc
+                
+                print(f"Non-Zero ADC means fall within range [{min_adc:.0f}, {max(a):.0f}]")
+                if adc_range > 100:
+                    print(f"3 stdev range = [{mode_minus_3sd:.0f}, {mode_plus_3sd:.0f}]")
+                    print(f"####### Consider disabling {channel_count} channels w mean(adc) outside of range {mode_metric:.0f} +/- 50\n\n")
+ 
             if metric == 'std':
                 ax.set_xlabel('ADC RMS')
                 plt.savefig('tile-id-'+str(tile_id)+'-1d-std.png')
-            if metric == 'rate':
+
+            if metric == 'rate':             
                 ax.set_xlabel('Trigger Rate [Hz]')
                 plt.savefig('tile-id-'+str(tile_id)+'-1d-rate.png')
 
+                min_rate = min(num for num in a if num != 0)
+                rate_range = max(a)-min_rate
+                
+                channel_count = 0
+                for i in range(len(a)):
+                    if a[i] > periodic_trigger_cycles:
+                        channel_count +=1
+
+                print(f"Non-Zero data rates fall within range [{min_rate:.2f}MHz, {max(a):.2f}MHz]")
+                if channel_count > 0:
+                    
+                    print(f"####### Consider disabling {channel_count} channels w data rate > periodic_trigger_cycles ({periodic_trigger_cycles}MHz)\n")
 
 def plot_xy(d, metric, geometry_yaml, normalization, filename):
 
@@ -159,9 +214,9 @@ def plot_xy(d, metric, geometry_yaml, normalization, filename):
             if not np.any(mask):
                 continue
 
-            print('studying tile {}'.format(tile_id))
+            #print('studying tile {}'.format(tile_id))
             d_keys = np.array(list(d.keys()))[mask]
-            print(len(d_keys))
+            #print(len(d_keys))
 
             fig, ax = plt.subplots(figsize=(16, 10))
             ax.set_aspect('equal')
@@ -244,17 +299,20 @@ def main(filename=_default_filename,
 
     if metric == '':
         # plot all
+        
         # mean
         normalization = 400
         metric = 'mean'
         plot_xy(d, metric, geometry_yaml, normalization, filename)
         plot_1d(d, metric)
-        # mean
+        
+        # std
         normalization = 5
         metric = 'std'
         plot_xy(d, metric, geometry_yaml, normalization, filename)
         plot_1d(d, metric)
-        # mean
+
+        # rate
         normalization = 1
         metric = 'rate'
         plot_xy(d, metric, geometry_yaml, normalization, filename)

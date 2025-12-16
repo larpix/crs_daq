@@ -7,9 +7,9 @@ import json
 from config_dtime import datetime_now
 
 _default_verbose=False
-_default_periodic_trigger_cycles=100000
-_default_periodic_reset_cycles=4
-_default_vref_dac=220 ###cold 223 ### warm 185
+_default_periodic_trigger_cycles=400000
+_default_periodic_reset_cycles=4 #409600
+_default_vref_dac=None ###cold 223 ### warm 185
 _default_vcm_dac=None ### cold 68 ### warm 50
 _default_ref_current_trim=0
 _default_tx_diff=0
@@ -34,27 +34,15 @@ def main(input_files, verbose, \
         for file in input_files:
             config={}
             with open(file, 'r') as f: config=json.load(f)
-            config['adc_comp_trim'] = 2
-            config['adc_ibias_delay'] = 7
-            config['cds_mode'] = 0
-            config['channel_mask'] = [1]*64
-            config['csa_enable'] = [1]*64
-            config['dropped_packets'] = 15
-            config['enable_data_stats'] = 0
-            config['enable_external_sync'] = 1 # for this variable set 0 to enable or 1 to disable
-            config['enable_external_trigger'] = 0            
-            config['enable_hit_veto']=1
-            config['enable_periodic_reset']=1
-            config['enable_periodic_trigger']=1
-            config['enable_periodic_trigger_veto']=0 
-            config['enable_rolling_periodic_reset']=1
+            config['enable_periodic_trigger']=1           
             config['enable_rolling_periodic_trigger']=1
-            config['enable_tally']=1
-            config['ibias_vcm_buffer'] = 7            
-            config['mark_first_packet'] = 0
-            config['periodic_trigger_mask'] = [0]*64 
-            config['threshold_global'] = 220
-
+            config['enable_periodic_reset']=1
+            config['enable_rolling_periodic_reset']=1
+            config['enable_hit_veto']=0
+            config['enable_periodic_trigger_veto']=0
+            config['enable_tally']=1 
+            config['periodic_trigger_mask']=[0]*64
+            config['threshold_global'] = 255
             # if not vcm_dac is None:  config['vcm_dac'] = vcm_dac
             if not vref_dac is None: config['vref_dac'] = vref_dac
             config['periodic_trigger_cycles'] = periodic_trigger_cycles
