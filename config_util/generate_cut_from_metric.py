@@ -48,7 +48,7 @@ def parse_file(filename, max_entries=-1):
     unixtime = f['packets'][:]['timestamp'][f['packets']
                                             [:]['packet_type'] == 4]
     livetime = np.max(unixtime)-np.min(unixtime)
-    data_mask = f['packets'][:]['packet_type'] == 0
+    data_mask = f['packets'][:]['packet_type'] == 1
     valid_parity_mask = f['packets'][:]['valid_parity'] == 1
     mask = np.logical_and(data_mask, valid_parity_mask)
     adc = f['packets']['dataword'][mask][:max_entries]
@@ -88,7 +88,11 @@ def apply_cut_generate_disabled(d, metric, cut, polarity, file):
     disabled_list = {}
     
     timestamp=datetime_now()
-    fname='cut-'+timestamp+'.json'
+    if not polarity:
+        fname='cut-'+timestamp+'_'+metric+'.json'
+    else:
+        fname='cut-'+timestamp+'_'+metric+'_below.json'
+
     disabled_list['meta']={ \
             fname : {\
             'metric'   : metric,
@@ -152,7 +156,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--filename', default=_default_filename, type=str, help='''HDF5 fielname''')
     parser.add_argument('--cut', default=None, type=float, help='''Value to apply cut''')
-    parser.add_argument('--polarity', default=False, action='store_true', help='''Cut BELOW cut value. Default behavior to cut above.''')
+    parser.add_argument('--polarity', default=False, action='store_true', help='''Cut BELOW cut value. No argument needed. Default behavior to cut above.''')
     parser.add_argument('--metric', default=_default_metric, type=str, help='''metric to plot; options: 'mean', 'std', 'rate' ''')
     args = parser.parse_args()
     main(**vars(args))

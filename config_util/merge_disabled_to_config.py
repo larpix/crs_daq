@@ -22,11 +22,12 @@ def parse_disabled_json(disabled_json):
     meta = None
     if 'meta' in disabled_list.keys():
         meta = disabled_list['meta']
-    
+
     return channel_masks, meta
 
 def main(*files, disabled_json, **kwargs):
         channel_masks, meta =parse_disabled_json(disabled_json)
+        
         for file in files:
                 config={}
                 with open(file, 'r') as f: config=json.load(f)
@@ -35,10 +36,12 @@ def main(*files, disabled_json, **kwargs):
                 version = config['meta']['ASIC_VERSION']
 
                 if chip_key in channel_masks.keys():
+                    
                     if not 'channel_mask' in config.keys(): config['channel_mask']=[1]*64
                     _s = sum(config['channel_mask'])
                     mask = np.array(config['channel_mask'])+np.array(channel_masks[chip_key]) 
                     config['channel_mask'] = [1 if val>0 else 0 for val in mask]
+                    
                     if not 'periodic_trigger_mask' in config.keys(): config['periodic_trigger_mask']=[1]*64
                     mask = np.array(config['periodic_trigger_mask'])+np.array(channel_masks[chip_key])
                     config['periodic_trigger_mask'] = [1 if val>0 else 0 for val in mask]
@@ -47,7 +50,6 @@ def main(*files, disabled_json, **kwargs):
                             config['channel_mask'][channel]=1
                     print(chip_key, ': disabled', sum(config['channel_mask'])-_s, 'keys')
                     config['csa_enable']=[1 if val==0 else 0 for val in channel_masks[chip_key]]
-
                 
                 if 'meta' in config.keys():
                     config['meta']['last_update'] = datetime_now()
