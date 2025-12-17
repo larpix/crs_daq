@@ -30,7 +30,7 @@ for var in RUN.config.keys():
 
 _default_file_prefix = None
 _default_disable_logger = True
-_default_verbose = True
+_default_verbose = False
 _default_v_cm_lvds_tx = 5
 _default_tx_diff = 7
 _default_tx_slice = 15
