@@ -14,7 +14,7 @@ import tqdm
 
 _default_filename=None
 
-_default_metric='mean'
+_default_metric='rate'
 _default_std_cut =2
 _default_mean_cut=50
 _default_rate_cut=10
@@ -47,16 +47,17 @@ def parse_file(filename, max_entries=-1):
     f = h5py.File(filename, 'r')
     unixtime = f['packets'][:]['timestamp'][f['packets']
                                             [:]['packet_type'] == 4]
-    livetime = np.max(unixtime)-np.min(unixtime)
-    data_mask = f['packets'][:]['packet_type'] == 0
-    valid_parity_mask = f['packets'][:]['valid_parity'] == 1
-    mask = np.logical_and(data_mask, valid_parity_mask)
+    livetime = np.max(unixtime)-np.min(unixtime)    
+    mask = f['packets'][:]['packet_type'] == 1
+    #valid_parity_mask = f['packets'][:]['valid_parity'] == 1
+    #mask = np.logical_and(data_mask, valid_parity_mask)
     adc = f['packets']['dataword'][mask][:max_entries]
     unique_id = unique_channel_id(f['packets'][mask][:max_entries])
     unique_id_set = np.unique(unique_id)
     chips = f['packets']['chip_id'][mask][:max_entries]
 
-    print("Number of packets in parsed files =", len(unique_id))
+    print(f"\nThere were {len(adc)} datapackets in file {filename}\n")
+
     for chip in tqdm.tqdm(range(11, 111), desc='parsing data...'):
         _iomask = chips==chip
         _adc = adc[_iomask]
@@ -135,6 +136,11 @@ def main(filename=_default_filename,
          polarity=False,
          **kwargs):
 
+    if not polarity:
+        print(f'\nApplying {metric} cuts above {cut} using data from file {filename}\n') 
+    else:
+        print(f'\nApplying {metric} cuts below {cut} using data from file {filename}\n')
+    
     d = parse_file( filename )
 
     if cut is None:
