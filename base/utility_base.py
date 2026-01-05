@@ -365,7 +365,7 @@ def reconcile_registers(c, chip_key_register_pairs, verbose, timeout=0.1,
     ok, diff = c.enforce_registers(chip_key_register_pairs, timeout=timeout,
                                    connection_delay=connection_delay,
                                    n=n, n_verify=n_verify)
-    if not ok:
+    if not ok and verbose:
         print(diff)
     # print(c.reads[-1])
     # if diff != {}:

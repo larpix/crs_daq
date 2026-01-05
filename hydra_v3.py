@@ -148,7 +148,7 @@ def main(io_group, file_prefix=_default_file_prefix,
                     json.dump(d, controller_config, indent=4)
 
                     print('Writing to controller_config.json')
-            print('Time elapsed: ', end-start, ' s.')
+            if verbose: print('Time elapsed: ', end-start, ' s.')
             return c, c.io
 
 

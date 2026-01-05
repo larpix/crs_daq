@@ -122,15 +122,15 @@ def setup_root(c, io, io_group, io_channel, chip_id, verbose, asic_version,
 
     chip_key = configure_chip_id(
         c, io_group, io_channel, chip_id, asic_version)
-    print('Setting up root: ', chip_key)
+    if verbose: print('Setting up root: ', chip_key)
     asic_base.disable_chip_csa_trigger(c, chip_key)
     configure_root_chip(c, chip_key, asic_version, v_cm_lvds_tx,
                         tx_diff, tx_slice, r_term, i_rx)
 
     pacman_base.enable_pacman_uart_from_io_channel(io, io_group, io_channel)
 
-    print('reconcile config')
-    print(chip_key, 'downstream enabled:',
+    if verbose: print('reconcile config')
+    if verbose: print(chip_key, 'downstream enabled:',
           c[chip_key].config.enable_piso_downstream)
     ok, diff = utility_base.reconcile_configuration(c, chip_key, verbose)
     if ok:
@@ -198,7 +198,7 @@ def read(c, key, param):
             continue
         if msg.packet_type not in [larpix.packet.packet_v3.Packet_v3.CONFIG_READ_PACKET]:
             continue
-        print(msg)
+        if verbose: print(msg)
         # return msg.chip_id
     return 0
 
@@ -226,7 +226,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
             cnt_unconfigured = len(waitlist)
             print('Parent ', root, ' failed to configure')
             continue
-        print(root, '\tconfigured: ', cnt_configured,
+        if verbose: print(root, '\tconfigured: ', cnt_configured,
               '\t unconfigured: ', cnt_unconfigured)
         pacman_base.disable_all_pacman_uart(io, io_group)
 
@@ -244,7 +244,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
                 excluded = False
                 daughter_id = find_daughter_id(parent_piso_us, last_chip_id,
                                                root.io_channel)
-                print('LOOKING AT DAUGHTER: ', daughter_id)
+                if verbose: print('LOOKING AT DAUGHTER: ', daughter_id)
                 # UGLY HACK
                 if (last_chip_id, daughter_id) not in last_daughter:
                     last_daughter.append((last_chip_id, daughter_id))
@@ -308,7 +308,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
                                                         daughter.chip_id,
                                                         waitlist)
                     cnt_unconfigured = len(waitlist)
-                    print(daughter, '\tconfigured: ', cnt_configured,
+                    if verbose: print(daughter, '\tconfigured: ', cnt_configured,
                           '\t unconfigured: ', cnt_unconfigured)
                     bail = True
                     continue
@@ -338,7 +338,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
 
                 if ok:
                     cnt_configured += 1
-                    print(daughter, '\tconfigured: ', cnt_configured,
+                    if verbose: print(daughter, '\tconfigured: ', cnt_configured,
                           '\t unconfigured: ', cnt_unconfigured)
                     ok_daughters.append(daughter.chip_id)
                     # last_chip_id = daughter.chip_id
@@ -369,7 +369,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
                 last_chip_id = ok_daughters[len(ok_daughters)//2]
                 # last_chip_id = ok_daughters[0]
             else:
-                print('STOPPING AT: ', last_chip_id)
+                if verbose: print('STOPPING AT: ', last_chip_id)
         firstIteration = False
     return
 
@@ -390,7 +390,7 @@ def initial_network_from_root(c, io, io_group, root_key, verbose, asic_version,
         cnt_unconfigured = len(waitlist)
         print('Parent ', root_key, ' failed to configure')
         return
-    print(root_key, '\tconfigured: ', cnt_configured,
+    if verbose: print(root_key, '\tconfigured: ', cnt_configured,
           '\t unconfigured: ', cnt_unconfigured)
     pacman_base.disable_all_pacman_uart(io, io_group)
 
@@ -431,7 +431,7 @@ def initial_network_from_root(c, io, io_group, root_key, verbose, asic_version,
                                                     daughter.chip_id,
                                                     waitlist)
                 cnt_unconfigured = len(waitlist)
-                print(daughter, '\tconfigured: ', cnt_configured,
+                if verbose: print(daughter, '\tconfigured: ', cnt_configured,
                       '\t unconfigured: ', cnt_unconfigured)
                 bail = True
                 continue
@@ -445,7 +445,7 @@ def initial_network_from_root(c, io, io_group, root_key, verbose, asic_version,
 
             if ok:
                 cnt_configured += 1
-                print(daughter, '\tconfigured: ', cnt_configured,
+                if verbose: print(daughter, '\tconfigured: ', cnt_configured,
                       '\t unconfigured: ', cnt_unconfigured)
             if not ok:
                 print('\t\t==> DAUGHTER ', daughter,
@@ -465,7 +465,7 @@ def initial_network_from_root(c, io, io_group, root_key, verbose, asic_version,
                     bail = True
                 if parent_piso_us != 0:
                     cnt_unconfigured = len(waitlist)
-                    print(daughter, '\tconfigured: ', cnt_configured,
+                    if verbose: print(daughter, '\tconfigured: ', cnt_configured,
                           '\t unconfigured ', cnt_unconfigured)
             pacman_base.disable_all_pacman_uart(io, io_group)
             last_chip_id = daughter.chip_id
@@ -504,7 +504,7 @@ def find_potential_parents(chip_id, network, verbose):
 # @timebudget
 def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,
                      v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx, exclude=None, exclude_links=None):
-    print('\n\n----- Iterating waitlist ----\n')
+    if verbose: print('\n\n----- Iterating waitlist ----\n')
     flag = True
     outstanding = []
     while flag == True:
@@ -558,7 +558,7 @@ def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,
                                                           r_term, i_rx)
                 if ok:
                     waitlist.remove(chip_id)
-                    print('WAITLIST RESOLVED\t', daughter)
+                    if verbose: print('WAITLIST RESOLVED\t', daughter)
                     break
                 if not ok:
                     print('\t\t==> DAUGHTER ', daughter,
@@ -577,7 +577,7 @@ def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,
             print('\n', len(waitlist), ' NON-CONFIGURED chips\n', waitlist, '\n')
             flag = False
         else:
-            print('\n\n*****RE-TESTING ', len(waitlist), ' CHIPS\n', waitlist)
+            if verbose: print('\n\n*****RE-TESTING ', len(waitlist), ' CHIPS\n', waitlist)
     return outstanding
 
 
@@ -700,7 +700,7 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
     if file_prefix != None:
         fname = file_prefix+'-hydra-network.json'
     if file_prefix == None:
-        fname = 'network-'+now+'.json'
+        fname = 'network-'+now+'.json' 
     with open(fname, 'w') as out:
         json.dump(d, out, indent=4)
     print('network JSON: ', fname)

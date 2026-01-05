@@ -18,7 +18,7 @@ _default_geometry_yaml = 'analysis/layout-3.0.0.yaml'
 _default_metric = ''
 
 pitch = 3.8  # mm
-periodic_trigger_cycles = 0.4  # MHz
+periodic_trigger_cycles = 0.067 # MHz
 
 verbose = True
 
@@ -26,32 +26,17 @@ def unique_channel_id(d):
     return ((d['io_group'].astype(int)*1000+d['io_channel'].astype(int))*1000
             + d['chip_id'].astype(int))*100 + d['channel_id'].astype(int)
 
-
-
-
 def unique_to_channel_id(unique):
     return unique % 100
-
-
-
 
 def unique_to_chip_id(unique):
     return (unique // 100) % 1000
 
-
-
-
 def unique_to_io_channel(unique):
     return (unique//(100*1000)) % 1000
 
-
-
-
 def unique_to_tiles(unique):
     return ((unique_to_io_channel(unique)-1) // 4) + 1
-
-
-
 
 def unique_to_io_group(unique):
     return (unique // (100*1000*1000)) % 1000
@@ -119,19 +104,17 @@ def plot_1d(d, metric):
             non_zero_a = [x for x in a if x != 0]
             std_metric = stdev(non_zero_a)             
         
-           
-
             if metric == 'mean':
                 metric_name = 'adc_mean_per_channel'            
             elif metric == 'std':
                 metric_name = 'adc_std_per_channel'               
             else:
-                mode_metric = mode(a)
-                mean_metric = mean(a)            
-                std_metric  = stdev(a) 
-                
                 metric_name = 'data_rate_per_channel'
                 
+            mode_metric = mode(a)
+            mean_metric = mean(a)            
+            std_metric  = stdev(a) 
+                    
             print(f"\n{metric_name }: mode ({mode_metric:.2f}), stdev ({std_metric:.2f}), mean ({mean_metric:.2f})")
 
             ax.hist(a, bins=np.linspace(min_bin, max_bin, n_bins))
@@ -141,7 +124,7 @@ def plot_1d(d, metric):
             ax.set_title(f'Tile ID {tile_id} (mode = {mode_metric:.1f})')
             ax.set_yscale('log')
             plt.text(0.95, 1.01, 'LArPix', ha='center',
-                     va='center', transform=ax.transAxes)        
+                         va='center', transform=ax.transAxes)        
             
             if metric == 'mean':
                 ax.set_xlabel('ADC Mean')
@@ -167,10 +150,11 @@ def plot_1d(d, metric):
             if metric == 'std':
                 ax.set_xlabel('ADC RMS')
                 plt.savefig('tile-id-'+str(tile_id)+'-1d-std.png')
-
+                plt.close()
             if metric == 'rate':             
                 ax.set_xlabel('Trigger Rate [Hz]')
                 plt.savefig('tile-id-'+str(tile_id)+'-1d-rate.png')
+                plt.close()
 
                 min_rate = min(num for num in a if num != 0)
                 rate_range = max(a)-min_rate
@@ -273,15 +257,17 @@ def plot_xy(d, metric, geometry_yaml, normalization, filename):
                 ax.set_title(filename+'\nTile ID '+tile_id+'\nADC Mean')
                 colorbar.set_label('[ADC]')
                 plt.savefig('tile-id-'+str(tile_id)+'-xy-mean.png')
+                plt.close()
             if metric == 'std':
                 ax.set_title(filename+'\nTile ID '+tile_id+'\nADC RMS')
                 colorbar.set_label('[ADC]')
                 plt.savefig('tile-id-'+str(tile_id)+'-xy-std.png')
+                plt.close()
             if metric == 'rate':
                 ax.set_title(filename+'\nTile ID '+tile_id+'\nTrigger Rate')
                 colorbar.set_label('[Hz]')
                 plt.savefig('tile-id-'+str(tile_id)+'-xy-rate.png')
-
+                plt.close()
 
 def main(filename=_default_filename,
          geometry_yaml=_default_geometry_yaml,
@@ -291,32 +277,32 @@ def main(filename=_default_filename,
     d = parse_file(filename)
     normalization = 50
     if metric == 'mean':
-        normalization = 400
+        normalization = 800
     if metric == 'std':
-        normalization = 10
-    if metric == 'rate':
         normalization = 5
+    if metric == 'rate':
+        normalization = 4
 
     if metric == '':
         # plot all
         
         # mean
-        normalization = 400
+        normalization = 800
         metric = 'mean'
         plot_xy(d, metric, geometry_yaml, normalization, filename)
-        plot_1d(d, metric)
+        #plot_1d(d, metric)
         
         # std
         normalization = 5
         metric = 'std'
         plot_xy(d, metric, geometry_yaml, normalization, filename)
-        plot_1d(d, metric)
+        #plot_1d(d, metric)
 
         # rate
-        normalization = 1
+        normalization = 4
         metric = 'rate'
         plot_xy(d, metric, geometry_yaml, normalization, filename)
-        plot_1d(d, metric)
+        #plot_1d(d, metric)
 
         metric = ''
         return

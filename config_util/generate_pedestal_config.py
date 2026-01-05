@@ -1,3 +1,8 @@
+######################################################################################
+# these settings configure the v3a larpix chips for a pedestal run. Additional configs
+# are set in /larpix-control/larpix//configs/chip/default_v3.py
+#######################################################################################
+
 import larpix
 import larpix.io
 import argparse
@@ -7,10 +12,9 @@ import json
 from config_dtime import datetime_now
 
 _default_verbose=False
-_default_periodic_trigger_cycles=100000
+_default_periodic_trigger_cycles=150000
 _default_periodic_reset_cycles=4
-_default_vref_dac=220 ###cold 223 ### warm 185
-_default_vcm_dac=None ### cold 68 ### warm 50
+_default_vref_dac=185 ###cold 220 ### warm 185
 _default_ref_current_trim=0
 _default_tx_diff=0
 _default_tx_slice=15
@@ -18,12 +22,10 @@ _default_r_term=2
 _default_i_rx=8
 
 
-
 def main(input_files, verbose, \
          periodic_trigger_cycles=_default_periodic_trigger_cycles, \
          periodic_reset_cycles=_default_periodic_reset_cycles, \
          vref_dac=_default_vref_dac, \
-         vcm_dac=_default_vcm_dac, \
          ref_current_trim=_default_ref_current_trim, \
          tx_diff=_default_tx_diff, \
          tx_slice=_default_tx_slice, \
@@ -34,7 +36,6 @@ def main(input_files, verbose, \
         for file in input_files:
             config={}
             with open(file, 'r') as f: config=json.load(f)
-            config['adc_comp_trim'] = 2
             config['adc_ibias_delay'] = 7
             config['cds_mode'] = 0
             config['channel_mask'] = [1]*64
@@ -53,9 +54,8 @@ def main(input_files, verbose, \
             config['ibias_vcm_buffer'] = 7            
             config['mark_first_packet'] = 0
             config['periodic_trigger_mask'] = [0]*64 
-            config['threshold_global'] = 220
+            config['threshold_global'] = 255
 
-            # if not vcm_dac is None:  config['vcm_dac'] = vcm_dac
             if not vref_dac is None: config['vref_dac'] = vref_dac
             config['periodic_trigger_cycles'] = periodic_trigger_cycles
             config['periodic_reset_cycles'] = periodic_reset_cycles
@@ -78,8 +78,6 @@ if __name__=='__main__':
                         help='''Periodic reset cycles [MCLK]''')
     parser.add_argument('--vref_dac', default=_default_vref_dac, type=int, \
                         help='''Vref DAC''')
-    parser.add_argument('--vcm_dac', default=_default_vcm_dac, type=int, \
-                        help='''Vcm DAC''')
     parser.add_argument('--ref_current_trim', \
                         default=_default_ref_current_trim, \
 	                    type=int, \
@@ -106,7 +104,6 @@ if __name__=='__main__':
             periodic_trigger_cycles=args.periodic_trigger_cycles, \
             periodic_reset_cycles=args.periodic_reset_cycles, \
             vref_dac=args.vref_dac, \
-            vcm_dac=args.vcm_dac, \
             ref_current_trim=args.ref_current_trim, \
             tx_diff=args.tx_diff, \
             tx_slice=args.tx_slice, \
