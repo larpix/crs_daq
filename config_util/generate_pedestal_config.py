@@ -42,6 +42,8 @@ def main(input_files, verbose, \
             config['enable_periodic_trigger_veto']=0
             config['periodic_trigger_mask']=[0]*64
             config['threshold_global'] = 255
+            config['csa_enable']=[1]*64
+            config['channel_mask']=[1]*64
             # if not vcm_dac is None:  config['vcm_dac'] = vcm_dac
             if not vref_dac is None: config['vref_dac'] = vref_dac
             config['periodic_trigger_cycles'] = periodic_trigger_cycles

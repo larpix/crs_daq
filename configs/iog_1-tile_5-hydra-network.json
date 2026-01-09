@@ -1,0 +1,85 @@
+{
+    "_config_type": "controller",
+    "name": "iog_1-tile_5",
+    "asic_version": 3,
+    "layout": "2.5.1",
+    "network": {
+        "1": {
+            "17": {
+                "nodes": [
+                    {
+                        "chip_id": "ext",
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            null
+                        ],
+                        "root": true
+                    }
+                ]
+            },
+            "18": {
+                "nodes": [
+                    {
+                        "chip_id": "ext",
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            null
+                        ],
+                        "root": true
+                    }
+                ]
+            },
+            "19": {
+                "nodes": [
+                    {
+                        "chip_id": "ext",
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            null
+                        ],
+                        "root": true
+                    }
+                ]
+            },
+            "20": {
+                "nodes": [
+                    {
+                        "chip_id": "ext",
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            null
+                        ],
+                        "root": true
+                    }
+                ]
+            }
+        },
+        "miso_us_uart_map": [
+            3,
+            2,
+            1,
+            0
+        ],
+        "miso_ds_uart_map": [
+            1,
+            0,
+            3,
+            2
+        ],
+        "mosi_uart_map": [
+            2,
+            1,
+            0,
+            3
+        ]
+    },
+    "missing": {}
+}

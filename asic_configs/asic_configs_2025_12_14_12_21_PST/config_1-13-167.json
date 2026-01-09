@@ -1,0 +1,29 @@
+{
+    "chip_id": 167,
+    "enable_piso_upstream": [
+        1,
+        0,
+        0,
+        0
+    ],
+    "enable_piso_downstream": [
+        0,
+        0,
+        1,
+        0
+    ],
+    "enable_posi": [
+        0,
+        1,
+        0,
+        1
+    ],
+    "meta": {
+        "CHIP_KEY": "1-13-167",
+        "ASIC_ID": "1-4-167",
+        "ASIC_VERSION": 3,
+        "description": "default",
+        "created": "2025_12_14_12_21_PST",
+        "last_update": "2025_12_14_12_21_PST"
+    }
+}

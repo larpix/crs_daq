@@ -6,6 +6,7 @@ import json
 import time
 from base import pacman_base
 import numpy as np
+from copy import deepcopy
 # from timebudget import timebudget
 # import asyncio
 
@@ -377,7 +378,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
 def try_establish_link(c, io, io_group, root, parent_id, daughter_id, verbose, asic_version,
                     v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx, exclude=None, exclude_links=None):
 
-    #Break if daughter ASIC is excluded
+    #Check if daughter ASIC is excluded
     if daughter_id in exclude[ str(utility_base.io_channel_to_tile(root.io_channel)) ]:
         print('bailing due to excluded chip!')
         return False
@@ -385,7 +386,7 @@ def try_establish_link(c, io, io_group, root, parent_id, daughter_id, verbose, a
         print('last chip id: ', parent_id,
                 '\tdaughter chip id: ', daughter_id)
 
-    #Break if vertical link from parent to daughter is excluded
+    #Check if link from parent to daughter is excluded
     skip_link = False
     for link in exclude_links[str(utility_base.io_channel_to_tile(root.io_channel))]:
         if link[0] == parent_id and link[1] == daughter_id:
@@ -436,6 +437,7 @@ def try_establish_link(c, io, io_group, root, parent_id, daughter_id, verbose, a
         return False
 
     return True
+
 
 #Draw left-right symmetric, mostly vertical networks
 def initial_pitchfork_network(c, io, io_group, root_keys, verbose, asic_version,
@@ -817,6 +819,269 @@ def iterate_waitlist_linear(c, io, io_group, io_channels, root_ids, verbose, asi
         else:
             print('\n\n*****RE-TESTING ', len(waitlist), ' CHIPS\n', waitlist)
     return outstanding
+    
+
+#Iteratively test all links on tile by drawing a series of loop networks CW and CCW from root
+def test_all_links(c, io, io_group, root_keys, verbose, asic_version,
+                    v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx, exclude=None, exclude_links=None):
+    root_ioc = [rk.io_channel for rk in root_keys]
+
+    for root in root_keys:
+
+        pacman_base.enable_pacman_uart_from_io_channel(io, io_group, root.io_channel)
+        ok, diff = utility_base.reconcile_configuration(c, root, verbose)
+        if not ok:
+            print('Parent ', root, ' failed to configure')
+            continue
+        pacman_base.disable_all_pacman_uart(io, io_group)
+
+        right_half = (root.chip_id > 90)
+
+        #Scan columns left [0] and right [1] of root, mirror if right_half
+        column_min_max = [[1,1], [0,2], [0,3]]
+        for column_min, column_max in column_min_max:
+            for row_max in range(1,10):
+                #loop_direction = ( Network root to max column? )
+                for loop_direction in [False, True]:
+                    print(f'Starting loop network\nroot: {root.chip_id}\ncolumn_min,max: {column_min,column_max}\nrow_max: {row_max}\nloop_direction: {loop_direction}')
+                    bail = False
+                    last_chip_id = root.chip_id
+                    direction = (-1)**(right_half + loop_direction)
+                    print(right_half, loop_direction, direction)
+                    if loop_direction:
+                        x_steps_1 = column_max
+                        y_steps_1 = row_max
+                        y_steps_2 = row_max-1 if (column_min==0) else row_max
+                        x_steps_3 = 0
+                    else:
+                        x_steps_1 = column_min
+                        y_steps_1 = row_max
+                        y_steps_2 = row_max
+                        x_steps_3 = column_max - 1
+                    x_steps_2 = column_min + column_max
+
+                    #Lateral move from root to min/max column
+                    for x_step in range(x_steps_1):
+                        daughter_id = last_chip_id - (10*direction)
+                        ok = try_establish_link(c, io, io_group, root, last_chip_id, daughter_id, verbose, asic_version,
+                            v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx, exclude, exclude_links)
+                        if ok:
+                            last_chip_id = daughter_id
+                        else:
+                            print(f'Failed to link chip {last_chip_id} to {daughter_id}! Skipping to next loop')
+                            bail = True
+                            break
+                    if bail:
+                        #Clear network and prepare for next loop network
+                        network_keys = c.get_network_keys(io_group, root.io_channel, root_first_traversal=False)
+                        for i in range(len(network_keys)):
+                            key = network_keys[i]
+                        # for key in network_keys:
+                            if key not in root_keys:
+                                parent_key = network_keys[i+1]
+                                uart_base.reset_uarts(c, key, verbose)
+                                uart_base.disable_parent_piso_us(c, parent_key, key,
+                                                                    verbose, tx_diff,
+                                                                    tx_slice)
+                                uart_base.disable_parent_posi(c, parent_key, key,
+                                                                verbose)
+                                # c.reset_network(io_group, root.io_channel, key.chip_id)
+                                c.remove_chip(key)
+                        continue
+                    
+
+                    #Step down from root row to row_max
+                    for y_step in range(y_steps_1):
+                        daughter_id = last_chip_id + 1
+                        ok = try_establish_link(c, io, io_group, root, last_chip_id, daughter_id, verbose, asic_version,
+                            v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx, exclude, exclude_links)
+                        if ok:
+                            last_chip_id = daughter_id
+                        else:
+                            print(f'Failed to link chip {last_chip_id} to {daughter_id}! Skipping to next loop')
+                            bail = True
+                            break
+                    if bail:
+                        #Clear network and prepare for next loop network
+                        network_keys = c.get_network_keys(io_group, root.io_channel, root_first_traversal=False)
+                        for i in range(len(network_keys)):
+                            key = network_keys[i]
+                        # for key in network_keys:
+                            if key not in root_keys:
+                                parent_key = network_keys[i+1]
+                                uart_base.reset_uarts(c, key, verbose)
+                                uart_base.disable_parent_piso_us(c, parent_key, key,
+                                                                    verbose, tx_diff,
+                                                                    tx_slice)
+                                uart_base.disable_parent_posi(c, parent_key, key,
+                                                                verbose)
+                                # c.reset_network(io_group, root.io_channel, key.chip_id)
+                                c.remove_chip(key)
+                        continue
+
+                    #Lateral move from min/max column to max/min column
+                    for x_step in range(x_steps_2):
+                        daughter_id = last_chip_id + (10*direction)
+                        ok = try_establish_link(c, io, io_group, root, last_chip_id, daughter_id, verbose, asic_version,
+                            v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx, exclude, exclude_links)
+                        if ok:
+                            last_chip_id = daughter_id
+                        else:
+                            print(f'Failed to link chip {last_chip_id} to {daughter_id}! Skipping to next loop')
+                            bail = True
+                            break
+                    if bail:
+                        #Clear network and prepare for next loop network
+                        network_keys = c.get_network_keys(io_group, root.io_channel, root_first_traversal=False)
+                        for i in range(len(network_keys)):
+                            key = network_keys[i]
+                        # for key in network_keys:
+                            if key not in root_keys:
+                                parent_key = network_keys[i+1]
+                                uart_base.reset_uarts(c, key, verbose)
+                                uart_base.disable_parent_piso_us(c, parent_key, key,
+                                                                    verbose, tx_diff,
+                                                                    tx_slice)
+                                uart_base.disable_parent_posi(c, parent_key, key,
+                                                                verbose)
+                                # c.reset_network(io_group, root.io_channel, key.chip_id)
+                                c.remove_chip(key)
+                        continue
+
+
+                    #Back up to the top
+                    for y_step in range(y_steps_2):
+                        daughter_id = last_chip_id - 1
+                        ok = try_establish_link(c, io, io_group, root, last_chip_id, daughter_id, verbose, asic_version,
+                            v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx, exclude, exclude_links)
+                        if ok:
+                            last_chip_id = daughter_id
+                        else:
+                            print(f'Failed to link chip {last_chip_id} to {daughter_id}! Skipping to next loop')
+                            bail = True
+                            break
+                    if bail:
+                        #Clear network and prepare for next loop network
+                        network_keys = c.get_network_keys(io_group, root.io_channel, root_first_traversal=False)
+                        for i in range(len(network_keys)):
+                            key = network_keys[i]
+                        # for key in network_keys:
+                            if key not in root_keys:
+                                parent_key = network_keys[i+1]
+                                uart_base.reset_uarts(c, key, verbose)
+                                uart_base.disable_parent_piso_us(c, parent_key, key,
+                                                                    verbose, tx_diff,
+                                                                    tx_slice)
+                                uart_base.disable_parent_posi(c, parent_key, key,
+                                                                verbose)
+                                # c.reset_network(io_group, root.io_channel, key.chip_id)
+                                c.remove_chip(key)
+                        continue
+
+
+                    #Lateral move if necessary, end next to root
+                    for x_steps in range(x_steps_3):
+                        daughter_id = last_chip_id - (10.*direction)
+                        ok = try_establish_link(c, io, io_group, root, last_chip_id, daughter_id, verbose, asic_version,
+                            v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx, exclude, exclude_links)
+                        if ok:
+                            last_chip_id = daughter_id
+                        else:
+                            print(f'Failed to link chip {last_chip_id} to {daughter_id}! Skipping to next loop')
+                            break
+                    if bail:
+                        #Clear network and prepare for next loop network
+                        network_keys = c.get_network_keys(io_group, root.io_channel, root_first_traversal=False)
+                        for i in range(len(network_keys)):
+                            key = network_keys[i]
+                        # for key in network_keys:
+                            if key not in root_keys:
+                                parent_key = network_keys[i+1]
+                                uart_base.reset_uarts(c, key, verbose)
+                                uart_base.disable_parent_piso_us(c, parent_key, key,
+                                                                    verbose, tx_diff,
+                                                                    tx_slice)
+                                uart_base.disable_parent_posi(c, parent_key, key,
+                                                                verbose)
+                                # c.reset_network(io_group, root.io_channel, key.chip_id)
+                                c.remove_chip(key)
+                        continue
+
+
+                    print(f'Successful loop network!\nroot: {root.chip_id}\ncolumn_min,max: {column_min,column_max}\nrow_max: {row_max}\nloop_direction: {loop_direction}')
+                    #Clear network and prepare for next loop network
+                    network_keys = c.get_network_keys(io_group, root.io_channel, root_first_traversal=False)
+                    for i in range(len(network_keys)):
+                        key = network_keys[i]
+                    # for key in network_keys:
+                        if key not in root_keys:
+                            parent_key = network_keys[i+1]
+                            uart_base.reset_uarts(c, key, verbose)
+                            uart_base.disable_parent_piso_us(c, parent_key, key,
+                                                                verbose, tx_diff,
+                                                                tx_slice)
+                            uart_base.disable_parent_posi(c, parent_key, key,
+                                                            verbose)
+                            # c.reset_network(io_group, root.io_channel, key.chip_id)
+                            c.remove_chip(key)
+
+
+    return
+
+# Assuming an already networked tile, test each uart on each chip
+def test_all_links_simple(c, io_group, tiles, verbose, tx_diff, tx_slice, r_term, i_rx):
+    
+    io_channels = [int(i) for i in utility_base.tile_to_io_channel(tiles)]
+
+    for io_channel in io_channels:
+        print(f'Testing io_channel {io_channel}')
+
+        network_keys = c.get_network_keys(io_group, io_channel, False)
+        print(len(network_keys))
+        for parent_key in network_keys:
+            parent_id = parent_key.chip_id
+            parent_config = deepcopy(c[parent_key].config)
+            for child_dir in [-10, -1, 1, 10]:
+                child_id  = parent_id + child_dir
+                if child_id < 11 or child_id > 170: continue
+                elif parent_id%10 == 1 and child_dir == -1: continue
+                elif parent_id%10 == 0 and child_dir == 1: continue
+                
+                child_key = larpix.key.Key(io_group, io_channel, child_id)
+                if verbose: print(f'Testing {parent_key} --> {child_key}')
+
+                child_config = None
+                if child_key in network_keys: child_config = deepcopy(c[child_key].config)
+                uart_base.enable_parent_piso_us(c,  parent_key, child_key, False, tx_diff, tx_slice)
+                uart_base.enable_daughter_posi(c, parent_key, child_key, False, r_term, i_rx)
+                uart_base.enable_daughter_piso(c, parent_key, child_key, False,tx_diff, tx_slice)
+                uart_base.enable_parent_posi(c, parent_key, child_key, False, r_term, i_rx)
+
+                enforce_ok, diff = c.enforce_configuration([parent_key, child_key], n=1, n_verify=1)
+                if enforce_ok:
+                    successes, failures = 0, 0
+                    for i in range(10):
+                        ok, diff = c.verify_configuration([parent_key, child_key], n=1)
+                        if ok: successes += 1
+                        else: failures += 1
+                    print(f'{successes} success and {failures} failures for {parent_key} --> {child_key}')
+                else:
+                    print(f'!!!!!! Failed to configure {parent_key} --> {child_key} !!!!!!')
+
+                #Reset child and parent to default network
+                if child_config:
+                    for register in child_config:
+                        setattr(c[child_key].config, register, child_config[register])
+                    c.write_configuration(child_key)
+                    c.enforce_configuration(child_key, n=1, n_verify=1)
+                else:
+                    c.remove_chip(child_key)
+                for register in parent_config:
+                    setattr(c[parent_key].config, register, parent_config[register])
+                c.write_configuration(parent_key)
+                c.enforce_configuration(parent_key, n=1, n_verify=1)
+
+    return
 
 
 # @timebudget

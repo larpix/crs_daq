@@ -1,0 +1,42 @@
+{
+	"destination_dir_"      : "/home/jssmedley/hydraDev/",
+	"asic_config_paths_file_" : ".asic_configs_.json",
+	"default_asic_config_paths_file_" : ".default_asic_configs_.json",
+	"network_config_paths_file_" : ".network_configs_.json",
+	"disabled_list_log_file_" : "disabled_list_log.json",
+	"asic_config_log_file_" : "asic_config_log.json",
+	"asic_config_dir" : "asic_configs/",
+	"log_dir" : "log/",
+	"log_filename" : ".larpix.log",
+	"monitor" : false,
+	"monitor_dir_" : "monitor/",
+	"archive_status_file" : ".archive_status",
+	
+	        "io_group_pacman_tile_" : {
+                "1":[1, 2, 3, 4]
+                    },
+
+        "iog_pacman_version_" : {
+                "1":"v1rev5"
+                    },
+
+        "io_group_asic_version_" : {
+                "1":3
+        },
+
+        "iog_exclude" : {
+                "1": {"1":[], "2":[], "3":[] , "4":[]}
+        },
+        "iog_exclude_links" : {
+
+                "1": {"1":[], "2":[], "3":[], "4":[]}
+        },
+
+        "iog_VDDD_DAC" : {
+                "1" : [28838, 28838, 28838, 28838]
+        },
+
+        "iog_VDDA_DAC" : {
+                "1" : [61092, 61092, 61092, 61092]
+        }
+}
