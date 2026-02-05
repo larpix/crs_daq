@@ -12,7 +12,7 @@ import json
 from config_dtime import datetime_now
 
 _default_verbose=False
-_default_periodic_trigger_cycles=150000
+_default_periodic_trigger_cycles=1000000
 _default_periodic_reset_cycles=4
 _default_vref_dac=185 ###cold 220 ### warm 185
 _default_ref_current_trim=0

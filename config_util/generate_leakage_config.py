@@ -40,14 +40,15 @@ def main(input_files, verbose, \
             config['cds_mode'] = 0
             config['channel_mask'] = [1]*64
             config['csa_enable'] = [1]*64
+            config['dropped_packets'] = 15
             config['enable_data_stats'] = 0
             config['enable_external_sync'] = 1 
             config['enable_external_trigger'] = 0            
             config['enable_hit_veto']=1
-            config['enable_periodic_reset']=1
+            config['enable_periodic_reset']=0
             config['enable_periodic_trigger']=1
             config['enable_periodic_trigger_veto']=0 
-            config['enable_rolling_periodic_reset']=1
+            config['enable_rolling_periodic_reset']=0
             config['enable_rolling_periodic_trigger']=1
             config['enable_tally']=1
             config['ibias_vcm_buffer'] = 7            

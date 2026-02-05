@@ -13,7 +13,7 @@ from config_dtime import datetime_now
 
 _default_verbose=False
 _default_periodic_trigger_cycles=150000
-_default_periodic_reset_cycles=4
+_default_periodic_reset_cycles=4096
 _default_vref_dac=185 ###cold 220 ### warm 185
 _default_ref_current_trim=0
 _default_tx_diff=0
@@ -37,30 +37,25 @@ def main(input_files, verbose, \
             config={}
             with open(file, 'r') as f: config=json.load(f)
             config['adc_ibias_delay'] = 7
-            config['cds_mode'] = 0
             config['channel_mask'] = [1]*64
             config['csa_enable'] = [1]*64
+            config['dropped_packets'] = 15     # this variable sets dropped packets and adc_hold_delay
             config['enable_data_stats'] = 0
             config['enable_external_sync'] = 1 
             config['enable_external_trigger'] = 0            
             config['enable_hit_veto']=1
             config['enable_periodic_reset']=1
-            config['enable_periodic_trigger']=1
-            config['enable_periodic_trigger_veto']=0 
+            config['enable_periodic_trigger']=0
             config['enable_rolling_periodic_reset']=1
-            config['enable_rolling_periodic_trigger']=1
             config['enable_tally']=1
             config['ibias_vcm_buffer'] = 7            
             config['mark_first_packet'] = 0
-            config['periodic_trigger_mask'] = [0]*64 
-            config['threshold_global'] = 255
-
+            config['threshold_global'] = 30
             if not vref_dac is None: config['vref_dac'] = vref_dac
-            config['periodic_trigger_cycles'] = periodic_trigger_cycles
             config['periodic_reset_cycles'] = periodic_reset_cycles
             if 'meta' in config.keys():
                 config['meta']['last_update'] = datetime_now()
-                config['meta']['description']  = 'pedestal'
+                config['meta']['description']  = 'gain'
 
             with open(file, 'w') as f: json.dump(config, f, indent=4)
                            

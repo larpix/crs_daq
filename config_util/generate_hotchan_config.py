@@ -38,10 +38,11 @@ def main(input_files, verbose, \
             with open(file, 'r') as f: config=json.load(f)
             config['adc_ibias_delay'] = 7
             config['cds_mode'] = 0
-            config['channel_mask'] = [1]*64
+            config['channel_mask'] = [0]*64
             config['csa_enable'] = [1]*64
+            config['dropped_packets'] = 15
             config['enable_data_stats'] = 0
-            config['enable_external_sync'] = 1 
+            config['enable_external_sync'] = 1
             config['enable_external_trigger'] = 0            
             config['enable_hit_veto']=1
             config['enable_periodic_reset']=1

@@ -12,7 +12,7 @@ import json
 from config_dtime import datetime_now
 
 _default_verbose=False
-_default_periodic_trigger_cycles=150000
+_default_periodic_trigger_cycles=10000
 _default_periodic_reset_cycles=4
 _default_vref_dac=185 ###cold 220 ### warm 185
 _default_ref_current_trim=0
@@ -39,9 +39,13 @@ def main(input_files, verbose, \
             config['adc_ibias_delay'] = 7
             config['cds_mode'] = 0
             config['channel_mask'] = [1]*64
+            config['csa_bypass_enable'] = 1
+            config['csa_bypass_select'] = [1]*64
             config['csa_enable'] = [1]*64
+            config['dropped_packets'] = 15
+            config['en_analog_monitor'] = 0
             config['enable_data_stats'] = 0
-            config['enable_external_sync'] = 1 
+            config['enable_external_sync'] = 1
             config['enable_external_trigger'] = 0            
             config['enable_hit_veto']=1
             config['enable_periodic_reset']=1
@@ -56,7 +60,7 @@ def main(input_files, verbose, \
             config['threshold_global'] = 255
 
             if not vref_dac is None: config['vref_dac'] = vref_dac
-            config['periodic_trigger_cycles'] = periodic_trigger_cycles
+            config['periodic_trigger_cycles'] = periodic_trigger_cycles + config['chip_id']
             config['periodic_reset_cycles'] = periodic_reset_cycles
             if 'meta' in config.keys():
                 config['meta']['last_update'] = datetime_now()

@@ -13,8 +13,8 @@ from config_dtime import datetime_now
 
 _default_verbose=False
 _default_periodic_trigger_cycles=150000
-_default_periodic_reset_cycles=4
-_default_vref_dac=185 ###cold 220 ### warm 185
+_default_periodic_reset_cycles=4096 #set to 4 for rolling periodic trigger, or 4096 for non-rolling trigger
+_default_vref_dac=185 # set to 220 for cold test or 185 for warm test
 _default_ref_current_trim=0
 _default_tx_diff=0
 _default_tx_slice=15
@@ -39,20 +39,22 @@ def main(input_files, verbose, \
             config['adc_ibias_delay'] = 7
             config['cds_mode'] = 0
             config['channel_mask'] = [1]*64
-            config['csa_enable'] = [1]*64
+            config['csa_enable'] = [1]*1 + [0]*63
+            config['dropped_packets'] = 15
             config['enable_data_stats'] = 0
-            config['enable_external_sync'] = 1 
-            config['enable_external_trigger'] = 0            
+            config['enable_external_sync'] = 0
+            config['enable_external_trigger'] = 1
+            config['external_trigger_mask'] = [0]*1 + [1]*63
             config['enable_hit_veto']=1
-            config['enable_periodic_reset']=1
-            config['enable_periodic_trigger']=1
+            config['enable_periodic_reset']=0
+            config['enable_periodic_trigger']=0
             config['enable_periodic_trigger_veto']=0 
-            config['enable_rolling_periodic_reset']=1
-            config['enable_rolling_periodic_trigger']=1
+            config['enable_rolling_periodic_reset']=0
+            config['enable_rolling_periodic_trigger']=0
             config['enable_tally']=1
             config['ibias_vcm_buffer'] = 7            
             config['mark_first_packet'] = 0
-            config['periodic_trigger_mask'] = [0]*64 
+            config['periodic_trigger_mask'] = [1]*64 
             config['threshold_global'] = 255
 
             if not vref_dac is None: config['vref_dac'] = vref_dac
