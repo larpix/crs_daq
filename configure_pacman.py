@@ -67,8 +67,7 @@ def main(verbose, pacman_config):
         time.sleep(0.1)
 
         for IO_CHAN in utility_base.tile_to_io_channel(io_group_pacman_tile_[io_group]):
-            if verbose: 
-                print('assigning uart in io_chan {}'.format(IO_CHAN))
+
             uart = pacman_base.convert_io_channel_to_uart(IO_CHAN)
             if uart:
                 c.io.set_uart_clock_ratio(uart,   1)
