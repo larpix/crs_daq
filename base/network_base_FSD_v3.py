@@ -649,7 +649,7 @@ def miso_us_chip_id_list(chip2chip_pair, miso_us):
 
 
 def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
-                          layout="2.5.1", asic_version='2b'):
+                          layout="2.5.1", asic_version='3'):
 
     d = dict()
     d["_config_type"] = "controller"
