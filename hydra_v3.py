@@ -85,7 +85,7 @@ def main(io_group, file_prefix=_default_file_prefix,
         if io_group_asic_version_[iog] in [3]:
 
             tiles=pacman_tile
-            print('Working on tiles: ', pacman_tile)
+            #print('Working on tiles: ', pacman_tile)
 
             if pacman_tile is None:
                 tiles = io_group_pacman_tile_[iog]
@@ -105,7 +105,7 @@ def main(io_group, file_prefix=_default_file_prefix,
                                                           v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx,)
                     if candidate_root!=None: root_keys.append(candidate_root)
 
-                print('ROOT KEYS: ', root_keys)
+                print(f'\n\nTile {tile} ROOT KEYS: ', root_keys)
                 
                 iog_tile_to_root_keys = utility_base.partition_chip_keys_by_io_group_tile(
                     root_keys)
@@ -135,6 +135,7 @@ def main(io_group, file_prefix=_default_file_prefix,
 
                 network_file = network_base_FSD_v3.write_network_to_file(c, f'iog_{io_group}-tile_{tile}', {io_group : [tile] },
                                                                       unconfigured, asic_version=io_group_asic_version_[iog])
+                
                 if True:
                     plot_hydra_network_10x16.main(network_file, io_group=io_group)
             end = time.time()
