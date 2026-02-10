@@ -15,15 +15,15 @@ def main(asic_config):
 
     l = []
     for chip_key in d.keys():
-        [l.append(v) for v in d[chip_key]['pixel_trim_dac']]
-    plt.hist(l, bins=30, range=[0, 31])
-    plt.xlabel('pixel_trim_dac')
+        [l.append(d[chip_key]['threshold_global'])]
+    plt.hist(l, bins=30, range=[0, 75])
+    plt.xlabel('threshold_global')
     plt.ylabel('counts')
 
     now = time.strftime("%Y_%m_%d_%H_%M_%S_%Z")
 
-    plt.savefig('pixel_trim_dac-'+now+'.png')
-    print('Saved to: ', 'pixel_trim_dac-'+now+'.png')
+    plt.savefig('threshold_global-'+now+'.png')
+    print('Saved to: ', 'threshold_global-'+now+'.png')
 
 
 if __name__ == '__main__':

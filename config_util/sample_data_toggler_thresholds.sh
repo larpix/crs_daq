@@ -9,17 +9,17 @@ python configure_larpix.py --asic_config $current_config
 # python configure_larpix.py --asic_config $current_config
 
 
-filename="toggle-data-sample-binary-$now.h5"
-full_packet="./toggle-data-sample-packet-$now.h5"
+filename="toggle-data-sample-packet-$now.h5"
+# full_packet="./toggle-data-sample-packet-$now.h5"
 echo "Writing sample data file to: $full_path"
 
-python record_data.py --filename $filename --runtime $2 --file_count 1
-echo "converting to $full_packet"
-python ../larpix-control/scripts/convert_rawhdf5_to_hdf5.py -i $filename -o $full_packet --block_size 2048
+python record_data.py --filename $filename --runtime $2 --packet --file_count 1
+#echo "converting to $full_packet"
+#python ../larpix-control/scripts/convert_rawhdf5_to_hdf5.py -i $5/$filename -o $full_packet --block_size 2048
 # python analysis/plot_metric.py --metric rate --filename $full_packet
 
 toggle_filename="toggle-list-$now.json" 
-python config_util/toggle_trims_from_rate.py --filename $full_packet --min_rate $3 --max_rate $4 --toggle_filename $toggle_filename
+python config_util/toggle_trims_from_rate.py --filename $5/$filename --min_rate $3 --max_rate $4 --toggle_filename $toggle_filename
 
 python config_util/merge_toggle_list_to_config.py $current_config/* --toggle_json $toggle_filename
 
