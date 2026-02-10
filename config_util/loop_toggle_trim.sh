@@ -7,6 +7,6 @@ do
     echo "******* Iteration $counter"
     # python configure_pacman.py
     python network_larpix.py
-    source config_util/sample_data_toggler_thresholds.sh asic_configs/pixel_trim_try1/ 5 0 1
+    source config_util/sample_data_toggler_thresholds.sh asic_configs/asic_configs_2026_02_09_18_05_PST/ 5 0 1 data/
     # python power_down_larpix.py
 done
