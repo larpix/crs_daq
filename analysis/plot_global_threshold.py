@@ -14,9 +14,15 @@ def main(asic_config):
             d[filename.split('.')[0].split('_')[-1]] = json.load(ff)
 
     l = []
+    max_threshold = 0
     for chip_key in d.keys():
-        [l.append(d[chip_key]['threshold_global'])]
-    plt.hist(l, bins=30, range=[0, 75])
+        this_threshold = d[chip_key]['threshold_global']
+        l.append(this_threshold)
+        if this_threshold > max_threshold : max_threshold = this_threshold
+
+    plt.hist(l, range(0,max_threshold+1))
+    plt.grid()
+
     plt.xlabel('threshold_global')
     plt.ylabel('counts')
 
