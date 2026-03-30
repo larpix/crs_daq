@@ -14,7 +14,7 @@ def main(input_files,
         config = {}
         with open(file, 'r') as f:
             config = json.load(f)
-        if config['threshold_global'] > 21: config['threshold_global'] = 16
+        if config['threshold_global'] > 18: config['threshold_global'] = 16
 
         with open(file, 'w') as f:
             json.dump(config, f, indent=4)

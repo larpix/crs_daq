@@ -40,8 +40,7 @@ def main(verbose, \
         
         #list of network keys in order from root chip, for parallel configuration enforcement
         all_network_keys = []
-       
-        
+               
         for io_group_ip_pair in pacman_configs['io_group']:
             io_group = io_group_ip_pair[0]   
             

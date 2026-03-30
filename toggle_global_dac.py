@@ -33,8 +33,8 @@ _maxtriggers = 1e6
 _bail_threshold = 3
 
 _v2a_nonrouted = [6, 7, 8, 9, 22, 23, 24, 25, 38, 39, 40, 54, 55, 56, 57]
-_vref_dac = 255
 
+_vref_dac = 220
 
 _default_disabled_list = None
 _default_chip_list = None

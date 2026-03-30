@@ -16,9 +16,12 @@ def main(asic_config):
     l = []
     max_threshold = 0
     for chip_key in d.keys():
-        this_threshold = d[chip_key]['threshold_global']
-        l.append(this_threshold)
-        if this_threshold > max_threshold : max_threshold = this_threshold
+        try:
+            this_threshold = d[chip_key]['threshold_global']
+            l.append(this_threshold)
+            if this_threshold > max_threshold : max_threshold = this_threshold
+        except:
+            print(f"chip key {chip_key} not finding 'threshold_global' in {d[chip_key].keys()}")
 
     plt.hist(l, range(0,max_threshold+1))
     plt.grid()
@@ -35,6 +38,6 @@ def main(asic_config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--asic_config', default=None,
-                        type=str, help='''HDF5 fielname''')
+                        type=str, help='''configuration files per chip''')
     args = parser.parse_args()
     main(**vars(args))

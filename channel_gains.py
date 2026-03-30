@@ -20,23 +20,23 @@ for var in RUN.config.keys():
     setattr(module, var, getattr(RUN, var))
 
 #Write configuration to multiple io_channels/tiles via broadcast chip ID 255
-def multitile_write(c, io_group, tiles, register, value, io_channels, keys, hot_channels, channel, verbose=False):
+def multitile_write(c, register, value, io_channels, keys, disabled_list, channel, verbose=False):
 
     for io_channel in io_channels:
-        for key in keys[io_channel]:                
-            if key in hot_channels:
-                if channel in hot_channels[key]:
-                    return
+        
+        for key in keys[io_channel]:
+            
+            if key in list(disabled_list.keys()) and channel in disabled_list[key]:
+                continue
+
             setattr(c[key].config, register, value)
             c.write_configuration(key, register)
-            #if io_channel == io_channels[0]:
-            #    print(f"Writing register {register} to {value} on io_channel {io_channel} key {key}")
 
     return
             
 def get_keys(c, io_group, tiles):
 
-    keys = [[] for ioch in range(40)]   
+    keys = [[] for ioch in range(41)]   
     
     io_channels = utility_base.tile_to_io_channel(tiles)
     print(f"\nTesting io_channels {io_channels}")
@@ -44,38 +44,31 @@ def get_keys(c, io_group, tiles):
     for io_channel in io_channels:
 
         try:
-            # Fetch a list of the chip ids from the controller
+            # Fetch a list of the chip keys from the controller
             keys[io_channel] = c.get_network_keys(io_group, io_channel)
-            print(f"\nIO_channel {io_channel} Keys: \n{keys[io_channel]}")    
+            print(f"\nIO_channel {io_channel} Keys: \n{keys[io_channel]}")
+            
         except:
             # Skips any channels that are not configured properly
             print(f'\nSkipping io channel {io_channel}\n')
+            keys[io_channel] = []
             continue
     
     return io_channels, keys
 
-def get_hot_channels(disabled_json):
-
-    if not os.path.isfile(disabled_json):
-        raise RuntimeError('Disabled list does not exist')
+def get_disabled(disabled):
     
-    hot_channels  = {}
+    disabled_list={}
+    with open(disabled, 'r') as f: 
+        disabled_list=json.load(f)
     
-    with open(disabled_json, 'r') as f: 
-        hot_channels=json.load(f)
+    # Get top-level keys
+    print(f"disabled list:\n{list(disabled_list.keys())})")
 
-    hot_channels = [x in hot_channels if x[key] != 'meta']
-    
-    for key in hot_channels:
-        print(f'Disabling channels {hot_channels[key]} in {key}')
+    return disabled_list
 
-    return hot_channels
+def main(io_group, pacman_config, high_dac, disabled, **kwargs):
 
-def main(pacman_config,
-        io_group,
-         disabled_json,
-         **kwargs):
-    
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(
         relaxed=True, config_filepath=pacman_config, asic_version=3)
@@ -91,13 +84,12 @@ def main(pacman_config,
     
     tiles = io_group_pacman_tile_[io_group]
 
-    io_channels, keys = get_keys(c,io_group, tiles, disabled_json)
+    io_channels, keys = get_keys(c,io_group, tiles)
 
-    hot_channels = get_hot_channels(disabled_json)
-
+    disabled_list = get_disabled(disabled)
+    
     low_dac = 0
-    high_dacs = [128]
-    n_iterations = 10
+    n_iterations = 20
 
     for channel in range(64):
         print(f'Testing channel {channel}')
@@ -105,29 +97,27 @@ def main(pacman_config,
         #Unmask only the channel under test
         mask_list = [1]*64
         mask_list[channel] = 0
-        multitile_write(c, io_group, tiles, 'channel_mask', mask_list, io_channels, keys, hot_channels, channel)
+        multitile_write(c, 'channel_mask', mask_list, io_channels, keys, disabled_list, channel)
 
-        for high_dac in high_dacs:
-            print(f'Testing with high DAC {high_dac}')
-            for i in range(n_iterations):
-                #print(f'Iteration {i}')
+        print(f'Testing with high DAC {high_dac}')
+        for i in range(n_iterations):
 
-                #Set test pulse DAC low 
-                multitile_write(c, io_group, tiles, 'csa_testpulse_dac', low_dac, io_channels, keys, channel)
-                #time.sleep(0.05)
+            #Set test pulse DAC low 
+            multitile_write(c, 'csa_testpulse_dac', low_dac, io_channels, keys, disabled_list, channel)
+            #time.sleep(0.05)
             
-                #Set test pulse DAC high
-                multitile_write(c, io_group, tiles, 'csa_testpulse_dac', high_dac, io_channels, keys, channel)
-                #time.sleep(0.05)
+            #Set test pulse DAC high
+            multitile_write(c, 'csa_testpulse_dac', high_dac, io_channels, keys, disabled_list, channel)
+            #time.sleep(0.05)
                         
-                #Fire test pulse
-                #NOTE: csa_testpulse_enable IS ACTIVE LOW (0)
-                multitile_write(c, io_group, tiles, 'csa_testpulse_enable', mask_list, io_channels, keys, channel)
-                #time.sleep(0.05)
+            #Fire test pulse
+            #NOTE: csa_testpulse_enable IS ACTIVE LOW (0)
+            multitile_write(c, 'csa_testpulse_enable', mask_list, io_channels, keys, disabled_list, channel)
+            #time.sleep(0.05)
                 
-                #Disable test pulse
-                #NOTE: csa_testpulse_enable IS INACTIVE HIGH (1)
-                multitile_write(c, io_group, tiles, 'csa_testpulse_enable', [1]*64, io_channels, keys, channel)
+            #Disable test pulse
+            #NOTE: csa_testpulse_enable IS INACTIVE HIGH (1)
+            multitile_write(c, 'csa_testpulse_enable', [1]*64, io_channels, keys, disabled_list, channel)
 
 
 if __name__ == '__main__':
@@ -140,10 +130,13 @@ if __name__ == '__main__':
                         default='io/pacman.json',
                         type=str,
                         help='''PACMAN config file''')
-    parser.add_argument('--disabled_json', 
-                        type=str, 
-                        default=None, 
-                        help='''Disabled list to merge to config''')
+    parser.add_argument('--high_dac',
+                        default=128,
+                        type=int,
+                        help='''High DAC level to test''')    
+    parser.add_argument('--disabled', default=None, \
+                        type=str, help='''file with disabled channels by chip key''')
+
     args = parser.parse_args()
     c = main(**vars(args))
     

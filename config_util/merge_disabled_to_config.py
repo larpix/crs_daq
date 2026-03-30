@@ -4,8 +4,6 @@ import numpy as np
 import os
 from config_dtime import datetime_now
 
-v2a_nonrouted_channels = [6,7,8,9,22,23,24,25,38,39,40,54,55,56,57]
-
 def parse_disabled_json(disabled_json):
 
     if not os.path.isfile(disabled_json):
@@ -18,6 +16,7 @@ def parse_disabled_json(disabled_json):
     for key in disabled_list:
         if key=='meta': continue
         channel_masks[key] = [1 if channel in disabled_list[key] else 0 for channel in range(64)]
+        print(f"disabling chip {key} channels {disabled_list[key]}")
 
     meta = None
     if 'meta' in disabled_list.keys():
@@ -46,10 +45,8 @@ def main(*files, disabled_json, **kwargs):
                     if not 'periodic_trigger_mask' in config.keys(): config['periodic_trigger_mask']=[1]*64
                     mask = np.array(config['periodic_trigger_mask'])+np.array(channel_masks[chip_key])
                     config['periodic_trigger_mask'] = [1 if val>0 else 0 for val in mask]
-                    if version==2: 
-                        for channel in v2a_nonrouted_channels:
-                            config['channel_mask'][channel]=1
-                    print(chip_key, ': disabled', sum(config['channel_mask'])-_s, 'keys')
+                    #print(chip_key, ': disabled', sum(config['channel_mask'])-_s, 'keys')                  
+
                     config['csa_enable']=[1 if val==0 else 0 for val in channel_masks[chip_key]]
                 
                 if 'meta' in config.keys():

@@ -30,26 +30,26 @@ def main(io_group,pacman_config,asic_config,
     config_loader.load_config_from_directory(c, asic_config)
 
     io_channels = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
-
+    
     # Loops through each of the io channels and 
     for io_channel in io_channels:
-        tile_num = (io_channel - 1) // 4 + 1
-        print('\nTile',tile_num,': Starting io_channel',io_channel,'...\n')
+
         try:
             # Fetch a list of the chip ids from the controller
             keys = c.get_network_keys(io_group, io_channel)
-            #print(f"Network Keys: {keys}")    
+            if verbose: print(f"Network Keys: {keys}")    
+            print('\nStarting external trigger on io_channel',io_channel')
         except:
-            # Skips any channels that are not configured properly
-            print('Skipping io channel',io_channel)
+            # Skips any io_channels that are not configured properly
+            print(f\n'Skipping io channel',io_channel)
             continue
 
         for key in keys:
             # Send the read request
-            c[chip_key].config.enable_external_sync = 0
-            c[chip_key].config.enable_external_trigger = 1
-            c.write_configuration(chip_key, 'enable_external_sync')
-            c.write_configuration(chip_key, 'enable_external_trigger')
+            c[key].config.enable_external_sync = 0
+            c.write_configuration(key, 'enable_external_sync')            
+            c[key].config.enable_external_trigger = 1
+            c.write_configuration(key, 'enable_external_trigger')
 
 
 if __name__ == '__main__':

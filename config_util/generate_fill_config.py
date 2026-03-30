@@ -1,5 +1,5 @@
 ######################################################################################
-# these settings configure the v3a larpix chips for a pedestal run. Additional configs
+# these settings configure the v3a larpix chips for a pedestal run during fill. Additional configs
 # are set in /larpix-control/larpix//configs/chip/default_v3.py
 #######################################################################################
 
@@ -14,12 +14,12 @@ from config_dtime import datetime_now
 _default_verbose=False
 _default_periodic_trigger_cycles=1000000
 _default_periodic_reset_cycles=4
-_default_vref_dac=185 ###cold 220 ### warm 185
+_default_vref_dac=220 ###cold 220 ### warm 185
 _default_ref_current_trim=0
-_default_tx_diff=0
-_default_tx_slice=15
-_default_r_term=2
-_default_i_rx=8
+_default_tx_diff=7
+_default_tx_slice=1
+_default_r_term=7
+_default_i_rx=7
 
 
 def main(input_files, verbose, \
@@ -41,7 +41,7 @@ def main(input_files, verbose, \
             config['channel_mask'] = [1]*64
             config['csa_enable'] = [1]*64
             config['enable_data_stats'] = 0
-            config['enable_external_sync'] = 1 
+            config['enable_external_sync'] = 0 
             config['enable_external_trigger'] = 0            
             config['enable_hit_veto']=1
             config['enable_periodic_reset']=1
@@ -60,7 +60,7 @@ def main(input_files, verbose, \
             config['periodic_reset_cycles'] = periodic_reset_cycles
             if 'meta' in config.keys():
                 config['meta']['last_update'] = datetime_now()
-                config['meta']['description']  = 'pedestal'
+                config['meta']['description']  = 'fill_pedestal'
 
             with open(file, 'w') as f: json.dump(config, f, indent=4)
                            

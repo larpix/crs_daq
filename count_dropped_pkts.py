@@ -29,21 +29,19 @@ def main(io_group,pacman_config,asic_config,
     # Loads the chip configurations from the current asic configure directory
     config_loader.load_config_from_directory(c, asic_config)
 
-    #io_channels = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
-
-    io_channels = [9,10,11,12]
+    io_channels = [1,2,3,4,5,6,7,8,9,10,11,12,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
+    #io_channels = [29,30,31,32]
     
     # Loops through each of the io channels and sends a read request for the number of dropped packets (register 120)
     for io_channel in io_channels:
-        tile_num = (io_channel - 1) // 4 + 1
-        print('\nTile',tile_num,': Starting io_channel',io_channel,'...\n')
+
         try:
             # Fetch a list of the chip ids from the controller
             keys = c.get_network_keys(io_group, io_channel)
-            #print(f"Network Keys: {keys}")    
+            print(f"\nIO_channel {io_channel} Network Keys: {keys}")    
         except:
             # Skips any channels that are not configured properly
-            print('Skipping io channel',io_channel)
+            print(f'\nIO_channel {io_channel} had no chips')
             continue
 
         for key in keys:

@@ -1,8 +1,6 @@
 import argparse
 import json
-
-
-v2a_nonrouted_channels = [6,7,8,9,22,23,24,25,38,39,40,54,55,56,57]
+from config_dtime import datetime_now
 
 def main(*files, disabled_list=None, **kwargs):
     disabled = {}
@@ -14,20 +12,15 @@ def main(*files, disabled_list=None, **kwargs):
             config={}
             with open(file, 'r') as f: config=json.load(f)
                 
-            config['channel_mask'] = [1]*64
-            config['csa_enable'] = [1]*64
+            config['channel_mask'] = [0]*64
             
-            asic_id = config['ASIC_ID']
+            asic_id = config['meta']['ASIC_ID']
             if asic_id in disabled.keys():
                 for channel in disabled[asic_id]:
                     config['channel_mask'][channel]=1
-                    config['csa_enable'][channel]=0
 
-            if config['ASIC_VERSION']==2:
-                for channel in v2a_nonrouted_channels:
-                    config['channel_mask'][channel]=1
-                    config['csa_enable'][channel]=0
-
+            if 'meta' in config.keys():
+                    config['meta']['last_update'] = datetime_now()
 
             with open(file, 'w') as f: json.dump(config, f, indent=4)
 

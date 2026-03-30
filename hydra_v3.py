@@ -35,7 +35,7 @@ _default_v_cm_lvds_tx = 5
 _default_tx_diff = 7
 _default_tx_slice = 15
 _default_r_term = 7
-_default_i_rx = 3
+_default_i_rx = 0
 _default_recheck = False
 
 v2d_10x16_root_ids = [21, 61, 101, 151]
@@ -155,14 +155,14 @@ def main(io_group, file_prefix=_default_file_prefix,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--io_group', default=None,
+    parser.add_argument('--io_group', default=1,
                         type=int, help='''io group to network''')
     parser.add_argument('--pacman_tile', default=None, \
                         type=int, help='''PACMAN tile to work with''') 
     parser.add_argument('--file_prefix', default=_default_file_prefix,
                         type=str, help='''String prepended to filename''')
     parser.add_argument('--disable_logger', default=_default_disable_logger,
-                        action='store_true', help='''Disable logger''')
+    action='store_true', help='''Disable logger''')
     parser.add_argument('--verbose', default=_default_verbose,
                         action='store_true', help='''Enable verbose mode''')
     parser.add_argument('--v_cm_lvds_tx',
