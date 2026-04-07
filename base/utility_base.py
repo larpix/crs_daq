@@ -236,7 +236,7 @@ def data_filename(c, packet, tag=None):
 def data(c, runtime, packet, LRS=False, fname=None):
     if packet==True:
         if fname is None: fname='packets-'+now+'.h5'
-        c.logger = larpix.logger.HDF5Logger(filename=fname)
+        c.logger = larpix.logger.HDF5Logger(filename=fname, version="3.0") # LArPix-v3 packet format
         
         print('filename: ',c.logger.filename)
         c.logger.enable()
