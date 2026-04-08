@@ -739,7 +739,10 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
 def network_v2b(controller_config, tiles=None, verbose=False, **kwargs):
 
     c = larpix.Controller()
-    c.io = larpix.io.PACMAN_IO(relaxed=True)
+    try:
+        c.io = larpix.io.PACMAN_IO(relaxed=True)
+    except ValueError:
+        c.io = larpix.io.PACMAN_IO(relaxed=True, asic_version=2)
 
     if controller_config is None:
         raise RuntimeError('No controller config specified!')
@@ -835,7 +838,10 @@ def network_v2b(controller_config, tiles=None, verbose=False, **kwargs):
 def network_v2a(controller_config, verbose=False, **kwargs):
 
     c = larpix.Controller()
-    c.io = larpix.io.PACMAN_IO(relaxed=True)
+    try:
+        c.io = larpix.io.PACMAN_IO(relaxed=True)
+    except ValueError:
+        c.io = larpix.io.PACMAN_IO(relaxed=True, asic_version=2)
 
     if controller_config is None:
         raise RuntimeError('No controller config specified!')

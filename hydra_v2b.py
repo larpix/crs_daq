@@ -59,7 +59,12 @@ def main(io_group, file_prefix=_default_file_prefix,
     start = time.time()
 
     c = larpix.Controller()
-    c.io = larpix.io.PACMAN_IO(relaxed=True)
+
+    try:
+        c.io = larpix.io.PACMAN_IO(relaxed=True)
+    except ValueError:
+        c.io = larpix.io.PACMAN_IO(relaxed=True, asic_version=2)
+
     c.io.reset_tiles([pacman_tile], length=4096*4, io_group=io_group)  # 2048
     time.sleep(4096*4*1e-6)
     c.io.reset_tiles([pacman_tile], length=4096*4, io_group=io_group)  # 2048

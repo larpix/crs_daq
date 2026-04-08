@@ -34,7 +34,10 @@ def main(verbose, pacman_config):
         pacman_configs = json.load(f)
     
     c = larpix.Controller()
-    c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
+    try:
+        c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
+    except ValueError:
+        c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config, asic_version=2)
 
     pacman_configs = {}
     with open(pacman_config, 'r') as f:

@@ -121,7 +121,11 @@ def main(verbose,\
         DCONFIGS[io_group]=DCONFIG
 
     nc = larpix.Controller()
-    nc.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config) 
+    try:
+        nc.io = larpix.io.PACMAN_IO(relaxed=True)
+    except ValueError:
+        nc.io = larpix.io.PACMAN_IO(relaxed=True, asic_version=2)
+
     logger.info('starting networking: io_groups={}'.format( pacman_configs['io_group'] ))
     for io_group_ip_pair in pacman_configs['io_group']:
         io_group = io_group_ip_pair[0]

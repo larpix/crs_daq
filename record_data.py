@@ -60,7 +60,10 @@ def main(file_count, runtime, message, packet, filename, file_tag, pacman_config
         os.system('python archive.py --ignore_busy --monitor_dir {} &'.format(copy_configs_here))
 
     c = larpix.Controller()
-    c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
+    try:
+        c.io = larpix.io.PACMAN_IO(relaxed=True)
+    except ValueError:
+        c.io = larpix.io.PACMAN_IO(relaxed=True, asic_version=2)
 
     #data taking loop
     ctr=0
