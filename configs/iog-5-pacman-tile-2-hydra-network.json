@@ -680,7 +680,7 @@
                         "miso_us": [
                             null,
                             null,
-                            null,
+                            94,
                             null
                         ]
                     },
@@ -690,6 +690,15 @@
                             null,
                             null,
                             98,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 95,
+                        "miso_us": [
+                            null,
+                            null,
+                            105,
                             null
                         ]
                     },
@@ -730,11 +739,11 @@
                         ]
                     },
                     {
-                        "chip_id": 95,
+                        "chip_id": 94,
                         "miso_us": [
                             null,
                             null,
-                            105,
+                            104,
                             null
                         ]
                     },
@@ -744,6 +753,15 @@
                             null,
                             null,
                             108,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 105,
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
                             null
                         ]
                     },
@@ -820,7 +838,7 @@
                         ]
                     },
                     {
-                        "chip_id": 105,
+                        "chip_id": 104,
                         "miso_us": [
                             null,
                             null,
@@ -906,43 +924,25 @@
                         ]
                     },
                     {
-                        "chip_id": 93,
-                        "miso_us": [
-                            null,
-                            null,
-                            103,
-                            94
-                        ]
-                    },
-                    {
                         "chip_id": 102,
                         "miso_us": [
                             null,
                             null,
                             null,
-                            null
+                            103
                         ]
                     },
                     {
-                        "chip_id": 94,
+                        "chip_id": 93,
                         "miso_us": [
                             null,
                             null,
-                            104,
+                            null,
                             null
                         ]
                     },
                     {
                         "chip_id": 103,
-                        "miso_us": [
-                            null,
-                            null,
-                            null,
-                            null
-                        ]
-                    },
-                    {
-                        "chip_id": 104,
                         "miso_us": [
                             null,
                             null,
@@ -979,18 +979,25 @@
                     3,
                     0,
                     0,
-                    1,
-                    0,
-                    1,
-                    3,
-                    1,
                     3,
                     0,
                     1,
                     3,
                     0,
+                    3,
+                    0,
                     1,
-                    3
+                    3,
+                    0,
+                    1,
+                    3,
+                    0
+                ],
+                "93": [
+                    0
+                ],
+                "104": [
+                    0
                 ]
             },
             "7": {

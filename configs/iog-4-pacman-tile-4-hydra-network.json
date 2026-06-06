@@ -929,6 +929,15 @@
                         "chip_id": 102,
                         "miso_us": [
                             null,
+                            101,
+                            null,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 101,
+                        "miso_us": [
+                            null,
                             null,
                             null,
                             null
@@ -962,8 +971,5 @@
     "bad_uart_links": [
         "no test performed"
     ],
-    "excluded_chips": [
-        101,
-        101
-    ]
+    "excluded_chips": []
 }
