@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "$#" -lt 1 ]; then
+    echo "Usage: git_crs_commit \"commit message\""
+    exit 1
+fi
+
+msg="$*"
+
+# Make sure we are inside a git repo
+git rev-parse --is-inside-work-tree >/dev/null
+
+echo "[git_crs_commit] Staging tracked changes only..."
+git add -u
+
+# Abort if nothing is staged
+if git diff --cached --quiet; then
+    echo "[git_crs_commit] Nothing staged. No commit made."
+    echo "Note: this only stages tracked files. For new source files, run git add <file> once."
+    exit 0
+fi
+
+echo
+echo "[git_crs_commit] Staged files:"
+git diff --cached --name-status
+
+echo
+echo "[git_crs_commit] Diff summary:"
+git diff --cached --stat
+
+echo
+echo "[git_crs_commit] Checking for suspicious staged files..."
+
+bad_files="$(
+    git diff --cached --name-only | grep -E \
+    '(^|/)(asic_configs|tmp|log|packet_maps_out|chip_dataword_hists|scripts_new_run2|run3)/|(\.h5|\.hdf5|\.root|\.raw|\.dat|\.tar|\.tar\.gz|\.zip|\.png|\.pdf)$' \
+    || true
+)"
+
+if [ -n "$bad_files" ]; then
+    echo
+    echo "ERROR: Suspicious files are staged:"
+    echo "$bad_files"
+    echo
+    echo "Commit aborted. Unstage with:"
+    echo "  git restore --staged <file>"
+    exit 2
+fi
+
+# Warn/abort on very large staged files
+large_files="$(
+    git diff --cached --name-only -z \
+    | while IFS= read -r -d '' f; do
+        [ -f "$f" ] || continue
+        size=$(stat -c%s "$f")
+        if [ "$size" -gt 10000000 ]; then
+            du -h "$f"
+        fi
+      done
+)"
+
+if [ -n "$large_files" ]; then
+    echo
+    echo "ERROR: Large staged files detected:"
+    echo "$large_files"
+    echo
+    echo "Commit aborted."
+    exit 3
+fi
+
+echo
+echo "[git_crs_commit] Looks sane. Committing..."
+git commit -m "$msg"
+
+echo
+echo "[git_crs_commit] Done."
+echo "Remember to push when ready:"
+echo "  git push"
