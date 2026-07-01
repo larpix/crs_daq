@@ -19,7 +19,7 @@ def main(*files, **kwargs):
                         full_list[key]={}
 
                     for subkey in flist[key].keys():
-                        full_list[key][sub_key] = flist[key][subkey]
+                        full_list[key][subkey] = flist[key][subkey]
                 else:
 
                     if not key in full_list.keys():

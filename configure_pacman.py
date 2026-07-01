@@ -130,6 +130,8 @@ def main(verbose, pacman_config):
         c.io.set_reg(0x1010, clk_ctrl, io_group=io_group)
         #disable trigger forwarding
         c.io.set_reg(0x2014, 0xffffffff, io_group=io_group)
+        c.io.set_reg(0x2014, 0xffffffff, io_group=io_group)
+        print(c.io.get_reg(0x2014, io_group=io_group))
         time.sleep(0.01)
         
         utility_base.update_json(asic_config_paths_file_, io_group,None )

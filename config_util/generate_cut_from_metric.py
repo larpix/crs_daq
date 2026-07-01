@@ -57,17 +57,24 @@ def parse_file(filename, max_entries=-1):
     chips = f['packets']['chip_id'][mask][:max_entries]
 
     print("Number of packets in parsed files =", len(unique_id))
-    for chip in tqdm.tqdm(range(11, 111), desc='parsing data...'):
+    for chip in tqdm.tqdm(range(0, 255), desc='parsing data...'):
         _iomask = chips==chip
         _adc = adc[_iomask]
         _unique_id = unique_id[_iomask]
         for i in set(_unique_id):
             id_mask = _unique_id == i
-            masked_adc = _adc[id_mask]
+            masked_adc = _adc[id_mask].astype(float)
+            n=masked_adc.shape[0]
+           # if n > 10:
+           #         use_perc = 200./n
+           #         perc0 = np.percentile(masked_adc, use_perc)
+           #         perc1 = np.percentile(masked_adc, 100.-use_perc)
+           #         mask = np.logical_and(masked_adc < perc1+1,  masked_adc > perc0-1)  
+           #         masked_adc = masked_adc[mask]
             d[i] = dict(
                 mean=np.mean(masked_adc),
                 std=np.std(masked_adc),
-                rate=len(masked_adc) / (livetime + 1e-9))
+                rate=n / (livetime + 1e-9))
     return d
 
 

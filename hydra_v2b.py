@@ -49,7 +49,7 @@ def main(io_group, file_prefix=_default_file_prefix, \
          **kwargs):
    
     c = larpix.Controller()
-    c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath='io/pacman_io6.json')
+    c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=f'io/pacman_io{io_group}.json')
     c.io.reset_larpix(length=4096*4, io_group=io_group) #2048 
     time.sleep(4096*4*1e-6)
     c.io.reset_larpix(length=4096*4, io_group=io_group) #2048 
@@ -80,6 +80,7 @@ def main(io_group, file_prefix=_default_file_prefix, \
                 root_keys=[]        
                 io_channels = utility_base.tile_to_io_channel([tile])
                 for io_channel in io_channels:
+                    c.io.set_uart_clock_ratio(io_channel, 10, io_group=iog)
                     cid =  v2b_root_ids[ (io_channel-1) % 4]
                     network_base.network_ext_node_from_tuple(c, iog, io_channel, cid)
                     candidate_root = network_base.setup_root(c, c.io, iog, \
@@ -99,7 +100,6 @@ def main(io_group, file_prefix=_default_file_prefix, \
                                              verbose, \
                                              io_group_asic_version_[iog], ref_current_trim, \
                                              tx_diff, tx_slice, r_term, i_rx, exclude=iog_exclude[iog])
-
                     unconfigured=[]
                     if True:
                             

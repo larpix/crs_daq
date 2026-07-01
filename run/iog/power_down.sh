@@ -21,7 +21,6 @@ echo "Module1 TPC2 powered down"
 fi
 
 if [[ "$1" == *"5"* ]]; then
-
 echo "Don't power down Module2...."
 fi
 

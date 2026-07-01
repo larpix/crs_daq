@@ -74,15 +74,21 @@ def main(*files, toggle_json, toggle_global, cryo, **kwargs):
             #            config['threshold_global'] += 1 
             #            config['pixel_trim_dac'] = [ ptd - int(glob_scale_/trim_scale_) + 1 for ptd in config['pixel_trim_dac'] ] 
             #        
+            
+        
             if True:
                 for pair in toggle_list[chip_key]:
                     config['pixel_trim_dac'][pair[0]] += pair[1]
-           
+            
             # check all values in range
             for chan in range(64):
                 if config['pixel_trim_dac'][chan] > 31:
                     config['pixel_trim_dac'][chan] = 31
                     config['channel_mask'][chan]=1
+                    if not 'csa_enable' in config.keys():
+                        config['csa_enable']=[1]*64
+                    if not 'channel_mask' in config.keys():
+                        config['channel_mask']=[0]*64
                     config['csa_enable'][chan]=0
                     disabled+=1
                 if config['pixel_trim_dac'][chan] < 0:

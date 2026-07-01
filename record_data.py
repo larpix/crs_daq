@@ -37,14 +37,14 @@ def datetime_now():
 	''' Return string with year, month, day, hour, minute '''
 	return time.strftime("%Y_%m_%d_%H_%M_%Z_%S")
 
-def main(file_count, runtime, message, packet, filename, file_tag, pacman_config, return_filename, record_metadata, run, data_stream, **args):
+def main(file_count, runtime, message, packet, filename, file_tag, pacman_config, return_filename, record_metadata, run, data_stream, ignore_embed=False, **args):
+
 
     if not filename is None and file_count > 1:
         raise RuntimeError('All files will have same filename and will be overwritten')
 
     global _global_record_metadata_
     _global_record_metadata_ = record_metadata
-
     #Launch archiving process in the background to copy ASIC configs / detector parameters
     if monitor:
         #check if destination_dir_ ends with "/"
@@ -60,7 +60,7 @@ def main(file_count, runtime, message, packet, filename, file_tag, pacman_config
         os.system('python archive.py --ignore_busy --monitor_dir {} &'.format(copy_configs_here))
 
     # dump ASIC configs to temporary directory to embed in data files
-    os.system('./dump_temp_archive.sh &')
+    if not ignore_embed: os.system('./dump_temp_archive.sh &')
 
     c = larpix.Controller()
     c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
@@ -82,7 +82,8 @@ def main(file_count, runtime, message, packet, filename, file_tag, pacman_config
         #metadata handling here
         
         #embed configs in data file
-        os.system(embed_command)
+        if not ignore_embed: 
+            os.system(embed_command)
         
         #dump metadata file
         if record_metadata: os.system(dump_command)
@@ -118,5 +119,7 @@ if __name__=='__main__':
     parser.add_argument('--data_stream', default='', \
                         type=str, help='''Data stream, passed from combined run control''')
     parser.add_argument('--return_filename', action='store_true', help='''Return last filename''')
+    parser.add_argument('--ignore_embed', default=False, \
+                        action='store_true', help='''Don't embed configs. Necessary for runtime<~30 seconds''')
     args=parser.parse_args()
     c = main(**vars(args))

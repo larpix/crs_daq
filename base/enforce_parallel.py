@@ -81,15 +81,15 @@ def enforce_parallel(c, network_keys, unmask_last=True, pbar_position=0, pbar_de
 
         if not working: break
 
-        ok, diff = c.enforce_configuration(current_chips, timeout=0.02, connection_delay=0.01, n=5, n_verify=5)
+        ok, diff = c.enforce_configuration(current_chips, timeout=0.03, connection_delay=0.02, n=5, n_verify=5)
         if not ok:
             if len(diff.keys()) < 20:
-                print(diff.keys(), diff)
                 ok, diff = c.enforce_configuration(current_chips, timeout=0.025, connection_delay=0.01, n=10, n_verify=10)
 
         if not ok: 
             p_bar.update(len(current_chips) - len(diff.keys()))
             p_bar.refresh() 
+            #ignore_diff=True
             if not ignore_diff: return ok, diff, unconfigured
         
         p_bar.update(len(current_chips))

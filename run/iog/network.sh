@@ -107,7 +107,6 @@ if [[ "$1" == *"3"* ]]; then
 			mkdir $config_dir_m1
 		fi
 	fi
-	echo "python network_larpix.py --controller_config configs/controller_config.json --pacman_config io/pacman_io3.json --config_path $config_dir_m1 --pid_logged & "
         python network_larpix.py --controller_config configs/controller_config.json --pacman_config io/pacman_io3.json --config_path $config_dir_m1 --pid_logged &
         PID=$!
         sed -i "s/IOG3_PID=[0-9]*/IOG3_PID=${PID}/" .envrc

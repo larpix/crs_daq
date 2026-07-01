@@ -1,0 +1,106 @@
+
+# --- Python/cache ---
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# --- Editor/backup files ---
+*~
+#*#
+*.save
+*.bak
+*.orig
+*.swp
+
+# --- DAQ/data products ---
+*.h5
+*.hdf5
+*.root
+*.dat
+*.raw
+*.tar
+*.tar.gz
+*.zip
+
+# --- Plots/reports generated during commissioning ---
+*.png
+*.pdf
+*.csv
+
+# --- Runtime state / logs / temp ---
+log/
+tmp/
+.daq.pid
+.archive_status
+.temp.monitor-*/
+packet_maps_out/
+chip_dataword_hists/
+
+# --- Large/generated config/runtime directories ---
+asic_configs/
+configFiles_backup/
+configs_backup*/
+configs-postrun2_warm/
+configs_2024Backup/
+disabled/
+reference_disable_list/
+results_*/
+rateScan_*/
+toggle_lists/
+chips_to_reevaluate_*/
+run3/
+
+# --- Generated timestamped configs/lists in repo root ---
+config-20*.json
+toggle-list-20*.json
+RUN_CONFIG*.bak
+RUN_CONFIG*.save
+RUN_CONFIG_*backup*.json
+
+# --- Local generated helper JSONs ---
+.asic_configs_.json
+.default_asic_configs_.json
+.network_configs_.json
+change_trigger_configs.json
+combined_global_disabled_list.json
+low_trim_chips.json
+hot_pixels.txt
+hydra_files*.log
+
+# --- Plots / generated reports ---
+*.png
+*.pdf
+
+# --- Text/log scratch notes ---
+History_backup_*.txt
+Nominal_noisy.txt
+
+# --- Editor/autosave/backups ---
+*~
+*.save
+*.save.*
+*.bak
+*.backup
+\#*\#
+
+# --- Scratch config/editing areas ---
+configs/to_change/
+threshold/
+threshold_run1/
+
+# --- Root-level generated hydra/config artifacts ---
+/iog-*-pacman-tile-*-hydra-network.json
+/initial_disabled_list-combined-*.json
+/input_disabled_list.json
+
+# --- Local toggle/global-DAC scratch scripts ---
+/toggle_global_dac.py
+/toggle_global_dac.sh
+/toggle_global_dac_2.py
+/toggle_global_dac_2.sh
+
+# --- Local odd/scratch files ---
+/echo
+/fake.json
+/network_debug_*.json
+/scripts_new_run2/

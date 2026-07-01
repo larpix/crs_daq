@@ -23,7 +23,7 @@ current_config_m1=$(jq '."3"' <<< cat $config_file)
 current_config_m2=$(jq '."5"' <<< cat $config_file)
 current_config_m3=$(jq '."7"' <<< cat $config_file)
 
-config_dir=asic_configs/self_trigger-toggle-asic_configs-$now
+config_dir=/data/CRS/asic_configs/self_trigger-toggle-asic_configs-$now
 
 mkdir $config_dir
 
@@ -61,7 +61,7 @@ full_path="$destination_dir_/$filename"
 full_packet="${full_path/binary/"packet"}" 
 echo "Writing sample data file to: $full_path"
 
-python record_data.py --filename $filename --runtime $1 --file_count 1
+python record_data.py --filename $filename --runtime $1 --file_count 1 --ignore_embed
 
 echo "converting to $full_packet"
 python ../larpix-control/scripts/convert_rawhdf5_to_hdf5.py -i $full_path -o $full_packet

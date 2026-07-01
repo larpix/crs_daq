@@ -30,7 +30,8 @@ def parse_hydra_network(tile, iog):
     root_chips = []
     with open("configs/iog-{}-pacman-tile-{}-hydra-network.json".format(iog, tile), 'r') as f:
         data = json.load(f)
-        missingIO = data['bad_uart_links']
+        #missingIO = data['bad_uart_links']
+        missingIO = [] #data['bad_uart_links']
         mapping = data['network']['miso_us_uart_map']
         hydra = data['network'][str(iog)]
         for ioc in hydra:
@@ -51,7 +52,6 @@ def parse_hydra_network(tile, iog):
                     if node['miso_us'][i] != None:
                         chipID_uart[node['chip_id']].append(mapping[i])
     return chipID_uart, missingIO, root_chips, ioc_chip
-
 
 def start_end(tile, chipID, uart, chipid_pos):
     epsX = 1
@@ -214,8 +214,8 @@ def plot_hydra_network(geometry_yaml, iog):
     for tile in range(1, 9):
         chipID_uart, missingIO, root_chips, ioc_chip = parse_hydra_network(
             tile, iog)
-        if missingIO[0] == "no test performed":
-            missingIO = {}
+        #if missingIO[0] == "no test performed":
+        #    missingIO = {}
         for chipID in chipID_uart.keys():
             if chipID == 'ext':
                 continue

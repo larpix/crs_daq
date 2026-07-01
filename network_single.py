@@ -3,7 +3,6 @@ warnings.filterwarnings("ignore")
 import larpix
 import time
 import larpix.io
-from RUNENV import *
 import argparse
 from base import config_loader
 from base import network_base
@@ -13,12 +12,16 @@ from base import utility_base
 from base import enforce_parallel
 import json
 from base.utility_base import now
-import logging
+import sys
+from runenv import runenv as RUN
+
+module = sys.modules[__name__]
+for var in RUN.config.keys():
+    setattr(module, var, getattr(RUN, var))
 
 _default_verbose = False
 _default_controller_config = None
 
-logging.basicConfig(filename=sup_log_, encoding='utf-8',format='%(asctime)s: %(message)s', datefmt='%Y/%m/%d-%I:%M:%S %Z', level=logging.DEBUG )
 
 def enforce_iterative(nc, all_network_keys, n=3, configs=None, pbar_desc='p', pbar_position=0):
     ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys, pbar_desc=pbar_desc, pbar_position=pbar_position)
@@ -46,7 +49,7 @@ def enforce_iterative(nc, all_network_keys, n=3, configs=None, pbar_desc='p', pb
                 c =  network_base.network_v2b(config, tiles=tiles, io_group=io_group, pacman_config=pacman_config)
 
             elif io_group_asic_version_[io_group] in [2, 'lightpix-1']:
-                c = network_base.network_v2a(config, tiles=tiles, io_group=io_group, pacman_config=pacman_config)
+                c = network_base.network_v2a(config, tiles=tiles, io_group=io_group) #, pacman_config=pacman_config)
            
             all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(config, use_keys=all_keys)
 

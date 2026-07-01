@@ -219,6 +219,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,\
 
         io.set_reg(0x18, 2**(root.io_channel-1), io_group=io_group)
         ok, diff = utility_base.reconcile_configuration(c, root, verbose)
+        if not ok: print(diff)
         if ok:
             cnt_configured+=1
         if not ok:
@@ -394,6 +395,8 @@ def initial_network_from_root(c, io, io_group, root_key, verbose, asic_version,\
             if not ok:
                 print('\t\t==> DAUGHTER ', daughter, \
                       'failed to configure')
+                
+                print(diff)
                 uart_base.reset_uarts(c, daughter, verbose)
                 uart_base.disable_parent_piso_us(c, parent, daughter, \
                                                  verbose, tx_diff, \
@@ -618,16 +621,20 @@ def network_v2b(controller_config, tiles=None, io_group=None, pacman_config=None
     for io_group, io_channels in c.network.items():
         if tiles is None :    
             if verbose: print('resetting io group:', io_group)
-            c.io.reset_larpix(length=2048, io_group=io_group)
-            time.sleep(2048*(1/(10e6)))
-            c.io.reset_larpix(length=2048, io_group=io_group)
-            time.sleep(2048*(1/(10e6)))
+            
+            for i__ in range(3):
+                c.io.reset_larpix(length=2048, io_group=io_group)
+                time.sleep(2048*(1/(10e6)))
+                c.io.reset_larpix(length=2048, io_group=io_group)
+                time.sleep(2048*(1/(10e6)))
         else:
             if verbose: print('resetting tiles {} on io group:'.format(tiles), io_group)
-            c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
-            time.sleep(2048*(1/(10e6)))
-            c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
-            time.sleep(2048*(1/(10e6)))
+            
+            for i__ in range(3):
+                c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
+                time.sleep(2048*(1/(10e6)))
+                c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
+                time.sleep(2048*(1/(10e6)))
          
     c.io.group_packets_by_io_group = False # throttle the data rate to insure no FIFO collisions
     for io_group, io_channels in c.network.items():
@@ -676,16 +683,28 @@ def network_v2a(controller_config, tiles=None, io_group=None, verbose=False, pac
     for io_group, io_channels in c.network.items():
         if tiles is None :    
             if verbose: print('resetting io group:', io_group)
-            c.io.reset_larpix(length=2048, io_group=io_group)
-            time.sleep(2048*(1/(10e6)))
-            c.io.reset_larpix(length=2048, io_group=io_group)
-            time.sleep(2048*(1/(10e6)))
+                
+            for i__ in range(3):
+                c.io.reset_larpix(length=2048, io_group=io_group)
+                time.sleep(2048*(1/(10e6)))
+                c.io.reset_larpix(length=2048, io_group=io_group)
+                time.sleep(2048*(1/(10e6)))
+                c.io.reset_larpix(length=2048, io_group=io_group)
+                time.sleep(2048*(1/(10e6)))
+                c.io.reset_larpix(length=2048, io_group=io_group)
+                time.sleep(2048*(1/(10e6)))
         else:
             if verbose: print('resetting tiles {} on io group:'.format(tiles), io_group)
-            c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
-            time.sleep(2048*(1/(10e6)))
-            c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
-            time.sleep(2048*(1/(10e6)))
+            
+            for i__ in range(3):
+                c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
+                time.sleep(2048*(1/(10e6)))
+                c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
+                time.sleep(2048*(1/(10e6))) 
+                c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
+                time.sleep(2048*(1/(10e6)))
+                c.io.reset_tiles(tiles=tiles, length=2048, io_group=io_group)
+                time.sleep(2048*(1/(10e6)))
         
         for io_channel in io_channels:
             if not tiles is None:

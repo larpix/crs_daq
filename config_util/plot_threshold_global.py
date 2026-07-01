@@ -5,13 +5,19 @@ from matplotlib import pyplot as plt
 
 def main(*files, inc=0, **kwargs):
         globs = []
+        total=0
         for file in files:
                 config={}
                 with open(file, 'r') as f: config=json.load(f)
                 
-                glob = config['threshold_global']
+                try:
+                    glob = config['threshold_global']
+                    total+=1
+                    if glob > 45: print(config['meta']['CHIP_KEY'],':', glob)
+                except:
+                    glob=255
                 globs.append(glob)
-
+        print(total)
 
         vals, bins = np.histogram(globs, range=(-0.5, 31.5), bins=32)
         globs=np.array(globs)

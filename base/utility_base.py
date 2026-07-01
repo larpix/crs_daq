@@ -313,7 +313,6 @@ def reconcile_registers(c, chip_key_register_pairs, verbose, timeout=0.02, \
     ok, diff = c.verify_registers(chip_key_register_pairs, timeout=timeout, \
                                   connection_delay=connection_delay,
                                   n=n_verify)
-    #print(c.reads[-1])
     if diff!={}:
         flag = True
         for a in diff.keys():

@@ -41,16 +41,21 @@ def unique_to_io_group(unique):
 def parse_file(filename, max_entries=-1):
     d = dict()
     f = h5py.File(filename, 'r')
-    unixtime = f['packets'][:]['timestamp'][f['packets']
-                                            [:]['packet_type'] == 4]
+    packets=f['packets'][:]
+    unixtime = packets['timestamp'][packets['packet_type'] == 4]
     livetime = np.max(unixtime)-np.min(unixtime)
-    data_mask = f['packets'][:]['packet_type'] == 0
-    valid_parity_mask = f['packets'][:]['valid_parity'] == 1
+    data_mask = packets['packet_type'] == 0
+    valid_parity_mask = packets['valid_parity'] == 1
     mask = np.logical_and(data_mask, valid_parity_mask)
-    adc = f['packets']['dataword'][mask][:max_entries]
-    unique_id = unique_channel_id(f['packets'][mask][:max_entries])
+    adc = packets['dataword'][mask][:max_entries]
+    unique_id = unique_channel_id(packets[mask][:max_entries])
     unique_id_set = np.unique(unique_id)
-    chips = f['packets']['chip_id'][mask][:max_entries]
+    chips = packets['chip_id'][mask][:max_entries]
+    
+    fifo_full_mask=packets['shared_fifo']>0
+    
+    fifo_full_io_group   = packets[fifo_full_mask]['io_group']
+    fifo_full_io_channel = packets[fifo_full_mask]['io_channel']
 
     print("Number of packets in parsed files =", len(unique_id))
     for chip in tqdm.tqdm(range(11, 111), desc='parsing data...'):
@@ -64,10 +69,11 @@ def parse_file(filename, max_entries=-1):
                 mean=np.mean(masked_adc),
                 std=np.std(masked_adc),
                 rate=len(masked_adc) / (livetime + 1e-9))
-    return d
+
+    return d, fifo_full_io_group, fifo_full_io_channel
 
 
-def toggle_trims_write_increments(d,min_rate,max_rate,file,toggle_filename):
+def toggle_trims_write_increments(d,min_rate,max_rate,file,toggle_filename, fifo_iog, fifo_chan):
     nonrouted_v2a_channels=[6,7,8,9,22,23,24,25,38,39,40,54,55,56,57]
     routed_v2a_channels=[i for i in range(64) if i not in nonrouted_v2a_channels]
     
@@ -90,7 +96,13 @@ def toggle_trims_write_increments(d,min_rate,max_rate,file,toggle_filename):
 
     count_in_range=0
     for io_group in io_groups:
+        #fifo_full_mask=fifo_iog==io_iog
+        #fifo_full_io_chan=fifo_chan[fifo_full_mask]
+
         for tile in tiles:
+            io_channels = [4*tile - i for i in range(4) ]
+    
+
             nchan=0
             mask = unique_to_io_group( np.array(list(d.keys())) ) == io_group
             mask = np.logical_and(mask, unique_to_tiles( np.array(list(d.keys())) )==tile )
@@ -111,7 +123,7 @@ def toggle_trims_write_increments(d,min_rate,max_rate,file,toggle_filename):
                 weight = d[key]["rate"]
                 if weight > min_rate and weight < max_rate: count_in_range+=1
                 if weight>max_rate:
-                    tog = int(np.log10(weight-max_rate))+1
+                    tog = int(np.log10(weight/max_rate))+1
                     if tog < 1: tog=1
                     key='{}-{}-{}'.format(io_group, tile, chip_id)
                     if not key in toggle_list.keys(): toggle_list[key]=[]
@@ -128,8 +140,10 @@ def toggle_trims_write_increments(d,min_rate,max_rate,file,toggle_filename):
                 if not key in toggle_list.keys(): toggle_list[key]=[]
                 for chanid in range(64):
                     if (chipid, chanid) in used_chip_chan: continue
-                    toggle_list[key].append( (int(chanid), -1) )
-                    nchan+=1
+                    #print(chipid, chanid)
+                    if min_rate > 0:
+                        toggle_list[key].append( (int(chanid), -1) )
+                        nchan+=1
 
             print('Number of channels toggled on tile {}-{}: {}'.format(io_group, tile, nchan))
     
@@ -146,9 +160,9 @@ def main(filename=_default_filename,
          toggle_filename=None,
          **kwargs):
 
-    d = parse_file( filename )
+    d, fifo_iog, fifo_chan = parse_file( filename )
 
-    toggle_trims_write_increments( d, min_rate, max_rate, filename, toggle_filename)
+    toggle_trims_write_increments( d, min_rate, max_rate, filename, toggle_filename, fifo_iog, fifo_chan)
 
     
 if __name__=='__main__':

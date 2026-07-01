@@ -25,7 +25,7 @@ _default_verbose = False
 _default_controller_config = None
 _update_default=False
 
-def enforce_iterative(nc, all_network_keys, n=3, configs=None, pbar_desc='p', pbar_position=0):
+def enforce_iterative(nc, all_network_keys, n=5, configs=None, pbar_desc='p', pbar_position=0):
     ok, diff, unconfigured = enforce_parallel.enforce_parallel(nc, all_network_keys, pbar_desc=pbar_desc, pbar_position=pbar_position)
     if ok: return ok, diff, unconfigured
     elif n==0: 

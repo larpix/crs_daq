@@ -22,18 +22,18 @@ for var in RUN.config.keys():
     setattr(module, var, getattr(RUN, var))
 
 
-_initial_global_dac=50 ### initial global DAC set value
-_runtime_global=0.1 ### runtime to assess chip trigger rate
+_initial_global_dac=100 ### initial global DAC set value
+_runtime_global=0.5 #0.1 ### runtime to assess chip trigger rate
 _maxrate_global=1000. ### maximum chip trigger rate to set global DAC
 _minrate_global=10. ### minimum chip trigger rate to set global DAC
-_maxdac_global=40 ### disable maximum rate channel, and reassess rate if global DAC above this value
+_maxdac_global=50 ### disable maximum rate channel, and reassess rate if global DAC above this value
 _mindac_global=20 ### re-evaluate chip if global DAC set below this value
-_maxtriggers=200000. ### do not lower global DACs if total packet count exceeds this value
+_maxtriggers=1e6 #200000. ### do not lower global DACs if total packet count exceeds this value
 
 _v2a_nonrouted=[6,7,8,9,22,23,24,25,38,39,40,54,55,56,57]
 _initial_trim_dac=16 
-_vref_dac=185
-_vcm_dac=41 
+_vref_dac=223
+_vcm_dac=68 
 
 
 _default_disabled_list=None
@@ -415,7 +415,7 @@ def toggle_global_dac(c, toggled_chips, csa_disable, all_network_keys, pacman_co
         offender_qualified=False
         offender_disable={}
         for offender_chipkey in offenders.keys():
-            if offenders[offender_chipkey]>=5:
+            if offenders[offender_chipkey]>=50: # 5
                 chip_reevaluate_queue.add(offender_chipkey)
                 offender_qualified=True
                 

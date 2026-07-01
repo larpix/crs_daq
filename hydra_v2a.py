@@ -99,7 +99,7 @@ def get_good_roots(c, io_group, io_channels, root_chips=[11, 41, 71, 101]):
 def get_initial_controller(io_group, io_channels, vdda=0, pacman_version='v1rev3b'):
         #creating controller with pacman io
         c = larpix.Controller()
-        c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath='io/pacman_io1.json')
+        c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=f'io/pacman_io{io_group}.json')
         c.io.double_send_packets = True
         print('getting initial controller')
         
@@ -222,7 +222,11 @@ def test_network(c, io_group, io_channels, paths):
                                 continue
                         next_key = larpix.key.Key(io_group, io_channels[ipath], path[step])
                         print(next_key)
+                        #pacman_base.enable_pacman_uart_from_io_channel(c.io, next_key.io_group, [next_key.io_channel])
+                        #time.sleep(2)
                         prev_key = larpix.key.Key(io_group, io_channels[ipath], path[step-1])
+                        
+                        #print('writing to prev key', prev_key)
                         if prev_key.chip_id in root_chips:
                                 c[prev_key].config.chip_id = prev_key.chip_id
                                 c[prev_key].config.enable_miso_downstream = arr.get_uart_enable_list(prev_key.chip_id)
@@ -233,6 +237,9 @@ def test_network(c, io_group, io_channels, paths):
                         c[prev_key].config.enable_miso_upstream = arr.get_uart_enable_list(prev_key.chip_id, next_key.chip_id)
                         c.write_configuration(prev_key, 'enable_miso_upstream')
                         c.write_configuration(prev_key, 'enable_miso_upstream')
+                        
+                        #time.sleep(2)
+                        #print('writing to next key', next_key)
 
                         c[next_key].config.chip_id = next_key.chip_id
                         c[next_key].config.enable_miso_downstream = arr.get_uart_enable_list(next_key.chip_id, prev_key.chip_id)
@@ -240,7 +247,13 @@ def test_network(c, io_group, io_channels, paths):
                         c.write_configuration(next_key, 'enable_miso_downstream')
                         c.write_configuration(next_key, 'enable_miso_downstream')
 
+                        #time.sleep(2)
+                        #print('enforcing')
+
                         ok, diff = c.enforce_configuration(next_key, timeout=0.02, n=5, n_verify=3)
+                        #print('enabled', next_key)
+                        #time.sleep(1)
+
                         if False and next_key.chip_id>40 and next_key.chip_id < 61:
                             print('checking', next_key)
                             for i in range(500):
@@ -249,6 +262,7 @@ def test_network(c, io_group, io_channels, paths):
                                 #if not ok: print(diff)
                             time.sleep(1)
                         pbar.update(1)
+                        #pacman_base.disable_all_pacman_uart(c.io, next_key.io_group)
                         if ok:
                                 continue
 
@@ -258,6 +272,8 @@ def test_network(c, io_group, io_channels, paths):
                                 arr.add_onesided_excluded_link((next_key.chip_id, prev_key.chip_id))
                                 still_stepping[ipath] = False
                                 valid[ipath] = False
+                                still_stepping = [False]*len(still_stepping)
+                                break
         pbar.close()
         return all(valid)
 
