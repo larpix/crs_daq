@@ -1,0 +1,29 @@
+{
+  "counts": {
+    "active_tiles": 64,
+    "asic_config_chips": 800,
+    "asic_csa_disabled_channels_total": 12000,
+    "asic_disabled_channels_total": 12000,
+    "hydra_connected_chips_total": 6582,
+    "hydra_excluded_chips_total": 38,
+    "hydra_files": 64,
+    "run_config_excluded_chips_total": 56,
+    "run_config_rows": 64,
+    "warnings": 25
+  },
+  "generated_at_utc": "2026-07-01T21:39:52+00:00",
+  "git": {
+    "branch": "2x2-run3-warm-commissioning",
+    "commit": "e71fe5d3c616",
+    "repo_root": "/home/acd/acdaq/CRS_DAQ/daq0/crs_daq"
+  },
+  "schema_version": 1,
+  "sources": {
+    "asic_config_dir": "asic_configs/run3-warmcommissioning_iog3_pacman34",
+    "hydra_globs": [
+      "configs/iog-*-pacman-tile-*-hydra-network.json"
+    ],
+    "out_dir": "config_history/current",
+    "run_config": "RUN_CONFIG.json"
+  }
+}

@@ -1,0 +1,11 @@
+Since previous snapshot:
+
+RUN_CONFIG:
+  unchanged
+
+Hydra:
+  unchanged
+
+ASIC configs:
+  ASIC summary added for 800 chips
+  total disabled channels: 12000
