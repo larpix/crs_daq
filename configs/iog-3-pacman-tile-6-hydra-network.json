@@ -645,9 +645,27 @@
                         "chip_id": 72,
                         "miso_us": [
                             null,
+                            71,
                             null,
-                            82,
                             null
+                        ]
+                    },
+                    {
+                        "chip_id": 71,
+                        "miso_us": [
+                            null,
+                            null,
+                            81,
+                            null
+                        ]
+                    },
+                    {
+                        "chip_id": 81,
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            82
                         ]
                     },
                     {
@@ -939,9 +957,5 @@
     "bad_uart_links": [
         "no test performed"
     ],
-    "excluded_chips": [
-        71,
-        71,
-        81
-    ]
+    "excluded_chips": []
 }
