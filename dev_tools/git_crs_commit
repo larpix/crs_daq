@@ -76,4 +76,4 @@ git commit -m "$msg"
 echo
 echo "[git_crs_commit] Done."
 echo "Remember to push when ready:"
-echo "  git push"
+echo "  git push (at least once every day during commissioning!)"
