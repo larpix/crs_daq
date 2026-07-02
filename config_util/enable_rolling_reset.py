@@ -17,4 +17,4 @@ if __name__ == "__main__":
             print(f"File {path} not found, skipping")
             continue
         patch_config(path)
-        print(f"Patched {path}")
+        #print(f"Patched {path}")
