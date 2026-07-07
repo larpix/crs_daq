@@ -1,10 +1,13 @@
 Since previous snapshot:
 
 RUN_CONFIG:
-  unchanged
+  iog 6 tile 5 excludes +9 chips: 19, 60, 70, 80, 82, 90, 99, 100, 110
+  iog 6 tile 5 excludes -10 chips: 15, 29, 33, 34, 48, 53, 65, 75, 93, 103
 
 Hydra:
-  unchanged
+  iog 6 tile 5 connected chips: 29 -> 77
+  iog 6 tile 5 gained chips: 15, 16, 17, 18, 20, 26, 28, 29, 30, 33, 34, 35, 36, 37, 38, 39, 43, 44, 45, 46, 47, 48, 53, 54, 55, 56, 57, 58, 65, 67, 68, 69, 75, 76, 77, 78, 79, 85, 86, 87, 88, 93, 94, 95, 103, 104, 105, 106, 107
+  iog 6 tile 5 lost chips: 82
 
 ASIC configs:
   not provided
