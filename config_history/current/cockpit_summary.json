@@ -9,12 +9,12 @@
     "hydra_files": 64,
     "run_config_excluded_chips_total": 56,
     "run_config_rows": 64,
-    "warnings": 11
+    "warnings": 10
   },
-  "generated_at_utc": "2026-07-02T02:10:40+00:00",
+  "generated_at_utc": "2026-07-07T14:47:40+00:00",
   "git": {
     "branch": "2x2-run3-warm-commissioning",
-    "commit": "53ac20109962",
+    "commit": "0e870fccdf95",
     "repo_root": "/home/acd/acdaq/CRS_DAQ/daq0/crs_daq"
   },
   "schema_version": 1,
