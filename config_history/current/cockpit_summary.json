@@ -11,10 +11,10 @@
     "run_config_rows": 64,
     "warnings": 10
   },
-  "generated_at_utc": "2026-07-08T17:00:59+00:00",
+  "generated_at_utc": "2026-07-08T17:10:14+00:00",
   "git": {
     "branch": "2x2-run3-warm-commissioning",
-    "commit": "bb2050d8f957",
+    "commit": "86ed18de5151",
     "repo_root": "/home/acd/acdaq/CRS_DAQ/daq0/crs_daq"
   },
   "schema_version": 1,
