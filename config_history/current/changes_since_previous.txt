@@ -1,11 +1,11 @@
 Since previous snapshot:
 
 RUN_CONFIG:
-  unchanged
+  iog 8 tile 2 excludes +4 chips: 92, 98, 103, 104
 
 Hydra:
-  iog 8 tile 2 connected chips: 100 -> 104
-  iog 8 tile 2 gained chips: 92, 98, 103, 104
+  iog 8 tile 2 connected chips: 104 -> 100
+  iog 8 tile 2 lost chips: 92, 98, 103, 104
 
 ASIC configs:
   disabled channels unchanged
