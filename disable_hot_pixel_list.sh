@@ -6,7 +6,7 @@
 # Example:
 #   ./disable_hot_pixel_list.sh hot_pixels.txt /data/CRS/asic_configs/ParameterScan/NominalConfigs
 
-set -e
+#set -e
 
 HOTPIXELS_FILE="$1"
 ASIC_CONFIG="$2"
