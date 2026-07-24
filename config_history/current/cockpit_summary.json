@@ -1,25 +1,25 @@
 {
   "counts": {
     "active_tiles": 64,
-    "asic_config_chips": 6261,
-    "asic_csa_disabled_channels_total": 71815,
-    "asic_disabled_channels_total": 71815,
-    "hydra_connected_chips_total": 6517,
+    "asic_config_chips": 721,
+    "asic_csa_disabled_channels_total": 0,
+    "asic_disabled_channels_total": 0,
+    "hydra_connected_chips_total": 6540,
     "hydra_excluded_chips_total": 30,
     "hydra_files": 64,
-    "run_config_excluded_chips_total": 68,
+    "run_config_excluded_chips_total": 108,
     "run_config_rows": 64,
-    "warnings": 17
+    "warnings": 16
   },
-  "generated_at_utc": "2026-07-24T03:25:01+00:00",
+  "generated_at_utc": "2026-07-24T14:57:30+00:00",
   "git": {
     "branch": "2x2-run3-warm-commissioning",
-    "commit": "b06488086334",
+    "commit": "10452661cd84",
     "repo_root": "/home/acd/acdaq/CRS_DAQ/daq0/crs_daq"
   },
   "schema_version": 1,
   "sources": {
-    "asic_config_dir": "asic_configs/PedestalConfigFiles-Run3Warm-wholeDetector",
+    "asic_config_dir": "asic_configs/asic_configs-2026_07_24_09_52_06_CDT",
     "hydra_globs": [
       "configs/iog-*-pacman-tile-*-hydra-network.json"
     ],
