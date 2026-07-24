@@ -11,15 +11,15 @@
     "run_config_rows": 64,
     "warnings": 17
   },
-  "generated_at_utc": "2026-07-10T01:31:07+00:00",
+  "generated_at_utc": "2026-07-24T03:25:01+00:00",
   "git": {
     "branch": "2x2-run3-warm-commissioning",
-    "commit": "8dea293dfc58",
+    "commit": "b06488086334",
     "repo_root": "/home/acd/acdaq/CRS_DAQ/daq0/crs_daq"
   },
   "schema_version": 1,
   "sources": {
-    "asic_config_dir": "asic_configs/PedestalConfigFiles-Run3Warm-wholeDetector-prf40",
+    "asic_config_dir": "asic_configs/PedestalConfigFiles-Run3Warm-wholeDetector",
     "hydra_globs": [
       "configs/iog-*-pacman-tile-*-hydra-network.json"
     ],
