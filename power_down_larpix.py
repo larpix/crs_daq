@@ -23,7 +23,7 @@ _default_verbose=False
 def main(verbose, pacman_config):
     logging.info('power_down_larpix.py')    
     c = larpix.Controller()
-    c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config)
+    c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config, asic_version=3)
 
     pacman_configs = {}
     with open(pacman_config, 'r') as f:
