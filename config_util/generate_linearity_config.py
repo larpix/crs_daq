@@ -12,7 +12,7 @@ import json
 from config_dtime import datetime_now
 
 _default_verbose=False
-_default_periodic_trigger_cycles=10000
+_default_periodic_trigger_cycles=100000
 _default_periodic_reset_cycles=4
 _default_vref_dac=220 ###cold 220 ### warm 185
 _default_ref_current_trim=0
@@ -54,11 +54,27 @@ def main(input_files, verbose, \
             config['enable_rolling_periodic_reset']=1
             config['enable_rolling_periodic_trigger']=1
             config['enable_tally']=1
-            config['ibias_vcm_buffer'] = 7            
+            config['ibias_vcm_buffer'] = 7    
+            config['i_rx0']=3 
+            config['i_rx1']=3 
+            config['i_rx2']=3 
+            config['i_rx3']=3              
+            config['i_tx_diff0']=8 
+            config['i_tx_diff1']=8 
+            config['i_tx_diff2']=8 
+            config['i_tx_diff3']=8    
             config['mark_first_packet'] = 0
             config['periodic_trigger_mask'] = [0]*64 
+            config['r_term0']=7
+            config['r_term1']=7 
+            config['r_term2']=7 
+            config['r_term3']=7         
             config['threshold_global'] = 255
-
+            config['tx_slices0']=1            
+            config['tx_slices1']=1 
+            config['tx_slices2']=1 
+            config['tx_slices3']=1
+            
             if not vref_dac is None: config['vref_dac'] = vref_dac
             config['periodic_trigger_cycles'] = periodic_trigger_cycles + config['chip_id']
             config['periodic_reset_cycles'] = periodic_reset_cycles

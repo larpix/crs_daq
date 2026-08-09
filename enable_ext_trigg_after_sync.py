@@ -18,6 +18,7 @@ from runenv import runenv as RUN
 import sys
 import os
 
+verbose = False
 
 def main(io_group,pacman_config,asic_config,
          **kwargs):
@@ -38,12 +39,13 @@ def main(io_group,pacman_config,asic_config,
             # Fetch a list of the chip ids from the controller
             keys = c.get_network_keys(io_group, io_channel)
             if verbose: print(f"Network Keys: {keys}")    
-            print('\nStarting external trigger on io_channel',io_channel')
+            print(f'\nStarting external trigger on io_channel {io_channel}')
+        
         except:
             # Skips any io_channels that are not configured properly
-            print(f\n'Skipping io channel',io_channel)
+            print(f'\nSkipping io channel {io_channel}')
             continue
-
+        
         for key in keys:
             # Send the read request
             c[key].config.enable_external_sync = 0

@@ -14,7 +14,7 @@ from config_dtime import datetime_now
 _default_verbose=False
 _default_periodic_trigger_cycles=100000
 _default_periodic_reset_cycles=4
-_default_vref_dac=185 ###cold 220 ### warm 185
+_default_vref_dac=220 ###cold 220 ### warm 185
 _default_ref_current_trim=0
 _default_tx_diff=7
 _default_tx_slice=1

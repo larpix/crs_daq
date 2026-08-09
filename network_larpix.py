@@ -25,7 +25,7 @@ for var in RUN.config.keys():
 
 
 logger = logging.getLogger(__name__)
-_default_verbose = False
+_default_verbose = True
 _default_controller_config = 'configs/controller_config.json'
 _update_default=False
 

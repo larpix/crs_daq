@@ -98,6 +98,7 @@ def main(io_group, file_prefix=_default_file_prefix,
                 for io_channel in io_channels:
                     cid =  v3_10x16_root_ids[ (io_channel-1) % 4]
                     network_base_FSD_v3.network_ext_node_from_tuple(c, iog, io_channel, cid)
+                    if cid in iog_exclude[iog][str(tile)]: continue
                     candidate_root = network_base_FSD_v3.setup_root(c, c.io, iog, \
                                                           io_channel,\
                                                           cid, verbose, \

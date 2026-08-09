@@ -14,12 +14,12 @@ from config_dtime import datetime_now
 _default_verbose=False
 _default_periodic_trigger_cycles=150000
 _default_periodic_reset_cycles=4096 #set to 4 for rolling periodic trigger, or 4096 for non-rolling trigger
-_default_vref_dac=185 # set to 220 for cold test or 185 for warm test
+_default_vref_dac=220 # set to 220 for cold test or 185 for warm test
 _default_ref_current_trim=0
 _default_tx_diff=7
 _default_tx_slice=1
 _default_r_term=7
-_default_i_rx=7
+_default_i_rx=3
 
 
 def main(input_files, verbose, \
@@ -52,11 +52,27 @@ def main(input_files, verbose, \
             config['enable_rolling_periodic_reset']=0
             config['enable_rolling_periodic_trigger']=0
             config['enable_tally']=1
-            config['ibias_vcm_buffer'] = 7            
+            config['ibias_vcm_buffer'] = 7 
+            config['i_rx0']=3 
+            config['i_rx1']=3 
+            config['i_rx2']=3 
+            config['i_rx3']=3              
+            config['i_tx_diff0']=8 
+            config['i_tx_diff1']=8 
+            config['i_tx_diff2']=8 
+            config['i_tx_diff3']=8                       
             config['mark_first_packet'] = 0
             config['periodic_trigger_mask'] = [1]*64 
+            config['r_term0']=7
+            config['r_term1']=7 
+            config['r_term2']=7 
+            config['r_term3']=7            
             config['threshold_global'] = 255
-
+            config['tx_slices0']=1            
+            config['tx_slices1']=1 
+            config['tx_slices2']=1 
+            config['tx_slices3']=1
+            
             if not vref_dac is None: config['vref_dac'] = vref_dac
             config['periodic_trigger_cycles'] = periodic_trigger_cycles
             config['periodic_reset_cycles'] = periodic_reset_cycles

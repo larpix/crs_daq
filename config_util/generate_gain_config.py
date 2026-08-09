@@ -19,7 +19,7 @@ _default_ref_current_trim=0
 _default_tx_diff=7
 _default_tx_slice=1
 _default_r_term=7
-_default_i_rx=7
+_default_i_rx=3
 
 
 def main(input_files, verbose, \
@@ -49,8 +49,25 @@ def main(input_files, verbose, \
             config['enable_rolling_periodic_reset']=1
             config['enable_tally']=1
             config['ibias_vcm_buffer'] = 7            
+            config['i_rx0']=3 
+            config['i_rx1']=3 
+            config['i_rx2']=3 
+            config['i_rx3']=3              
+            config['i_tx_diff0']=8 
+            config['i_tx_diff1']=8 
+            config['i_tx_diff2']=8 
+            config['i_tx_diff3']=8             
             config['mark_first_packet'] = 0
-            config['threshold_global'] = 40
+            config['r_term0']=7
+            config['r_term1']=7 
+            config['r_term2']=7 
+            config['r_term3']=7            
+            config['tx_slices0']=1            
+            config['tx_slices1']=1 
+            config['tx_slices2']=1 
+            config['tx_slices3']=1
+            
+            config['threshold_global'] = 25
             if not vref_dac is None: config['vref_dac'] = vref_dac
             config['periodic_reset_cycles'] = periodic_reset_cycles
             if 'meta' in config.keys():

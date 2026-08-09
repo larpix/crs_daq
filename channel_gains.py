@@ -89,8 +89,11 @@ def main(io_group, pacman_config, high_dac, disabled, **kwargs):
     disabled_list = get_disabled(disabled)
     
     low_dac = 0
-    n_iterations = 20
+    n_iterations = 5
 
+    if high_dac == 0:
+        print(f"PROBLEM: YOU MUST SPECIFY A DAC LEVEL IN THE COMMAND TO RUN THIS SCRIPT, ZERO IS NOT AN OPTION")
+    
     for channel in range(64):
         print(f'Testing channel {channel}')
 
@@ -131,7 +134,7 @@ if __name__ == '__main__':
                         type=str,
                         help='''PACMAN config file''')
     parser.add_argument('--high_dac',
-                        default=128,
+                        default=0,
                         type=int,
                         help='''High DAC level to test''')    
     parser.add_argument('--disabled', default=None, \
