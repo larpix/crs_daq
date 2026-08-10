@@ -7,10 +7,5 @@ Hydra:
   unchanged
 
 ASIC configs:
-  3 chips changed
-  5563 chip configs added
-  30 chip configs removed
-  disabled channels +71815 (0 -> 71815)
+  disabled channels unchanged
   threshold_global unchanged
-  chip 6-8-99 disabled channels +21: 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 58, 59, 60, 61, 62, 63
-  chip 6-12-38 disabled channels +1: 29
