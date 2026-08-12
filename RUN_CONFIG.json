@@ -1,5 +1,5 @@
 {
-	"destination_dir_" : "/data/Run3/WarmCommissioning/post-outage_pedestal",
+	"destination_dir_" : "/data/Run3/WarmCommissioning/iog8-newHydras",
         "asic_config_paths_file_" : ".asic_configs_.json",
 	"default_asic_config_paths_file_" : ".default_asic_configs_.json",
 	"network_config_paths_file_" : ".network_configs_.json",
