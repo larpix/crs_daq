@@ -1154,6 +1154,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     rate_ax.set_ylabel("Packet rate [s$^{-1}$]")
     rate_ax.grid(alpha=0.22)
     rate_ax.legend(loc="upper left")
+    rate_ax.set_yscale("symlog", linthresh=1)
 
     for ax, (group_title, group) in zip(data_axes[1:], metric_groups):
         for label, df in group:
