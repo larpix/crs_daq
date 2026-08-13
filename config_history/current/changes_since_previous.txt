@@ -1,28 +1,15 @@
 Since previous snapshot:
 
 RUN_CONFIG:
-  iog 6 tile 3 excludes +1 chips: 38
+  unchanged
 
 Hydra:
-  iog 6 tile 5 connected chips: 35 -> 4
-  iog 6 tile 5 lost chips: 31, 32, 33, 34, 35, 36, 37, 38, 39, 41, 43, 44, 45, 46, 47, 48, 51, 52, 53, 54, 55, 56, 57, 58, 65, 71, 72, 73, 74, 75, 85
-  iog 8 tile 2 connected chips: 100 -> 99
-  iog 8 tile 2 lost chips: 102
+  iog 6 tile 3 connected chips: 103 -> 102
+  iog 6 tile 3 lost chips: 38
 
 ASIC configs:
-  6200 chips changed
-  59 chip configs added
-  61 chip configs removed
-  disabled channels +54 (71815 -> 71869)
+  20 chips changed
+  11 chip configs added
+  12 chip configs removed
+  disabled channels -64 (71869 -> 71805)
   threshold_global unchanged
-  chip 1-2-66 disabled channels +17: 0, 1, 2, 10, 11, 16, 18, 28, 36, 41, 42, 43, 46, 49, 51, 52, 61
-  chip 1-2-67 disabled channels -1: 4
-  chip 1-13-12 disabled channels -1: 0
-  chip 1-13-15 disabled channels +1: 63
-  chip 1-13-15 disabled channels -2: 0, 62
-  chip 1-13-20 disabled channels -9: 0, 12, 14, 15, 20, 32, 60, 62, 63
-  chip 1-13-24 disabled channels -4: 0, 60, 62, 63
-  chip 1-13-28 disabled channels -1: 0
-  chip 1-13-30 disabled channels -1: 0
-  chip 1-13-31 disabled channels -2: 59, 60
-  ... 6190 more changed chip configs not shown
