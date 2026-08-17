@@ -15,4 +15,4 @@ WARNING: Connected hydra chips have no ASIC config summary for iog 5: 0, 1, 2, 3
 WARNING: Connected hydra chips have no ASIC config summary for iog 6: 0, 1, 2, 3
 WARNING: Connected hydra chips have no ASIC config summary for iog 7: 0, 1, 2, 3
 WARNING: Connected hydra chips have no ASIC config summary for iog 8: 0, 1, 2, 3
-WARNING: ASIC summary has 71805 total disabled channels.
+WARNING: ASIC summary has 71809 total disabled channels.

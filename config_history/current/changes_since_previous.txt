@@ -4,12 +4,13 @@ RUN_CONFIG:
   unchanged
 
 Hydra:
-  iog 6 tile 3 connected chips: 103 -> 102
-  iog 6 tile 3 lost chips: 38
+  unchanged
 
 ASIC configs:
-  20 chips changed
-  11 chip configs added
-  12 chip configs removed
-  disabled channels -64 (71869 -> 71805)
+  4 chips changed
+  disabled channels +4 (71805 -> 71809)
   threshold_global unchanged
+  chip 1-10-70 disabled channels +1: 45
+  chip 3-15-81 disabled channels +1: 11
+  chip 4-30-41 disabled channels +1: 29
+  chip 5-7-110 disabled channels +1: 37
