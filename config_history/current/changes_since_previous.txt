@@ -4,13 +4,39 @@ RUN_CONFIG:
   unchanged
 
 Hydra:
-  unchanged
+  iog 5 tile 1 connected chips: 103 -> 89
+  iog 5 tile 1 lost chips: 12, 14, 26, 55, 60, 61, 64, 67, 77, 94, 95, 99, 106, 108
+  iog 5 tile 2 connected chips: 102 -> 84
+  iog 5 tile 2 lost chips: 11, 12, 25, 29, 39, 48, 64, 67, 70, 75, 77, 87, 98, 99, 100, 108, 109, 110
+  iog 5 tile 3 connected chips: 104 -> 97
+  iog 5 tile 3 lost chips: 13, 46, 79, 81, 98, 101, 106
+  iog 5 tile 4 connected chips: 104 -> 85
+  iog 5 tile 4 lost chips: 16, 17, 18, 20, 27, 28, 30, 74, 75, 80, 83, 85, 87, 89, 90, 100, 102, 103, 108
+  iog 5 tile 5 connected chips: 104 -> 95
+  iog 5 tile 5 lost chips: 12, 16, 25, 74, 81, 87, 93, 95, 99
+  iog 5 tile 6 connected chips: 104 -> 92
+  iog 5 tile 6 lost chips: 13, 25, 32, 34, 36, 41, 47, 55, 56, 63, 68, 76
+  iog 5 tile 7 connected chips: 100 -> 83
+  iog 5 tile 7 lost chips: 11, 14, 24, 26, 40, 50, 61, 73, 77, 81, 82, 84, 90, 94, 95, 105, 106
+  iog 5 tile 8 connected chips: 104 -> 93
+  iog 5 tile 8 lost chips: 27, 29, 34, 35, 76, 91, 93, 98, 101, 103, 106
+  iog 6 tile 1 connected chips: 104 -> 94
+  iog 6 tile 1 lost chips: 29, 31, 66, 67, 70, 74, 76, 82, 96, 102
+  iog 6 tile 2 connected chips: 104 -> 97
+  iog 6 tile 2 lost chips: 11, 15, 38, 70, 79, 81, 94
+  iog 6 tile 3 connected chips: 102 -> 91
+  iog 6 tile 3 lost chips: 11, 17, 18, 23, 28, 31, 33, 48, 53, 78, 81
+  iog 6 tile 4 connected chips: 104 -> 71
+  iog 6 tile 4 lost chips: 11, 12, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25, 26, 31, 34, 35, 36, 37, 38, 45, 46, 47, 48, 53, 54, 63, 66, 82, 83, 91, 92, 93, 95
+  iog 6 tile 5 connected chips: 4 -> 9
+  iog 6 tile 5 gained chips: 71, 72, 73, 74, 91
+  iog 6 tile 6 connected chips: 103 -> 92
+  iog 6 tile 6 lost chips: 14, 19, 25, 47, 50, 74, 79, 82, 89, 99, 101
+  iog 6 tile 7 connected chips: 104 -> 94
+  iog 6 tile 7 lost chips: 26, 32, 34, 43, 53, 61, 89, 101, 104, 106
+  iog 6 tile 8 connected chips: 103 -> 96
+  iog 6 tile 8 lost chips: 15, 23, 34, 45, 71, 93, 102
 
 ASIC configs:
-  4 chips changed
-  disabled channels +4 (71805 -> 71809)
+  disabled channels unchanged
   threshold_global unchanged
-  chip 1-10-70 disabled channels +1: 45
-  chip 3-15-81 disabled channels +1: 11
-  chip 4-30-41 disabled channels +1: 29
-  chip 5-7-110 disabled channels +1: 37

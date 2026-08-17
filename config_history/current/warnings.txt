@@ -4,9 +4,22 @@ WARNING: RUN_CONFIG excludes chips still present in hydra for iog 1 tile 5: 100
 WARNING: RUN_CONFIG excludes chips still present in hydra for iog 1 tile 8: 36
 WARNING: Hydra excludes chips not listed in RUN_CONFIG for iog 1 tile 8: 12
 WARNING: Hydra excludes chips not listed in RUN_CONFIG for iog 4 tile 5: 60
+WARNING: RUN_CONFIG excludes chips still present in hydra for iog 6 tile 5: 91
 WARNING: Hydra excludes chips not listed in RUN_CONFIG for iog 8 tile 2: 102
 WARNING: RUN_CONFIG excludes chips still present in hydra for iog 8 tile 7: 21
 WARNING: Hydra excludes chips not listed in RUN_CONFIG for iog 8 tile 8: 101
+WARNING: Large hydra chip loss for iog 5 tile 1: lost 14 chips (12, 14, 26, 55, 60, 61, 64, 67, 77, 94, 95, 99, 106, 108).
+WARNING: Large hydra chip loss for iog 5 tile 2: lost 18 chips (11, 12, 25, 29, 39, 48, 64, 67, 70, 75, 77, 87, 98, 99, 100, 108, 109, 110).
+WARNING: Large hydra chip loss for iog 5 tile 4: lost 19 chips (16, 17, 18, 20, 27, 28, 30, 74, 75, 80, 83, 85, 87, 89, 90, 100, 102, 103, 108).
+WARNING: Large hydra chip loss for iog 5 tile 5: lost 9 chips (12, 16, 25, 74, 81, 87, 93, 95, 99).
+WARNING: Large hydra chip loss for iog 5 tile 6: lost 12 chips (13, 25, 32, 34, 36, 41, 47, 55, 56, 63, 68, 76).
+WARNING: Large hydra chip loss for iog 5 tile 7: lost 17 chips (11, 14, 24, 26, 40, 50, 61, 73, 77, 81, 82, 84, 90, 94, 95, 105, 106).
+WARNING: Large hydra chip loss for iog 5 tile 8: lost 11 chips (27, 29, 34, 35, 76, 91, 93, 98, 101, 103, 106).
+WARNING: Large hydra chip loss for iog 6 tile 1: lost 10 chips (29, 31, 66, 67, 70, 74, 76, 82, 96, 102).
+WARNING: Large hydra chip loss for iog 6 tile 3: lost 11 chips (11, 17, 18, 23, 28, 31, 33, 48, 53, 78, 81).
+WARNING: Large hydra chip loss for iog 6 tile 4: lost 33 chips (11, 12, 13, 14, 15, 16, 17, 21, 22, 23, 24, 25, 26, 31, 34, 35, 36, 37, 38, 45, 46, 47, 48, 53, 54, 63, 66, 82, 83, 91, 92, 93, 95).
+WARNING: Large hydra chip loss for iog 6 tile 6: lost 11 chips (14, 19, 25, 47, 50, 74, 79, 82, 89, 99, 101).
+WARNING: Large hydra chip loss for iog 6 tile 7: lost 10 chips (26, 32, 34, 43, 53, 61, 89, 101, 104, 106).
 WARNING: Connected hydra chips have no ASIC config summary for iog 1: 0, 1, 2, 3
 WARNING: Connected hydra chips have no ASIC config summary for iog 2: 0, 1, 2, 3
 WARNING: Connected hydra chips have no ASIC config summary for iog 3: 0, 1, 2, 3

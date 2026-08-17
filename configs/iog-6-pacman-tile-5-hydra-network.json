@@ -4,7 +4,109 @@
     "asic_version": "2b",
     "layout": "2.5.1",
     "network": {
-        "6": { },
+        "6": {
+            "17": {
+                "nodes": [
+                    {
+                        "chip_id": "ext",
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            null
+                        ],
+                        "root": true
+                    }
+                ]
+            },
+            "18": {
+                "nodes": [
+                    {
+                        "chip_id": "ext",
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            null
+                        ],
+                        "root": true
+                    }
+                ]
+            },
+            "19": {
+                "nodes": [
+                    {
+                        "chip_id": "ext",
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            71
+                        ],
+                        "root": true
+                    },
+                    {
+                        "chip_id": 71,
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            72
+                        ]
+                    },
+                    {
+                        "chip_id": 72,
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            73
+                        ]
+                    },
+                    {
+                        "chip_id": 73,
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            74
+                        ]
+                    },
+                    {
+                        "chip_id": 74,
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            null
+                        ]
+                    }
+                ]
+            },
+            "20": {
+                "nodes": [
+                    {
+                        "chip_id": "ext",
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            91
+                        ],
+                        "root": true
+                    },
+                    {
+                        "chip_id": 91,
+                        "miso_us": [
+                            null,
+                            null,
+                            null,
+                            null
+                        ]
+                    }
+                ]
+            }
+        },
         "miso_us_uart_map": [
             3,
             0,
@@ -24,5 +126,13 @@
             1
         ]
     },
-    "missing": {}
+    "missing": {
+        "6": {
+            "19": {
+                "75": [
+                    0
+                ]
+            }
+        }
+    }
 }
