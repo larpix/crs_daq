@@ -1,5 +1,5 @@
 {
-	"destination_dir_" : "/data/Run3/Fill",
+	"destination_dir_" : "/data/Run3/WarmCommissioning/AutoCrawlerIog6Tile5",
         "asic_config_paths_file_" : ".asic_configs_.json",
 	"default_asic_config_paths_file_" : ".default_asic_configs_.json",
 	"network_config_paths_file_" : ".network_configs_.json",
@@ -45,7 +45,7 @@
 	},
 	
 	"iog_exclude" : {
-        	"1": {"1":[], 		"2":[37],	"3":[], 	"4":[101], 	"5":[100], 	"6":[], 	"7":[37],		"8":[36]},
+        	"1": {"1":[], 		"2":[37],	"3":[], 	"4":[101], 	"5":[100], 	"6":[56], 	"7":[37],		"8":[36]},
         	"2": {"1":[], 		"2":[], 	"3":[], 	"4":[], 	"5":[68,70], 	"6":[],		"7":[],			"8":[73, 89, 92, 100, 102, 103]},
         	"3": {"1":[], 	"2":[],	"3":[],	"4":[], 	"5":[], 	"6":[],	"7":[],	"8":[]},
                 "4": {"1":[],"2":[],		"3":[], 	"4":[101],	"5":[],		"6":[],		"7":[], 		"8":[]},

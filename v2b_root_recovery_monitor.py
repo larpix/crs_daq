@@ -42,12 +42,20 @@ present in crs_daq / larpix-control.  It does NOT invent a separate chip-local
 "state-machine reset" command: no such public command was identified in the
 current larpix-control API.  The no-reset poke passes exercise the current ASIC
 state; the reset passes exercise the verified PACMAN reset_larpix path.
+
+Memory containment
+------------------
+The DAQ server uses an older larpix-control revision where Controller.reads and
+PACMAN_IO._sender_replies grow indefinitely.  This monitor explicitly clears
+those histories after their contents have been reduced to logged metrics, and it
+prints current process RSS at the end of every recovery cycle.
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
+import gc
 import json
 import signal
 import sys
@@ -64,7 +72,7 @@ import larpix.io
 from base import pacman_base
 
 
-SCRIPT_VERSION = "2026-08-14-root-recovery-v1"
+SCRIPT_VERSION = "2026-08-17-root-recovery-v2-memoryfix"
 ROOT_IDS = (21, 41, 71, 91)
 IO_GROUPS = (5, 6)
 N_TILES = 8
@@ -391,17 +399,54 @@ class IOGHardware:
         connection_delay_s: float,
         n_verify: int,
     ) -> Dict[str, Any]:
+        """Verify a full chip config without retaining larpix read history.
+
+        Older larpix-control revisions append every PacketCollection to
+        Controller.reads and never clear it.  This monitor can perform hundreds
+        of full-register reads per cycle, so leaving that history intact causes
+        unbounded memory growth.  The diff returned by verify_configuration is
+        self-contained, so the raw PacketCollections are no longer needed once
+        summarize_diff has reduced the result to our metrics.
+        """
         t0 = time.monotonic()
-        ok, diff = self.controller.verify_configuration(
-            target.key,
-            timeout=timeout_s,
-            connection_delay=connection_delay_s,
-            n=n_verify,
-        )
-        duration = time.monotonic() - t0
-        return summarize_diff(
-            self.controller[target.key], ok, diff, duration_s=duration
-        )
+        try:
+            ok, diff = self.controller.verify_configuration(
+                target.key,
+                timeout=timeout_s,
+                connection_delay=connection_delay_s,
+                n=n_verify,
+            )
+            duration = time.monotonic() - t0
+            return summarize_diff(
+                self.controller[target.key], ok, diff, duration_s=duration
+            )
+        finally:
+            # Critical memory-leak containment for the older larpix-control
+            # version used on the DAQ server.  Safe here because
+            # verify_configuration has already consumed self.reads[-1] and
+            # returned its diff before this finally block runs.
+            self.controller.reads.clear()
+
+    def clear_software_history(self) -> Dict[str, int]:
+        """Drop larpix/PACMAN histories that otherwise grow without bound."""
+        controller_reads = len(self.controller.reads) if self.controller else 0
+        if self.controller is not None:
+            self.controller.reads.clear()
+
+        sender_replies = 0
+        if self.io is not None and hasattr(self.io, "_sender_replies"):
+            try:
+                sender_replies = sum(len(v) for v in self.io._sender_replies.values())
+                self.io._sender_replies.clear()
+            except Exception:
+                # History cleanup is best-effort and must never interfere with
+                # the hardware recovery loop.
+                pass
+
+        return {
+            "controller_reads_dropped": controller_reads,
+            "sender_replies_dropped": sender_replies,
+        }
 
     def write_full_config(self, target: Target) -> float:
         t0 = time.monotonic()
@@ -723,6 +768,77 @@ def probe_target(
                     error=f"{exc.__class__.__name__}: {exc}",
                 )
 
+        # PACMAN_IO also keeps every synchronous command-server reply in an
+        # unbounded defaultdict(list).  None of those replies are needed after
+        # the corresponding synchronous call returns, so prune the history at
+        # the end of every root trial.
+        dropped = hw.clear_software_history()
+        if dropped["controller_reads_dropped"] or dropped["sender_replies_dropped"]:
+            hw.log.event(
+                "SOFTWARE_HISTORY_CLEARED",
+                cycle=cycle,
+                phase=phase.name,
+                **asdict(target),
+                **dropped,
+            )
+
+
+def read_process_memory_kib() -> Dict[str, int]:
+    """Read current Linux process-memory counters from /proc/self/status."""
+    wanted = {"VmRSS", "VmHWM", "VmSize", "RssAnon", "RssFile", "RssShmem"}
+    result: Dict[str, int] = {}
+    try:
+        with open("/proc/self/status", "r", encoding="utf-8") as handle:
+            for line in handle:
+                key = line.split(":", 1)[0]
+                if key not in wanted:
+                    continue
+                fields = line.split()
+                if len(fields) >= 2:
+                    result[key] = int(fields[1])
+    except OSError:
+        pass
+    return result
+
+
+def report_memory(
+    log: SessionLogger,
+    hardware: Dict[int, IOGHardware],
+    *,
+    cycle: int,
+    phase: Optional[str] = None,
+) -> None:
+    """Print and log RSS plus the two histories we intentionally bound."""
+    memory = read_process_memory_kib()
+    controller_reads = {
+        str(iog): len(hw.controller.reads) if hw.controller is not None else 0
+        for iog, hw in hardware.items()
+    }
+    sender_replies = {}
+    for iog, hw in hardware.items():
+        count = 0
+        if hw.io is not None and hasattr(hw.io, "_sender_replies"):
+            try:
+                count = sum(len(v) for v in hw.io._sender_replies.values())
+            except Exception:
+                count = -1
+        sender_replies[str(iog)] = count
+
+    rss_mib = memory.get("VmRSS", 0) / 1024.0
+    hwm_mib = memory.get("VmHWM", 0) / 1024.0
+    print(
+        f"Memory: RSS={rss_mib:.1f} MiB HWM={hwm_mib:.1f} MiB "
+        f"controller.reads={controller_reads} sender_replies={sender_replies}"
+    )
+    log.event(
+        "MEMORY_STATUS",
+        cycle=cycle,
+        phase=phase,
+        memory_kib=memory,
+        controller_reads=controller_reads,
+        sender_replies=sender_replies,
+    )
+
 
 def print_cycle_summary(latest: Dict[str, Any], targets: Sequence[Target]) -> None:
     n = len(targets)
@@ -890,6 +1006,12 @@ def main() -> int:
                 log.event("PHASE_END", cycle=cycle, phase=phase.name)
 
             print_cycle_summary(latest, targets)
+
+            # Force collection of any temporary cyclic Python objects, then
+            # report current RSS.  The explicit history clears above are the
+            # actual leak fix; gc.collect() is only diagnostic housekeeping.
+            gc.collect()
+            report_memory(log, hardware, cycle=cycle)
             log.event("CYCLE_END", cycle=cycle)
 
             if args.loops != 0 and cycle >= args.loops:
@@ -912,4 +1034,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
