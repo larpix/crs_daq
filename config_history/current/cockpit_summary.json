@@ -2,19 +2,19 @@
   "counts": {
     "active_tiles": 64,
     "asic_config_chips": 6257,
-    "asic_csa_disabled_channels_total": 71794,
-    "asic_disabled_channels_total": 71794,
+    "asic_csa_disabled_channels_total": 71795,
+    "asic_disabled_channels_total": 71795,
     "hydra_connected_chips_total": 6513,
     "hydra_excluded_chips_total": 32,
     "hydra_files": 64,
-    "run_config_excluded_chips_total": 110,
+    "run_config_excluded_chips_total": 107,
     "run_config_rows": 64,
-    "warnings": 18
+    "warnings": 22
   },
-  "generated_at_utc": "2026-08-23T22:54:04+00:00",
+  "generated_at_utc": "2026-08-28T16:54:39+00:00",
   "git": {
-    "branch": "",
-    "commit": "eaa1df317c0e",
+    "branch": "2x2-run3-cooldown",
+    "commit": "75bb0dd75174",
     "repo_root": "/home/acd/acdaq/CRS_DAQ/daq0/crs_daq"
   },
   "schema_version": 1,
