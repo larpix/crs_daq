@@ -1,23 +1,15 @@
 Since previous snapshot:
 
 RUN_CONFIG:
-  iog 1 tile 2 excludes +1 chips: 71
-  iog 1 tile 4 excludes -1 chips: 101
-  iog 1 tile 6 excludes -1 chips: 56
-  iog 2 tile 5 excludes -2 chips: 68, 70
-  iog 2 tile 6 excludes +1 chips: 68
-  iog 2 tile 8 excludes -5 chips: 73, 92, 100, 102, 103
+  unchanged
 
 Hydra:
-  iog 1 tile 2 connected chips: 100 -> 102
-  iog 1 tile 2 gained chips: 39, 40, 70
-  iog 1 tile 2 lost chips: 71
-  iog 1 tile 5 connected chips: 104 -> 103
-  iog 1 tile 5 lost chips: 100
-  iog 1 tile 6 connected chips: 103 -> 104
-  iog 1 tile 6 gained chips: 56
-  iog 1 tile 8 gained chips: 12
-  iog 1 tile 8 lost chips: 36
+  iog 2 tile 5 connected chips: 102 -> 104
+  iog 2 tile 5 gained chips: 68, 70
+  iog 2 tile 6 connected chips: 104 -> 103
+  iog 2 tile 6 lost chips: 68
+  iog 2 tile 8 connected chips: 98 -> 103
+  iog 2 tile 8 gained chips: 73, 92, 100, 102, 103
 
 ASIC configs:
   disabled channels unchanged
