@@ -4,12 +4,7 @@ RUN_CONFIG:
   unchanged
 
 Hydra:
-  iog 2 tile 5 connected chips: 102 -> 104
-  iog 2 tile 5 gained chips: 68, 70
-  iog 2 tile 6 connected chips: 104 -> 103
-  iog 2 tile 6 lost chips: 68
-  iog 2 tile 8 connected chips: 98 -> 103
-  iog 2 tile 8 gained chips: 73, 92, 100, 102, 103
+  unchanged
 
 ASIC configs:
   disabled channels unchanged

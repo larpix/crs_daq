@@ -11,10 +11,10 @@
     "run_config_rows": 64,
     "warnings": 13
   },
-  "generated_at_utc": "2026-08-30T21:23:19+00:00",
+  "generated_at_utc": "2026-08-30T22:32:22+00:00",
   "git": {
     "branch": "2x2-run3-cooldown",
-    "commit": "480381559a39",
+    "commit": "b8ca1ac64fe3",
     "repo_root": "/home/acd/acdaq/CRS_DAQ/daq0/crs_daq"
   },
   "schema_version": 1,
