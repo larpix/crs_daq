@@ -1,7 +1,8 @@
-WARNING: Hydra excludes chips not listed in RUN_CONFIG for iog 7 tile 3: 51, 61, 68, 69, 70, 79, 80, 85
-WARNING: Hydra excludes chips not listed in RUN_CONFIG for iog 8 tile 2: 102
-WARNING: RUN_CONFIG excludes chips still present in hydra for iog 8 tile 7: 21
+WARNING: Hydra excludes chips not listed in RUN_CONFIG for iog 7 tile 3: 17, 18, 19, 20, 61
+WARNING: Hydra excludes chips not listed in RUN_CONFIG for iog 7 tile 5: 73, 83, 92, 93, 102, 103, 104, 105, 106
+WARNING: Hydra excludes chips not listed in RUN_CONFIG for iog 8 tile 2: 92, 98, 102, 103, 104
 WARNING: Hydra excludes chips not listed in RUN_CONFIG for iog 8 tile 8: 101
+WARNING: Large hydra chip loss for iog 7 tile 5: lost 9 chips (73, 83, 92, 93, 102, 103, 104, 105, 106).
 WARNING: Connected hydra chips have no ASIC config summary for iog 1: 0, 1, 2, 3
 WARNING: Connected hydra chips have no ASIC config summary for iog 2: 0, 1, 2, 3
 WARNING: Connected hydra chips have no ASIC config summary for iog 3: 0, 1, 2, 3
