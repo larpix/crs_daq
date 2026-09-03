@@ -802,7 +802,7 @@
                         "miso_us": [
                             null,
                             null,
-                            null,
+                            107,
                             null
                         ]
                     },
@@ -811,7 +811,7 @@
                         "miso_us": [
                             null,
                             null,
-                            109,
+                            null,
                             null
                         ]
                     },
@@ -847,7 +847,7 @@
                         "miso_us": [
                             null,
                             null,
-                            110,
+                            null,
                             null
                         ]
                     },
@@ -864,18 +864,18 @@
                         "chip_id": 105,
                         "miso_us": [
                             null,
-                            null,
+                            104,
                             null,
                             null
                         ]
                     },
                     {
-                        "chip_id": 109,
+                        "chip_id": 107,
                         "miso_us": [
                             null,
-                            108,
                             null,
-                            null
+                            null,
+                            108
                         ]
                     },
                     {
@@ -888,7 +888,7 @@
                         ]
                     },
                     {
-                        "chip_id": 106,
+                        "chip_id": 104,
                         "miso_us": [
                             null,
                             null,
@@ -915,7 +915,7 @@
                         ]
                     },
                     {
-                        "chip_id": 110,
+                        "chip_id": 106,
                         "miso_us": [
                             null,
                             null,
@@ -945,5 +945,18 @@
             1
         ]
     },
-    "missing": {}
+    "missing": {
+        "5": {
+            "28": {
+                "102": [
+                    3,
+                    2,
+                    0,
+                    3,
+                    2,
+                    0
+                ]
+            }
+        }
+    }
 }

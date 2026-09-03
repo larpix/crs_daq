@@ -1,16 +1,55 @@
 Since previous snapshot:
 
 RUN_CONFIG:
-  iog 8 tile 2 excludes -4 chips: 92, 98, 103, 104
-  iog 8 tile 7 excludes -1 chips: 21
+  iog 5 tile 2 excludes -1 chips: 104
+  iog 5 tile 7 excludes +2 chips: 109, 110
+  iog 5 tile 7 excludes -3 chips: 102, 104, 107
+  iog 6 tile 3 excludes +2 chips: 40, 50
+  iog 6 tile 3 excludes -1 chips: 43
+  iog 6 tile 6 excludes +4 chips: 13, 42, 45, 72
+  iog 7 tile 1 VDDD changed [40000,40000,38000,40000,42000,40000,40000,40000] -> [40000,40000,40000,40000,40000,40000,40000,40000]
+  iog 7 tile 2 VDDD changed [40000,40000,38000,40000,42000,40000,40000,40000] -> [40000,40000,40000,40000,40000,40000,40000,40000]
+  iog 7 tile 3 VDDD changed [40000,40000,38000,40000,42000,40000,40000,40000] -> [40000,40000,40000,40000,40000,40000,40000,40000]
+  iog 7 tile 3 excludes +1 chips: 94
+  iog 7 tile 4 VDDD changed [40000,40000,38000,40000,42000,40000,40000,40000] -> [40000,40000,40000,40000,40000,40000,40000,40000]
+  iog 7 tile 5 VDDD changed [40000,40000,38000,40000,42000,40000,40000,40000] -> [40000,40000,40000,40000,40000,40000,40000,40000]
+  iog 7 tile 6 VDDD changed [40000,40000,38000,40000,42000,40000,40000,40000] -> [40000,40000,40000,40000,40000,40000,40000,40000]
+  iog 7 tile 7 VDDD changed [40000,40000,38000,40000,42000,40000,40000,40000] -> [40000,40000,40000,40000,40000,40000,40000,40000]
+  iog 7 tile 8 VDDD changed [40000,40000,38000,40000,42000,40000,40000,40000] -> [40000,40000,40000,40000,40000,40000,40000,40000]
+  iog 8 tile 1 VDDD changed [40000,40000,40500,40000,40000,39000,41000,39000] -> [40000,41000,40500,40000,40000,39000,41000,39000]
+  iog 8 tile 2 VDDD changed [40000,40000,40500,40000,40000,39000,41000,39000] -> [40000,41000,40500,40000,40000,39000,41000,39000]
+  iog 8 tile 2 excludes +3 chips: 53, 94, 101
+  iog 8 tile 3 VDDD changed [40000,40000,40500,40000,40000,39000,41000,39000] -> [40000,41000,40500,40000,40000,39000,41000,39000]
+  iog 8 tile 4 VDDD changed [40000,40000,40500,40000,40000,39000,41000,39000] -> [40000,41000,40500,40000,40000,39000,41000,39000]
+  iog 8 tile 5 VDDD changed [40000,40000,40500,40000,40000,39000,41000,39000] -> [40000,41000,40500,40000,40000,39000,41000,39000]
+  iog 8 tile 6 VDDD changed [40000,40000,40500,40000,40000,39000,41000,39000] -> [40000,41000,40500,40000,40000,39000,41000,39000]
+  iog 8 tile 7 VDDD changed [40000,40000,40500,40000,40000,39000,41000,39000] -> [40000,41000,40500,40000,40000,39000,41000,39000]
+  iog 8 tile 8 VDDD changed [40000,40000,40500,40000,40000,39000,41000,39000] -> [40000,41000,40500,40000,40000,39000,41000,39000]
 
 Hydra:
-  iog 7 tile 3 connected chips: 96 -> 99
-  iog 7 tile 3 gained chips: 51, 68, 69, 70, 79, 80, 85
-  iog 7 tile 3 lost chips: 17, 18, 19, 20
-  iog 7 tile 5 connected chips: 102 -> 93
-  iog 7 tile 5 lost chips: 73, 83, 92, 93, 102, 103, 104, 105, 106
+  iog 5 tile 2 connected chips: 102 -> 103
+  iog 5 tile 2 gained chips: 104
+  iog 5 tile 7 gained chips: 104, 107
+  iog 5 tile 7 lost chips: 109, 110
+  iog 6 tile 3 connected chips: 102 -> 101
+  iog 6 tile 3 gained chips: 43
+  iog 6 tile 3 lost chips: 40, 50
+  iog 6 tile 6 connected chips: 103 -> 99
+  iog 6 tile 6 lost chips: 13, 42, 45, 72
+  iog 7 tile 3 connected chips: 99 -> 103
+  iog 7 tile 3 gained chips: 17, 18, 19, 20, 61
+  iog 7 tile 3 lost chips: 94
+  iog 7 tile 5 connected chips: 93 -> 102
+  iog 7 tile 5 gained chips: 73, 83, 92, 93, 102, 103, 104, 105, 106
+  iog 8 tile 2 connected chips: 99 -> 98
+  iog 8 tile 2 gained chips: 92, 98, 102, 103
+  iog 8 tile 2 lost chips: 53, 81, 91, 94, 101
+  iog 8 tile 8 connected chips: 103 -> 104
+  iog 8 tile 8 gained chips: 101
 
 ASIC configs:
-  disabled channels unchanged
+  5369 chips changed
+  884 chip configs added
+  888 chip configs removed
+  disabled channels -7 (71795 -> 71788)
   threshold_global unchanged

@@ -1,25 +1,25 @@
 {
   "counts": {
     "active_tiles": 64,
-    "asic_config_chips": 6257,
-    "asic_csa_disabled_channels_total": 71795,
-    "asic_disabled_channels_total": 71795,
-    "hydra_connected_chips_total": 6500,
-    "hydra_excluded_chips_total": 45,
+    "asic_config_chips": 6253,
+    "asic_csa_disabled_channels_total": 71788,
+    "asic_disabled_channels_total": 71788,
+    "hydra_connected_chips_total": 6509,
+    "hydra_excluded_chips_total": 32,
     "hydra_files": 64,
-    "run_config_excluded_chips_total": 106,
+    "run_config_excluded_chips_total": 113,
     "run_config_rows": 64,
-    "warnings": 14
+    "warnings": 10
   },
-  "generated_at_utc": "2026-09-02T14:29:51+00:00",
+  "generated_at_utc": "2026-09-03T05:02:29+00:00",
   "git": {
     "branch": "2x2-run3-cooldown",
-    "commit": "4772aa41f05d",
+    "commit": "6082a168f585",
     "repo_root": "/home/acd/acdaq/CRS_DAQ/daq0/crs_daq"
   },
   "schema_version": 1,
   "sources": {
-    "asic_config_dir": "asic_configs/Run3CooldownConfigs_v4",
+    "asic_config_dir": "asic_configs/Run3ColdCommissioningPedestal_v1",
     "hydra_globs": [
       "configs/iog-*-pacman-tile-*-hydra-network.json"
     ],

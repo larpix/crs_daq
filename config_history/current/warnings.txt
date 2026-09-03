@@ -1,8 +1,4 @@
-WARNING: Hydra excludes chips not listed in RUN_CONFIG for iog 7 tile 3: 17, 18, 19, 20, 61
-WARNING: Hydra excludes chips not listed in RUN_CONFIG for iog 7 tile 5: 73, 83, 92, 93, 102, 103, 104, 105, 106
-WARNING: Hydra excludes chips not listed in RUN_CONFIG for iog 8 tile 2: 92, 98, 102, 103, 104
-WARNING: Hydra excludes chips not listed in RUN_CONFIG for iog 8 tile 8: 101
-WARNING: Large hydra chip loss for iog 7 tile 5: lost 9 chips (73, 83, 92, 93, 102, 103, 104, 105, 106).
+WARNING: Hydra excludes chips not listed in RUN_CONFIG for iog 8 tile 2: 81, 91, 104
 WARNING: Connected hydra chips have no ASIC config summary for iog 1: 0, 1, 2, 3
 WARNING: Connected hydra chips have no ASIC config summary for iog 2: 0, 1, 2, 3
 WARNING: Connected hydra chips have no ASIC config summary for iog 3: 0, 1, 2, 3
@@ -11,4 +7,4 @@ WARNING: Connected hydra chips have no ASIC config summary for iog 5: 0, 1, 2, 3
 WARNING: Connected hydra chips have no ASIC config summary for iog 6: 0, 1, 2, 3
 WARNING: Connected hydra chips have no ASIC config summary for iog 7: 0, 1, 2, 3
 WARNING: Connected hydra chips have no ASIC config summary for iog 8: 0, 1, 2, 3
-WARNING: ASIC summary has 71795 total disabled channels.
+WARNING: ASIC summary has 71788 total disabled channels.
