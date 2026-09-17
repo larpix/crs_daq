@@ -24,7 +24,7 @@ def main(*files, inc=0, **kwargs):
         for val in  set(globs) :
             print('{}: {}'.format(val, np.sum(globs==val)))
 
-        return
+#        return
         fig=plt.figure()
         ax=fig.add_subplot()
         ax.hist(trims,range=(-0.5, 31.5), bins=32 )
@@ -32,6 +32,7 @@ def main(*files, inc=0, **kwargs):
         ax.set_xlabel('pixel trim dac', fontsize=14)
         ax.set_ylabel('channel count', fontsize=14)
         fig.savefig('ptd.png')
+        return
                 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -94,8 +94,8 @@ threshold_run1/
 /input_disabled_list.json
 
 # --- Local toggle/global-DAC scratch scripts ---
-/toggle_global_dac.py
-/toggle_global_dac.sh
+#/toggle_global_dac.py
+#/toggle_global_dac.sh
 /toggle_global_dac_2.py
 /toggle_global_dac_2.sh
 
