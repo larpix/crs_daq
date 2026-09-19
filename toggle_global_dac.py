@@ -21,7 +21,7 @@ for var in RUN.config.keys():
     setattr(module, var, getattr(RUN, var))
 
 
-_initial_global_dac=40 #100 ### initial global DAC set value
+_initial_global_dac=100 #100 ### initial global DAC set value
 _runtime_global=0.5 #0.1 ### runtime to assess chip trigger rate
 _maxrate_global=500. ### maximum chip trigger rate to set global DAC
 _minrate_global=10. ### minimum chip trigger rate to set global DAC
