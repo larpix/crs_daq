@@ -8,6 +8,10 @@ def main(*files, inc=0, **kwargs):
                 
                 if config['threshold_global'] + inc >= 255:
                         config['threshold_global'] = 255
+
+                elif config['threshold_global'] + inc <= 0:
+                    config['threshold_global'] = 0
+
                 else: 
                         config['threshold_global'] += inc
 
