@@ -1,5 +1,5 @@
 {
-	"destination_dir_" : "/data/Run3/ColdCommissioning/SelfTriggering_iog4tile3_test_20260923",
+	"destination_dir_" : "/data/Run3/ColdCommissioning/Leakage_20260924_IOG4T3_DAC-1",
         "asic_config_paths_file_" : ".asic_configs_.json",
 	"default_asic_config_paths_file_" : ".default_asic_configs_.json",
 	"network_config_paths_file_" : ".network_configs_.json",
