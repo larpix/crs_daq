@@ -4,6 +4,7 @@ from base import pacman_base
 from base import utility_base
 import numpy as np
 from copy import deepcopy
+from base.asic_family import normalize_asic_family
 
 tag_to_config_map = {
 
@@ -44,6 +45,47 @@ def get_chips_by_io_group_io_channel(network_config, tiles=None, use_keys=None):
             all_keys.append(keys)
 
     return all_keys
+
+def validate_configurations(c, network_keys, io_group, asic_family,
+                            config_path, topology_path, allow_remap=False):
+    """Validate the existing loader's result; never omit a requested ASIC.
+
+    Configure historically permits a chip to move between channels on the same
+    tile. Only a unique match is accepted; networking requires the saved keys.
+    """
+    missing, ambiguous, invalid = [], [], []
+    resolved = []
+    for net in network_keys:
+        selected = []
+        for key in net:
+            candidates = [key] if key in c.chips else []
+            if not candidates and allow_remap:
+                candidates = [chip for chip in c.chips
+                              if chip.io_group == key.io_group
+                              and chip.chip_id == key.chip_id
+                              and utility_base.io_channel_to_tile(chip.io_channel)
+                              == utility_base.io_channel_to_tile(key.io_channel)]
+            if not candidates:
+                missing.append(str(key))
+            elif len(candidates) != 1:
+                ambiguous.append(str(key))
+            else:
+                selected.append(candidates[0])
+        resolved.append(selected)
+    for key in c.chips:
+        if (key.io_group != io_group or
+                normalize_asic_family(c[key].asic_version) != asic_family):
+            invalid.append(str(key))
+    expected = {key for net in resolved for key in net}
+    extra = sorted(str(key) for key in c.chips if key not in expected)
+    if missing or ambiguous or invalid or extra or not expected:
+        raise ValueError(
+            f'ASIC configuration mismatch: topology={topology_path}, configs={config_path}; '
+            f'missing={sorted(missing)}, extra={extra}, ambiguous={sorted(ambiguous)}, '
+            f'wrong IOG/family={sorted(invalid)}, loaded={len(c.chips)}'
+        )
+    return resolved
+
 
 def enforce_parallel(c, network_keys, unmask_last=True, pbar_position=0, pbar_desc='configuring...', ignore_diff=False):
     

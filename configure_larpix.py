@@ -10,6 +10,7 @@ from base import pacman_base
 from base import utility_base
 from base import enforce_parallel
 from base.asic_family import control_io_settings
+from base.network_config import validate_control_network
 from base.utility_base import now
 import json
 import sys
@@ -36,10 +37,6 @@ def main(verbose, \
         io_group, asic_family, packet_family = control_io_settings(pacman_config)
         
         c = larpix.Controller()
-        c.io = larpix.io.PACMAN_IO(
-            relaxed=True, config_filepath=pacman_config,
-            asic_version=packet_family,
-        )
         if verbose:
             print(f'IOG {io_group}: ASIC {asic_family!r}, packet family {packet_family}')
         
@@ -55,41 +52,25 @@ def main(verbose, \
                 print('Loading current config...')
                 CONFIG=utility_base.get_from_json(asic_config_paths_file_,io_group)
             else:
-                CONFIG='{}/{}'.format(asic_config, config_subdir)
-                utility_base.update_json(asic_config_paths_file_, io_group,CONFIG )
+                CONFIG = os.path.join(asic_config, config_subdir) if config_subdir else asic_config
 
             network_config_file = utility_base.get_from_json(network_config_paths_file_, io_group)
-            all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel( network_config_file ) 
+            if CONFIG is None or network_config_file is None:
+                raise ValueError(f'IOG {io_group}: current ASIC/network selection is unset; run normal networking first')
+            validate_control_network(network_config_file, io_group, asic_family)
+            all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(network_config_file)
             config_loader.load_config_from_directory(c, CONFIG) 
             
-            #make the network keys io channel agnostic
-            remove = [] 
-            for i in range(len(all_network_keys)):
-                for j in range(len(all_network_keys[i])):
-                    if not all_network_keys[i][j] in c.chips:
-                        
-                        found=False
-                        chip = all_network_keys[i][j]
-                        tile =  utility_base.io_channel_to_tile(chip.io_channel)
-                        io_channels = [ 1 + 4*(tile - 1) + n for n in range(4)]
-                        
-                        for io_channel in io_channels:
-                            chip_key = '{}-{}-{}'.format(chip.io_group, io_channel, chip.chip_id)
-                            if chip_key in c.chips:
-                                all_network_keys[i][j] = chip_key
-                                found=True
-                                break
+            all_network_keys = enforce_parallel.validate_configurations(
+                c, all_network_keys, io_group, asic_family, CONFIG,
+                network_config_file, allow_remap=True)
+            print(f'IOG {io_group}: configuring from {CONFIG}', flush=True)
 
-                        if not found:
-                            remove.append(chip)
-
-
-            for chip in remove:
-
-                for i in range(len(all_network_keys)):
-                    if chip in all_network_keys[i]:\
-                            all_network_keys[i].remove(chip)
-
+        c.io = larpix.io.PACMAN_IO(
+            relaxed=True, config_filepath=pacman_config,
+            asic_version=packet_family,
+        )
+        utility_base.update_json(asic_config_paths_file_, io_group, None)
         #ensure UARTs are enable on pacman to receive configuration packets
         for io_group_ip_pair in pacman_configs['io_group']:
             io_group = io_group_ip_pair[0]
@@ -108,6 +89,7 @@ def main(verbose, \
         if not ok:
             raise RuntimeError(diff)
 
+        utility_base.update_json(asic_config_paths_file_, io_group, CONFIG)
         if pid_logged: print('\n{} configured successfully'.format(tag))
         return
 

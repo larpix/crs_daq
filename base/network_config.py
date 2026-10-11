@@ -4,6 +4,9 @@ import json
 import os
 import tempfile
 
+from base.asic_family import normalize_asic_family
+from base.hijinks import logical_to_physical_uart
+
 UART_MAPS = {
     "miso_us_uart_map": [3, 0, 1, 2],
     "miso_ds_uart_map": [1, 2, 3, 0],
@@ -47,6 +50,19 @@ def validate_external_roots(config_path):
     with open(config_path, encoding="utf-8") as infile:
         payload = json.load(infile)
     validate_network_payload(payload, source=str(config_path))
+    return payload
+
+
+def validate_control_network(config_path, io_group, asic_family):
+    """Check a saved topology before a homogeneous control process opens IO."""
+    payload = validate_external_roots(config_path)
+    if normalize_asic_family(payload['asic_version']) != asic_family:
+        raise ValueError(f'{config_path}: ASIC family does not match IOG {io_group} ({asic_family!r})')
+    groups = {int(key) for key in payload['network'] if str(key).isdigit()}
+    if groups != {io_group}:
+        raise ValueError(f'{config_path}: expected only IOG {io_group}, found {sorted(groups)}')
+    for channel in payload['network'][str(io_group)]:
+        logical_to_physical_uart(channel)
     return payload
 
 

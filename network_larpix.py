@@ -13,6 +13,7 @@ from base import pacman_base
 from base import utility_base
 from base import enforce_parallel
 from base.asic_family import control_io_settings
+from base.network_config import validate_control_network
 import json
 from base.utility_base import now
 import logging
@@ -38,100 +39,73 @@ def enforce_iterative(nc, all_network_keys, n=1, configs=None, pbar_desc='p', pb
             return last
     return last
 
-def main(verbose,\
-        controller_config, \
-        io_group_tiles=None,
-        pacman_config=None,
-        config_path=None,
-        pid_logged=False,
-        update_default=_update_default):
-    
-    pacman_configs = {}
-    with open(pacman_config, 'r') as f:
-        pacman_configs = json.load(f)
-    control_io_group, asic_family, packet_family = control_io_settings(pacman_config)
-    
-    configs = {}
-    with open(controller_config, 'r') as f:
-        configs = json.load(f)
- 
-    DCONFIGS={}
+def main(verbose,
+         controller_config,
+         io_group_tiles=None,
+         pacman_config=None,
+         config_path=None,
+         pid_logged=False,
+         update_default=_update_default):
+    io_group, asic_family, packet_family = control_io_settings(pacman_config)
+    with open(controller_config) as infile:
+        configs = json.load(infile)
+    topology = configs[str(io_group)]
+    validate_control_network(topology, io_group, asic_family)
+    tiles = None if io_group_tiles is None else io_group_tiles.get(io_group)
+    if io_group_tiles is not None and io_group not in io_group_tiles:
+        raise ValueError(f'No tiles selected for IOG {io_group}')
+    all_network_keys = enforce_parallel.get_chips_by_io_group_io_channel(topology, tiles)
+    coverage_keys = enforce_parallel.get_chips_by_io_group_io_channel(topology)
 
-    # for each io_group, perform networking     
-    all_network_keys = []
-    for io_group_ip_pair in pacman_configs['io_group']:
-        io_group = io_group_ip_pair[0]
-        tiles=None
-        if not io_group_tiles is None:
-            if not io_group in io_group_tiles.keys(): continue
-            else:
-                tiles = io_group_tiles[io_group]
-
-        if verbose: print('Configuring io_group={}'.format(io_group))
-        c = None
-
-        config = configs[str(io_group)]
-        dd=utility_base.update_json(network_config_paths_file_, io_group, config)
-        if io_group != control_io_group:
-            raise RuntimeError('PACMAN configuration/io_group changed during startup')
-        if asic_family == '2d':
-            if verbose: print('loading FSD v2d network')
-            c = network_base_FSD.network_v2b(
-                config, tiles=tiles, io_group=io_group,
-                pacman_config=pacman_config,
-                packet_family=packet_family,
-            )
-        elif asic_family == 3:
-            if verbose: print('loading Rev5 v3 network')
-            c = network_base_FSD_v3.network_v3(
-                config, tiles=tiles, io_group=io_group,
-                pacman_config=pacman_config,
-                packet_family=packet_family,
-            )
-        all_network_keys += enforce_parallel.get_chips_by_io_group_io_channel(config, tiles)
-        
-        _tiles = []
-        for _, io_channels in c.network.items(): _tiles += utility_base.io_channel_list_to_tile(list(io_channels.keys()) )
-        
-        _update_now=False
-        CONFIG=utility_base.get_from_json(default_asic_config_paths_file_,io_group)
-        if update_default or CONFIG is None: 
-            config_path = config_loader.write_config_to_file(c, config_path) 
-            _update_now=True
-
-
-        DCONFIG=None
-        if _update_now: 
-            dd=utility_base.update_json(default_asic_config_paths_file_, io_group, config_path)
-            DCONFIG=config_path
-        else:
-            DCONFIG=utility_base.get_from_json(default_asic_config_paths_file_,io_group) 
-        dd=utility_base.update_json(asic_config_paths_file_, io_group,DCONFIG )
-        DCONFIGS[io_group]=DCONFIG
-
+    selected = utility_base.get_from_json(default_asic_config_paths_file_, io_group)
+    generate = update_default or selected is None
     nc = larpix.Controller()
-    nc.io = larpix.io.PACMAN_IO(
-        relaxed=True, config_filepath=pacman_config,
-        asic_version=packet_family,
-    )
-    
-    for io_group_ip_pair in pacman_configs['io_group']:
-        io_group = io_group_ip_pair[0]
-        for iog in DCONFIGS.keys():
-            config_loader.load_config_from_directory(nc, DCONFIGS[iog])
+    if generate:
+        config_path = config_path or os.path.join(asic_config_dir, 'asic_configs_' + now())
+        # Reserve a fresh destination before hardware access. Never overwrite
+        # an earlier operating configuration, even on an explicit refresh.
+        os.makedirs(config_path, exist_ok=False)
+        selected = config_path
+        print(f'IOG {io_group}: generating defaults in {selected}', flush=True)
+    else:
+        config_loader.load_config_from_directory(nc, selected)
+        enforce_parallel.validate_configurations(
+            nc, coverage_keys, io_group, asic_family, selected, topology)
+        print(f'IOG {io_group}: reusing defaults from {selected}', flush=True)
 
-        pacman_base.enable_pacman_uart_from_io_channel(nc.io, io_group, list(set([chip.io_channel for chip in nc.chips])))
-    pos=0
-    tag='networking...'
+    # A replay resets hardware. Current state becomes valid again only after
+    # successful enforcement; saved defaults remain available on failure.
+    utility_base.update_json(asic_config_paths_file_, io_group, None)
+    utility_base.update_json(network_config_paths_file_, io_group, None)
+    replay = (network_base_FSD.network_v2b if asic_family == '2d'
+              else network_base_FSD_v3.network_v3)
+    c = replay(topology, tiles=tiles, io_group=io_group,
+               pacman_config=pacman_config, packet_family=packet_family)
+    if generate:
+        enforce_parallel.validate_configurations(
+            c, coverage_keys, io_group, asic_family, selected, topology)
+        config_loader.write_config_to_file(c, selected)
+        config_loader.load_config_from_directory(nc, selected)
+        enforce_parallel.validate_configurations(
+            nc, coverage_keys, io_group, asic_family, selected, topology)
+
+    nc.io = larpix.io.PACMAN_IO(
+        relaxed=True, config_filepath=pacman_config, asic_version=packet_family)
+    pacman_base.enable_pacman_uart_from_io_channel(
+        nc.io, io_group, sorted({chip.io_channel for chip in nc.chips}))
+    pos, tag = 0, 'networking...'
     if pid_logged:
-        pid = os.getpid()
-        tag = utility_base.get_from_process_log(pid)
+        tag = utility_base.get_from_process_log(os.getpid())
         pos = enforce_parallel.tag_to_config_map[tag]
-    ok, diff, unconfigured = enforce_iterative(nc, all_network_keys, configs=configs, pbar_desc=tag, pbar_position=pos)
+    ok, diff, unconfigured = enforce_iterative(
+        nc, all_network_keys, configs=configs, pbar_desc=tag, pbar_position=pos)
     if not ok:
         raise RuntimeError('Unconfigured chips!', diff)
-    
-    if pid_logged: print('\n{} networked successfully'.format(tag))
+    if generate:
+        utility_base.update_json(default_asic_config_paths_file_, io_group, selected)
+    utility_base.update_json(network_config_paths_file_, io_group, topology)
+    utility_base.update_json(asic_config_paths_file_, io_group, selected)
+    print(f'IOG {io_group}: networked successfully; ASIC configs: {selected}', flush=True)
     return c
 
 if __name__=='__main__':
