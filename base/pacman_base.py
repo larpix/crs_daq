@@ -31,10 +31,19 @@ from base.hijinks import (
 from base.asic_family import uart_clock_ratio_for_asic
 
 
+def convert_io_channel_to_uart(io_channel):
+    """Donor API: unavailable Hijinks links map to None; invalid inputs fail."""
+    io_channel = int(io_channel)
+    if io_channel in DEAD_LOGICAL_CHANNELS:
+        return None
+    return logical_to_physical_uart(io_channel)
+
+
 def enable_pacman_uart_from_io_channels(io, io_group, io_channels):
     if isinstance(io_channels, int):
         io_channels = [io_channels]
-    physical = [logical_to_physical_uart(channel) for channel in io_channels]
+    physical = [convert_io_channel_to_uart(channel) for channel in io_channels]
+    physical = [uart for uart in physical if uart is not None]
     mask = physical_rx_mask(physical)
     io.set_reg(RX_MASK_REGISTER, mask, io_group=io_group)
     return mask
@@ -54,7 +63,7 @@ def set_uart_clock_ratio(io, io_group, logical_channel, ratio):
     return io.set_uart_clock_ratio(physical, ratio, io_group=io_group)
 
 
-def set_packet_delay(io, io_group, logical_channel, delay=0xFF):
+def set_channel_packet_delay(io, io_group, logical_channel, delay=0xFF):
     """Set the packet delay field for the mapped physical UART."""
     if not 0 <= delay <= 0xFF:
         raise ValueError("Packet delay must fit in eight bits")
@@ -66,7 +75,7 @@ def set_packet_delay(io, io_group, logical_channel, delay=0xFF):
     return new
 
 
-def set_all_packet_delays(io, io_group, delay=0xFF):
+def set_packet_delay(io, io_group, delay=0xFF):
     """Set the Rev5 packet delay on all 32 physical UARTs."""
     if not 0 <= delay <= 0xFF:
         raise ValueError("Packet delay must fit in eight bits")
@@ -74,6 +83,11 @@ def set_all_packet_delays(io, io_group, delay=0xFF):
         register = PACKET_DELAY_BASE + (physical - 1) * PACKET_DELAY_STRIDE
         old = io.get_reg(register, io_group=io_group)
         io.set_reg(register, (old & 0xFF) | (delay << 8), io_group=io_group)
+
+
+def set_all_packet_delays(io, io_group, delay=0xFF):
+    """Compatibility alias for the CERN all-UART helper."""
+    return set_packet_delay(io, io_group, delay)
 
 
 def configure_hijinks_uart_infrastructure(io, io_group, asic_family,

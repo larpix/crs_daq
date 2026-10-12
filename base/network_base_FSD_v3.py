@@ -6,12 +6,14 @@ only explicit PACMAN configuration and CERN infrastructure hooks differ.
 
 import larpix
 from base import utility_base
-from base import uart_base
+# FSD and v3 donors share these UART primitives byte-for-byte. Only daughter
+# setup differs: v3 must not write the v2d ref_current_trim register.
+from base import uart_base_FSD as uart_base
 from base import asic_base
 import json
 import time
 from base import pacman_base
-from base.network_config import validate_external_roots
+from base.network_config import validate_external_roots, write_validated_network
 import numpy as np
 # from timebudget import timebudget
 # import asyncio
@@ -150,6 +152,21 @@ def setup_root(c, io, io_group, io_channel, chip_id, verbose, asic_version,
         uart_base.reset_uarts(c, chip_key, verbose)
         c.remove_chip(chip_key)
         return None
+
+
+def setup_daughter(c, io, parent, daughter, verbose, asic_version,
+                   v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx):
+    """v3_10x16 donor daughter sequence using its matching UART primitives."""
+    daughter = configure_chip_id(c, parent.io_group, parent.io_channel,
+                                daughter.chip_id, asic_version)
+    uart_base.enable_daughter_posi(c, parent, daughter, verbose, r_term, i_rx)
+    piso = uart_base.enable_daughter_piso(c, parent, daughter, verbose,
+                                         tx_diff, tx_slice)
+    asic_base.disable_chip_csa_trigger(c, daughter)
+    uart_base.enable_parent_posi(c, parent, daughter, verbose, r_term, i_rx)
+    ok, diff = utility_base.reconcile_configuration(
+        c, daughter, verbose, timeout=0.02, connection_delay=0.01, n=3, n_verify=2)
+    return ok, diff, piso
 
 
 # @timebudget
@@ -320,7 +337,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
                     bail = True
                     continue
 
-                ok, diff, piso = uart_base.setup_daughter(c, io, parent,
+                ok, diff, piso = setup_daughter(c, io, parent,
                                                           daughter, verbose,
                                                           asic_version,
                                                           v_cm_lvds_tx,
@@ -329,7 +346,7 @@ def initial_network(c, io, io_group, root_keys, verbose, asic_version,
 
                 if daughter_id == 141:
                     while False:
-                        ok, diff, piso = uart_base.setup_daughter(c, io, parent,
+                        ok, diff, piso = setup_daughter(c, io, parent,
                                                                   daughter, verbose,
                                                                   asic_version,
                                                                   v_cm_lvds_tx,
@@ -443,7 +460,7 @@ def initial_network_from_root(c, io, io_group, root_key, verbose, asic_version,
                 bail = True
                 continue
 
-            ok, diff, piso = uart_base.setup_daughter(c, io, parent,
+            ok, diff, piso = setup_daughter(c, io, parent,
                                                       daughter, verbose,
                                                       asic_version,
                                                       v_cm_lvds_tx,
@@ -557,7 +574,7 @@ def iterate_waitlist(c, io, io_group, io_channels, verbose, asic_version,
                     pacman_base.disable_all_pacman_uart(io, io_group)
                     continue
 
-                ok, diff, piso = uart_base.setup_daughter(c, io, parent,
+                ok, diff, piso = setup_daughter(c, io, parent,
                                                           daughter, verbose,
                                                           asic_version,
                                                           v_cm_lvds_tx,
@@ -673,6 +690,8 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
         io_channels = utility_base.tile_to_io_channel(
             io_group_pacman_tile[iog])
         for ioc in io_channels:
+            if pacman_base.convert_io_channel_to_uart(ioc) is None:
+                continue
             d["network"][iog][ioc] = {}
             d["network"][iog][ioc]["nodes"] = []
             for node in list(c.network[iog][ioc]['miso_us']):
@@ -708,8 +727,7 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
         fname = file_prefix+'-hydra-network.json'
     if file_prefix == None:
         fname = 'network-'+now+'.json' 
-    with open(fname, 'w') as out:
-        json.dump(d, out, indent=4)
+    write_validated_network(d, fname)
     print('network JSON: ', fname)
 
     return fname

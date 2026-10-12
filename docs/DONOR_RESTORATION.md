@@ -72,5 +72,32 @@ dependency mismatch must be repaired to make restored traversal meaningful.
 
 ## Validation and final changes
 
-To be completed after implementation and offline validation. Hardware gates are
-documented separately in `CERN_HARDWARE_VALIDATION.md`.
+Configuration handoff: 30 tests passed, zero skipped. Commit `3d2fda2` adds
+preflight coverage/family checks, explicit generation/reuse, fresh output
+reservation, success-only current selections, and wrapper refresh forwarding.
+The writer remains unchanged. A fresh reserved directory may remain after a
+hardware failure; the log explains the attempted generation and no failed
+directory becomes the selected default.
+
+Discovery/API compatibility: 38 tests passed, zero skipped. Full v3 traversal,
+waitlist, export and replay execute against mocked transport/readback, reaching
+160 chips with matching upstream/downstream/POSI settings. The v3 daughter
+adapter uses the eight FSD UART primitives identical to V, without changing the
+v2d module. Plotting is removed from the hardware entry point's import chain;
+the operator's untracked plot helper remains untouched. Root-only diagnostics
+remain in the baseline archive/Git history and external scratch area, not the
+normal discovery command. V3 discovery requires a fresh output name and leaves
+saved defaults intact while invalidating current state before reset.
+
+Real saved v2d fixtures have identical loaded directed UART-labelled graphs on
+live channels despite different JSON maps. Their replay settings are identical
+and CERN export/reload preserves that graph. The donor fixture additionally
+contains an unused external node on dead channel28. Fixture hashes/provenance
+are in `tests/fixtures/README.md`. An inherited `configure_asic_network_links`
+side effect adds auxiliary DS/POSI root-neighbor edges to the source controller
+during export; those are not serialized. Tests compare the original graph with
+the reloaded output, rather than mistaking that mutated intermediate for the
+saved topology. No v2d serializer/map change is justified or made.
+
+Retry/lifecycle validation and final hardware gates are recorded below when
+complete; operator commands live in `CERN_HARDWARE_VALIDATION.md`.

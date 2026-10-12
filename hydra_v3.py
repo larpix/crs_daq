@@ -1,346 +1,102 @@
-#!/usr/bin/env python3
+"""Full v3 discovery from CRS v3_10x16 (4a8b40f), with explicit CERN IO.
 
+Root setup, initial traversal and waitlist recovery use the donor implementation.
+A fresh output name is required so commissioning cannot replace saved networks.
+"""
 import argparse
+import os
 import time
-import json
 
-from base import pacman_base
+import larpix
+import larpix.io
+from base import network_base_FSD_v3 as network_base
+from base import pacman_base, utility_base
 from base.asic_family import control_io_settings
-from base.network_config import root_only_network
+from runenv import runenv as RUN
 
-from larpix import Controller, Key
-from larpix.io import PACMAN_IO
-from larpix.packet.packet_v3 import Packet_v3
+v3_10x16_root_ids = [151, 111, 61, 21]
 
 
+def main(io_group=None, file_prefix=None, disable_logger=True, verbose=False,
+         v_cm_lvds_tx=5, tx_diff=7, tx_slice=15, r_term=7, i_rx=0,
+         pacman_tile=None, pacman_config=None):
+    selected_iog, family, packet_family = control_io_settings(pacman_config)
+    if io_group is None:
+        io_group = selected_iog
+    if io_group != selected_iog or family != 3:
+        raise ValueError('v3 discovery requires a matching single-IOG v3 PACMAN configuration')
+    tiles = [pacman_tile] if pacman_tile is not None else RUN.io_group_pacman_tile_[io_group]
+    prefixes = {}
+    for tile in tiles:
+        if tile not in RUN.io_group_pacman_tile_[io_group]:
+            raise ValueError(f'IOG {io_group}: tile {tile} is not configured')
+        prefix = file_prefix or f'iog_{io_group}-tile_{tile}'
+        if file_prefix and len(tiles) > 1:
+            prefix = f'{file_prefix}-iog_{io_group}-tile_{tile}'
+        if os.path.exists(prefix + '-hydra-network.json'):
+            raise FileExistsError(f'{prefix}-hydra-network.json already exists; use a fresh --file_prefix')
+        prefixes[tile] = prefix
 
-def main():
+    c = larpix.Controller()
+    c.io = larpix.io.PACMAN_IO(relaxed=True, config_filepath=pacman_config,
+                              asic_version=packet_family)
+    utility_base.update_json(RUN.asic_config_paths_file_, io_group, None)
+    utility_base.update_json(RUN.network_config_paths_file_, io_group, None)
+    channels = utility_base.tile_to_io_channel(tiles)
+    pacman_base.configure_hijinks_uart_infrastructure(c.io, io_group, family, channels)
+    for _ in range(2):
+        c.io.reset_tiles(tiles, length=4096 * 4, io_group=io_group)
+        time.sleep(4096 * 4 * 1e-6)
 
+    for tile in tiles:
+        root_keys = []
+        channels = utility_base.tile_to_io_channel([tile])
+        live_channels = [ch for ch in channels
+                         if pacman_base.convert_io_channel_to_uart(ch) is not None]
+        for channel in live_channels:
+            chip_id = v3_10x16_root_ids[(channel - 1) % 4]
+            network_base.network_ext_node_from_tuple(c, io_group, channel, chip_id)
+            root = network_base.setup_root(
+                c, c.io, io_group, channel, chip_id, verbose, family,
+                v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx)
+            if root is None:
+                raise RuntimeError(f'Live root {io_group}-{channel}-{chip_id} did not configure; no topology exported')
+            root_keys.append(root)
+        print(f'Tile {tile} ROOT KEYS: {root_keys}', flush=True)
+        excluded = RUN.iog_exclude[io_group]
+        excluded_links = RUN.iog_exclude_links[io_group]
+        network_base.initial_network(
+            c, c.io, io_group, root_keys, verbose, family,
+            v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx,
+            exclude=excluded, exclude_links=excluded_links)
+        unconfigured = network_base.iterate_waitlist(
+            c, c.io, io_group, live_channels, verbose, family,
+            v_cm_lvds_tx, tx_diff, tx_slice, r_term, i_rx,
+            exclude=excluded, exclude_links=excluded_links)
+        # The donor's returned outstanding list can include earlier failures
+        # subsequently recovered; inspect the final controller's actual coverage.
+        missing, _ = network_base.find_waitlist(c, io_group, live_channels)
+        missing = sorted(set(missing) - set(excluded[str(tile)]))
+        if missing:
+            raise RuntimeError(f'IOG {io_group} tile {tile}: undiscovered ASICs {missing}; no topology exported')
+        unconfigured = [pair for pair in unconfigured if pair[0] not in c.chips]
+        network_file = network_base.write_network_to_file(
+            c, prefixes[tile], {io_group: [tile]}, unconfigured, asic_version=family)
+        print(f'Discovery complete; topology exported to {network_file}', flush=True)
+    return c, c.io
+
+
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-
-    parser.add_argument("--config", required=True)
-    parser.add_argument("--io-group", type=int, required=True)
-    parser.add_argument("--io-channel", type=int, required=True)
-    parser.add_argument("--tile", type=int, default=10)
-    parser.add_argument("--file-prefix")
-
-    args = parser.parse_args()
-
-    iog = args.io_group
-    logical = args.io_channel
-
-    configured_iog, family, packet_family = control_io_settings(args.config)
-    if configured_iog != iog or family != 3:
-        raise ValueError(f"{args.config} does not select IOG {iog} / ASIC v3")
-    physical = pacman_base.logical_to_physical_uart(logical)
-
-    print("========================================")
-    print("V3 HIJINKS ROOT BOOTSTRAP")
-    print("========================================")
-    print(f"io_group:          {iog}")
-    print(f"logical channel:   {logical}")
-    print(f"physical UART:     {physical}")
-    print()
-
-    io = PACMAN_IO(
-        relaxed=True,
-        config_filepath=args.config,
-        asic_version=packet_family,
-        timeout=2000,
-    )
-
-    c = Controller()
-    c.io = io
-
-    try:
-
-        #
-        # Start quiet.
-        #
-        pacman_base.disable_all_pacman_uart(io, iog)
-
-        print("RX mask initially: "
-              f"0x{io.get_reg(pacman_base.RX_MASK_REGISTER, io_group=iog):08x}")
-
-        #
-        # v3 donor explicitly sets mapped PHYSICAL UART
-        # clock ratio to 1.
-        #
-        print()
-        print("=== PHYSICAL UART SETUP ===")
-
-        ratio = pacman_base.set_uart_clock_ratio(io, iog, logical, 1)
-
-        print(
-            f"UART {physical} clock ratio -> "
-            f"0x{ratio:08x}"
-        )
-
-        #
-        # Packet delay is also indexed by PHYSICAL UART.
-        #
-        delay_reg = pacman_base.PACKET_DELAY_BASE + (physical - 1) * pacman_base.PACKET_DELAY_STRIDE
-        old_delay = io.get_reg(delay_reg, io_group=iog)
-        new_delay = pacman_base.set_packet_delay(io, iog, logical, 0xff)
-
-        print(
-            f"UART {physical} delay "
-            f"0x{delay_reg:05x}: "
-            f"0x{old_delay:08x} "
-            f"-> 0x{new_delay:08x}"
-        )
-
-        #
-        # Fresh known ASIC state.
-        #
-        print()
-        print("=== HARD RESET ===")
-
-        io.reset_larpix(
-            length=4096,
-            io_group=iog,
-        )
-
-        time.sleep(0.1)
-
-        #
-        # The chip is still addressed on the LOGICAL channel.
-        #
-        key = Key(iog, logical, 1)
-
-        c.add_chip(
-            key,
-            version=3,
-            root=True,
-        )
-
-        cfg = c[key].config
-
-        print(f"chip key: {key}")
-
-        #
-        # Bootstrap exactly the relevant root communication
-        # settings from network_base_FSD_v3.
-        #
-        print()
-        print("=== BOOTSTRAPPING ROOT COMMUNICATION ===")
-
-        registers = []
-
-        for uart in range(4):
-
-            setattr(cfg, f"i_rx{uart}", 3)
-            registers.append(f"i_rx{uart}")
-
-            setattr(cfg, f"r_term{uart}", 7)
-            registers.append(f"r_term{uart}")
-
-            setattr(cfg, f"v_cm_lvds_tx{uart}", 5)
-            registers.append(f"v_cm_lvds_tx{uart}")
-
-        #
-        # Donor writes these register groups twice.
-        #
-        for name in registers:
-            c.write_configuration(key, name)
-
-        for name in registers:
-            c.write_configuration(key, name)
-
-        cfg.enable_posi = [0, 0, 0, 1]
-
-        c.write_configuration(
-            key,
-            "enable_posi",
-        )
-        c.write_configuration(
-            key,
-            "enable_posi",
-        )
-
-        cfg.i_tx_diff2 = 7
-
-        c.write_configuration(
-            key,
-            "i_tx_diff2",
-        )
-        c.write_configuration(
-            key,
-            "i_tx_diff2",
-        )
-
-        cfg.tx_slices2 = 15
-
-        c.write_configuration(
-            key,
-            "tx_slices2",
-        )
-        c.write_configuration(
-            key,
-            "tx_slices2",
-        )
-
-        #
-        # THIS is the critical return path.
-        #
-        cfg.enable_piso_downstream = [0, 0, 1, 0]
-
-        c.write_configuration(
-            key,
-            "enable_piso_downstream",
-        )
-
-        cfg.enable_piso_upstream = [0, 0, 0, 0]
-
-        c.write_configuration(
-            key,
-            "enable_piso_upstream",
-        )
-
-        time.sleep(0.05)
-
-        #
-        # Now enable ONLY the mapped PHYSICAL receiver.
-        #
-        print()
-        print("=== ENABLING RECEIVER ===")
-
-        rx_mask = pacman_base.enable_pacman_uart_from_io_channels(
-            io, iog, [logical]
-        )
-
-        readback_mask = io.get_reg(
-            pacman_base.RX_MASK_REGISTER, io_group=iog,
-        )
-
-        print(
-            f"logical {logical} "
-            f"-> physical {physical}"
-        )
-
-        print(
-            f"RX mask: "
-            f"0x{readback_mask:08x}"
-        )
-
-        time.sleep(0.05)
-
-        #
-        # Finally attempt a very specific readback.
-        #
-        print()
-        print("=== CHIP-ID READBACK ===")
-
-        chip_id_reg = list(
-            cfg.register_map["chip_id"]
-        )[0]
-
-        c.reads = []
-
-        c.read_configuration(
-            key,
-            chip_id_reg,
-            timeout=0.5,
-            connection_delay=0.01,
-        )
-
-        collection = c.reads[-1]
-
-        packets = [
-            p for p in collection
-            if isinstance(p, Packet_v3)
-        ]
-
-        valid = [
-            p for p in packets
-            if p.has_valid_parity()
-        ]
-
-        matches = [
-            p for p in valid
-            if (
-                p.packet_type
-                == Packet_v3.CONFIG_READ_PACKET
-                and p.io_group == iog
-                and p.io_channel == logical
-                and p.chip_id == 1
-                and p.register_address
-                == chip_id_reg
-            )
-        ]
-
-        print(
-            f"received Packet_v3: "
-            f"{len(packets)}"
-        )
-
-        print(
-            f"valid parity:       "
-            f"{len(valid)}"
-        )
-
-        print(
-            f"exact matches:      "
-            f"{len(matches)}"
-        )
-
-        for p in matches:
-            print()
-            print("MATCH:")
-            print(" ", p)
-
-        if matches:
-            print()
-            print(
-                "PASS: ROOT CHIP COMMUNICATION WORKS"
-            )
-            prefix = args.file_prefix or f"iog_{iog}-tile_{args.tile}-hydra-network"
-            payload = root_only_network(
-                iog, logical, 1, prefix, asic_version=3, layout="10x16"
-            )
-            with open(prefix + ".json", "w", encoding="utf-8") as output:
-                json.dump(payload, output, indent=4)
-            print(f"network JSON: {prefix}.json")
-        else:
-            print()
-            print(
-                "NO EXACT ROOT-CHIP REPLY"
-            )
-
-            #
-            # Print only vaguely interesting packets,
-            # not 1600 lines of noise.
-            #
-            interesting = [
-                p for p in valid
-                if (
-                    p.chip_id == 1
-                    or p.register_address
-                    == chip_id_reg
-                )
-            ]
-
-            print(
-                f"interesting valid packets: "
-                f"{len(interesting)}"
-            )
-
-            for p in interesting[:20]:
-                print(" ", p)
-
-    finally:
-
-        #
-        # Leave RX quiet.
-        #
-        try:
-            pacman_base.disable_all_pacman_uart(io, iog)
-        except Exception:
-            pass
-
-        io.cleanup()
-        io.join()
-
-
-if __name__ == "__main__":
-    main()
+    parser.add_argument('--pacman_config', '--config', required=True)
+    parser.add_argument('--io_group', '--io-group', type=int)
+    parser.add_argument('--pacman_tile', '--tile', type=int)
+    parser.add_argument('--file_prefix', '--file-prefix')
+    parser.add_argument('--disable_logger', action='store_true', default=True)
+    parser.add_argument('--verbose', action='store_true')
+    parser.add_argument('--v_cm_lvds_tx', type=int, default=5)
+    parser.add_argument('--tx_diff', type=int, default=7)
+    parser.add_argument('--tx_slice', type=int, default=15)
+    parser.add_argument('--r_term', type=int, default=7)
+    parser.add_argument('--i_rx', type=int, default=0)
+    main(**vars(parser.parse_args()))

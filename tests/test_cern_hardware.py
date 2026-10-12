@@ -114,7 +114,7 @@ class HijinksMappingTest(unittest.TestCase):
         self.assertEqual(io.registers[(2, 0x201C)], 0xDFFFFFFF)
         pacman_base.set_uart_clock_ratio(io, 2, 37, 1)
         self.assertEqual(io.clock_calls, [(2, 30, 1)])
-        pacman_base.set_packet_delay(io, 2, 37, 0xFF)
+        pacman_base.set_channel_packet_delay(io, 2, 37, 0xFF)
         self.assertEqual(io.registers[(2, 0x20014)], 0xFF5A)
 
         pacman_base.set_all_packet_delays(io, 2, 0xFF)
