@@ -1,7 +1,8 @@
 """Rev5 v3 network loader from the v3_10x16 donor.
 
-Ported from crs_daq commit 4a8b40f1abdcdbf3f66a75b7bb48f3259a3c12b9;
-only explicit PACMAN configuration and CERN infrastructure hooks differ.
+Ported from crs_daq commit 4a8b40f1abdcdbf3f66a75b7bb48f3259a3c12b9,
+with explicit endpoint/family preflight, CERN infrastructure hooks, matching
+donor UART dependencies and unavailable-link/validated-export handling.
 """
 
 import larpix
@@ -13,7 +14,8 @@ from base import asic_base
 import json
 import time
 from base import pacman_base
-from base.network_config import validate_external_roots, write_validated_network
+from base.network_config import validate_control_network, write_validated_network
+from base.asic_family import control_io_settings
 import numpy as np
 # from timebudget import timebudget
 # import asyncio
@@ -736,18 +738,16 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
 def network_v3(controller_config, tiles=None, verbose=False,
                pacman_config=None, packet_family=3, **kwargs):
 
+    io_group, family, expected_packet = control_io_settings(pacman_config)
+    if family != 3 or packet_family != expected_packet:
+        raise ValueError('v3 replay requires a v3 endpoint and packet family 3')
+    validate_control_network(controller_config, io_group, family)
     c = larpix.Controller()
+    c.load(controller_config)
     c.io = larpix.io.PACMAN_IO(
         relaxed=True, config_filepath=pacman_config,
         asic_version=packet_family,
     )
-
-    if controller_config is None:
-        raise RuntimeError('No controller config specified!')
-    else:
-        validate_external_roots(controller_config)
-        c.load(controller_config)
-
 
     for io_group, io_channels in c.network.items():
         pacman_base.configure_hijinks_uart_infrastructure(

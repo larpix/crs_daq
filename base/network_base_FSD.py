@@ -1,7 +1,8 @@
 """Bench-proven v2d Hydra implementation from fsd-run-delay.
 
-Ported from crs_daq commit a020244ba774bd9be1bbbd850b423dc320a0d700;
-only explicit PACMAN configuration and CERN infrastructure hooks differ.
+Traversal and root setup are from a020244ba774bd9be1bbbd850b423dc320a0d700.
+CERN retains its validated graph serializer and adds explicit endpoint/family
+preflight and PACMAN infrastructure hooks; the working traversal is unchanged.
 """
 
 import larpix
@@ -11,7 +12,8 @@ from base import asic_base
 import json
 import time
 from base import pacman_base
-from base.network_config import UART_MAPS, validate_external_roots, write_validated_network
+from base.network_config import UART_MAPS, validate_control_network, write_validated_network
+from base.asic_family import control_io_settings
 import numpy as np
 # from timebudget import timebudget
 # import asyncio
@@ -764,17 +766,16 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
 def network_v2b(controller_config, tiles=None, verbose=False,
                 pacman_config=None, packet_family=2, **kwargs):
 
+    io_group, family, expected_packet = control_io_settings(pacman_config)
+    if family != '2d' or packet_family != expected_packet:
+        raise ValueError('FSD replay requires a v2d endpoint and packet family 2')
+    validate_control_network(controller_config, io_group, family)
     c = larpix.Controller()
+    c.load(controller_config)
     c.io = larpix.io.PACMAN_IO(
         relaxed=True, config_filepath=pacman_config,
         asic_version=packet_family,
     )
-
-    if controller_config is None:
-        raise RuntimeError('No controller config specified!')
-    else:
-        validate_external_roots(controller_config)
-        c.load(controller_config)
 
     for io_group, io_channels in c.network.items():
         pacman_base.configure_hijinks_uart_infrastructure(

@@ -16,6 +16,7 @@ import larpix
 import larpix.io
 import network_larpix
 import configure_larpix
+import configure_pacman
 import hydra_v3
 from base import config_loader, enforce_parallel, pacman_base
 from base import network_base_FSD, network_base_FSD_v3, utility_base
@@ -139,6 +140,29 @@ class ControlHandoffTest(unittest.TestCase):
             self.run_network()
         self.io_factory.assert_not_called()
 
+    def test_partial_default_names_missing_downstream_chip(self):
+        self.prepare()
+        self.select_defaults()
+        payload = json.loads(Path('topology.json').read_text())
+        nodes = payload['network']['1']['25']['nodes']
+        nodes[1]['miso_us'][1] = 22
+        nodes.append({'chip_id': 22, 'miso_us': [None] * 4})
+        Path('topology.json').write_text(json.dumps(payload))
+        with self.assertRaisesRegex(ValueError, 'topology=topology.json, configs=old; missing=.*1-25-22'):
+            self.run_network()
+        self.io_factory.assert_not_called()
+
+    def test_main_forwards_endpoint_into_reconstruction(self):
+        self.prepare(2)
+        key = next(iter(self.controller.chips))
+        self.enforce.side_effect = [(False, {key: {0: (1, None)}}, [[]]), (True, {}, [[]])]
+        self.run_network()
+        self.assertEqual(self.replay3.call_count, 2)
+        self.replay3.assert_called_with('topology.json', tiles=[10], io_group=2,
+                                        pacman_config='pacman.json', packet_family=3)
+        self.replay2.assert_not_called()
+        self.assertEqual(self.index('.asic_configs_.json')['2'], 'fresh/iog')
+
     def test_wrong_config_family_is_rejected_before_io(self):
         self.prepare()
         self.select_defaults()
@@ -175,6 +199,14 @@ class ControlHandoffTest(unittest.TestCase):
             configure_larpix.main(False, 'old', None, 'pacman.json')
         self.enforce.assert_not_called()
         self.io_factory.assert_not_called()
+
+    def test_channel_remapping_cannot_collapse_two_requested_asics(self):
+        self.prepare()
+        self.select_defaults()
+        requested = [[larpix.Key(1, 26, 21)], [larpix.Key(1, 27, 21)]]
+        with self.assertRaisesRegex(ValueError, 'multiple topology keys'):
+            enforce_parallel.validate_configurations(
+                self.controller, requested, 1, '2d', 'old', 'topology.json', allow_remap=True)
 
     def test_failure_preserves_default_and_invalidates_current_state(self):
         self.prepare()
@@ -341,3 +373,207 @@ class SavedTopologyTest(unittest.TestCase):
             # root-neighbor DS/POSI edges to its input controller; the exported
             # graph must still reproduce the original saved graph.
             self.assertEqual(expected, hardware_tests.NetworkConfigTest._edge_signature(reloaded))
+
+
+class EnforcementFailureTest(unittest.TestCase):
+    def controller(self, family):
+        c = larpix.Controller()
+        keys = [larpix.Key(1, 25, 21), larpix.Key(1, 25, 22)]
+        for key in keys:
+            c.add_chip(key, version=family)
+            c[key].config.channel_mask = [0, 1] * 32
+            c[key].config.csa_enable = [1, 0] * 32
+            c[key].config.periodic_trigger_mask = [1, 0, 0, 0] * 16
+            c[key].config.threshold_global = 89
+        return c, keys
+
+    def test_masks_and_desired_configuration_survive_failure_and_exception(self):
+        for family in ('2d', 3):
+            for raises in (False, True):
+                with self.subTest(family=family, raises=raises):
+                    c, keys = self.controller(family)
+                    before = {key: deepcopy(c[key].config.to_dict()) for key in keys}
+                    def fail(*args, **kwargs):
+                        self.assertEqual(c[keys[0]].config.channel_mask, [1] * 64)
+                        self.assertEqual(c[keys[0]].config.csa_enable, [0] * 64)
+                        if raises:
+                            raise RuntimeError('mock transport failure')
+                        return False, {keys[0]: {0: (1, None)}}
+                    with mock.patch.object(c, 'enforce_configuration', side_effect=fail), \
+                         mock.patch.object(c, 'multi_write_configuration') as unmask:
+                        if raises:
+                            with self.assertRaisesRegex(RuntimeError, 'mock transport'):
+                                enforce_parallel.enforce_parallel(c, [keys])
+                        else:
+                            ok, diff, remaining = enforce_parallel.enforce_parallel(c, [keys])
+                            self.assertFalse(ok)
+                            self.assertEqual(remaining, [[keys[1]]])
+                        unmask.assert_not_called()
+                    self.assertEqual(before, {key: c[key].config.to_dict() for key in keys})
+
+    def test_final_unmask_uses_each_family_semantic_register_map(self):
+        for family in ('2d', 3):
+            with self.subTest(family=family):
+                c, keys = self.controller(family)
+                with mock.patch.object(c, 'enforce_configuration', return_value=(True, {})), \
+                     mock.patch.object(c, 'multi_write_configuration') as write:
+                    self.assertTrue(enforce_parallel.enforce_parallel(c, [keys])[0])
+                self.assertEqual(write.call_count, 10)
+                for key, regs in write.call_args.args[0]:
+                    expected = {reg for name in ('channel_mask', 'csa_enable', 'periodic_trigger_mask')
+                                for reg in c[key].config.register_map[name]}
+                    self.assertEqual(set(regs), expected)
+
+    def test_continuing_after_a_mismatch_does_not_report_success(self):
+        c, keys = self.controller('2d')
+        failed = (False, {keys[0]: {0: (1, None)}})
+        with mock.patch.object(c, 'enforce_configuration', side_effect=[failed, failed, (True, {})]), \
+             mock.patch.object(c, 'multi_write_configuration') as write:
+            ok, diff, _ = enforce_parallel.enforce_parallel(c, [keys], ignore_diff=True)
+        self.assertFalse(ok)
+        self.assertIn(keys[0], diff)
+        write.assert_not_called()
+
+
+class RecoveryAndLifecycleTest(unittest.TestCase):
+    def setUp(self):
+        self.stack = ExitStack()
+        self.addCleanup(self.stack.close)
+        tmp = self.stack.enter_context(tempfile.TemporaryDirectory())
+        previous = Path.cwd()
+        os.chdir(tmp)
+        self.stack.callback(os.chdir, previous)
+        Path('RUN_CONFIG.json').write_bytes((ROOT / 'RUN_CONFIG.json').read_bytes())
+        for name in ('.default_asic_configs_.json', '.asic_configs_.json', '.network_configs_.json'):
+            Path(name).write_text('{"1": "saved-one", "2": "saved-two"}')
+        for iog in (1, 2):
+            Path(f'pacman{iog}.json').write_text(json.dumps({'io_group': [[iog, f'192.0.2.{iog}']]}))
+        self.io_factory = self.stack.enter_context(mock.patch.object(larpix.io, 'PACMAN_IO'))
+        self.stack.enter_context(mock.patch.object(pacman_base, 'enable_pacman_uart_from_io_channel'))
+        self.stack.enter_context(mock.patch.object(configure_pacman.time, 'sleep'))
+
+    def prepare(self, iog):
+        family, channel, root = ('2d', 25, 21) if iog == 1 else (3, 37, 151)
+        payload = root_only_network(iog, channel, root, 'retry', family)
+        nodes = payload['network'][str(iog)][str(channel)]['nodes']
+        nodes[1]['miso_us'][1] = root + 1
+        nodes.append({'chip_id': root + 1, 'miso_us': [None] * 4})
+        # Add an unrelated tile on the same IOG to verify that its configs are
+        # not re-enforced merely because another tile failed.
+        payload['network'][str(iog)].update(root_only_network(iog, 1, 11, 'other', family)['network'][str(iog)])
+        path = f'topology{iog}.json'
+        Path(path).write_text(json.dumps(payload))
+        c = larpix.Controller()
+        c.load(path)
+        c.io = mock.MagicMock()
+        keys = [larpix.Key(iog, channel, root), larpix.Key(iog, channel, root + 1)]
+        other = larpix.Key(iog, 1, 11)
+        for key in c.chips:
+            c[key].config.threshold_global = 99
+        return c, keys, other, path
+
+    def test_retry_reconstructs_only_affected_tiles_and_reenforces_prior_successes(self):
+        for iog in (1, 2):
+            with self.subTest(iog=iog):
+                c, keys, other, path = self.prepare(iog)
+                before = {key: deepcopy(c[key].config.to_dict()) for key in c.chips}
+                def enforce(controller, pending, **kwargs):
+                    if enforce.calls == 0:
+                        enforce.calls += 1
+                        return False, {keys[1]: {0: (1, None)}}, [[], []]
+                    self.assertEqual(pending, [keys, []])
+                    self.assertEqual(before, {key: controller[key].config.to_dict() for key in controller.chips})
+                    return True, {}, [[], []]
+                enforce.calls = 0
+                with mock.patch.object(enforce_parallel, 'enforce_parallel', side_effect=enforce), \
+                     mock.patch.object(network_base_FSD, 'network_v2b') as replay2, \
+                     mock.patch.object(network_base_FSD_v3, 'network_v3') as replay3:
+                    result = network_larpix.enforce_iterative(
+                        c, [keys, [other]], configs={str(iog): path}, pacman_config=f'pacman{iog}.json')
+                    self.assertTrue(result[0])
+                    replay = replay2 if iog == 1 else replay3
+                    replay.assert_called_once_with(path, tiles=[7 if iog == 1 else 10], io_group=iog,
+                                                   pacman_config=f'pacman{iog}.json', packet_family=2 if iog == 1 else 3)
+                    (replay3 if iog == 1 else replay2).assert_not_called()
+                    replay.return_value.io.cleanup.assert_called_once()
+
+    def test_exhausted_retry_remains_failure(self):
+        c, keys, other, path = self.prepare(2)
+        with mock.patch.object(enforce_parallel, 'enforce_parallel', return_value=(False, {keys[0]: {}}, [[keys[1]], [other]])) as enforce, \
+             mock.patch.object(network_base_FSD_v3, 'network_v3') as replay:
+            self.assertFalse(network_larpix.enforce_iterative(c, [keys, [other]], configs={'2': path},
+                             pacman_config='pacman2.json')[0])
+            self.assertEqual(enforce.call_count, 2)
+            replay.assert_called_once()
+
+    def test_retry_rejects_foreign_iog(self):
+        c, keys, other, path = self.prepare(2)
+        with mock.patch.object(enforce_parallel, 'enforce_parallel', return_value=(False, {larpix.Key(1, 25, 21): {}}, [])), \
+             mock.patch.object(network_base_FSD_v3, 'network_v3') as replay:
+            with self.assertRaisesRegex(ValueError, 'outside the selected'):
+                network_larpix.enforce_iterative(c, [keys], configs={'2': path}, pacman_config='pacman2.json')
+            replay.assert_not_called()
+
+    def test_retry_cannot_silently_drop_an_unknown_requested_chip(self):
+        c, keys, other, path = self.prepare(2)
+        with mock.patch.object(enforce_parallel, 'enforce_parallel', return_value=(False, {larpix.Key(2, 39, 99): {}}, [])), \
+             mock.patch.object(network_base_FSD_v3, 'network_v3') as replay:
+            with self.assertRaisesRegex(ValueError, 'ASICs absent'):
+                network_larpix.enforce_iterative(c, [keys], configs={'2': path}, pacman_config='pacman2.json')
+            replay.assert_not_called()
+
+    def test_replay_validates_endpoint_family_before_constructing_io(self):
+        _, _, _, path = self.prepare(2)
+        with self.assertRaisesRegex(ValueError, 'v2d endpoint'):
+            network_base_FSD.network_v2b(path, pacman_config='pacman2.json')
+        with self.assertRaisesRegex(ValueError, 'v3 endpoint'):
+            network_base_FSD_v3.network_v3(path, pacman_config='pacman1.json')
+        self.io_factory.assert_not_called()
+
+    def test_real_replay_uses_selected_family_endpoint_and_tiles(self):
+        for iog in (1, 2):
+            with self.subTest(iog=iog):
+                _, _, _, path = self.prepare(iog)
+                with mock.patch.object(larpix.Controller, 'send'), \
+                     mock.patch.object(larpix.Controller, 'write_configuration') as write:
+                    replay = network_base_FSD.network_v2b if iog == 1 else network_base_FSD_v3.network_v3
+                    replay(path, tiles=[7 if iog == 1 else 10], pacman_config=f'pacman{iog}.json')
+                    self.assertTrue(all(call.args[0].io_channel != 1 for call in write.call_args_list))
+                self.io_factory.assert_called_with(relaxed=True, config_filepath=f'pacman{iog}.json',
+                                                   asic_version=2 if iog == 1 else 3)
+                self.io_factory.return_value.reset_tiles.assert_any_call(tiles=[7 if iog == 1 else 10],
+                                                                         length=2048, io_group=iog)
+
+    def test_power_state_invalidation_preserves_defaults_and_other_iog(self):
+        for fails in (False, True):
+            with self.subTest(fails=fails):
+                for name in ('.asic_configs_.json', '.network_configs_.json'):
+                    Path(name).write_text('{"1": "saved-one", "2": "saved-two"}')
+                io = self.io_factory.return_value
+                io.get_reg.return_value = 1
+                def operation(*args, **kwargs):
+                    for name in ('.asic_configs_.json', '.network_configs_.json'):
+                        self.assertEqual(json.loads(Path(name).read_text()), {'1': 'saved-one', '2': None})
+                    if fails:
+                        raise RuntimeError('mock power failure')
+                io.set_reg.side_effect = operation
+                if fails:
+                    with self.assertRaisesRegex(RuntimeError, 'mock power failure'):
+                        configure_pacman.main(pacman_config='pacman2.json')
+                else:
+                    configure_pacman.main(pacman_config='pacman2.json')
+                    io.reset_larpix.assert_called_with(length=4096, io_group=2)
+                    self.assertEqual(io.set_reg.call_args_list[:10], [
+                        mock.call(0x201C, 0xFFFFFFFF, io_group=2),
+                        mock.call(0x10, 0, io_group=2),
+                        mock.call(0x14, 0, io_group=2),
+                        mock.call(0x101C, 4, io_group=2),
+                        mock.call(0x14, 1, io_group=2),
+                        mock.call(0x24020 + 9, 0, io_group=2),
+                        mock.call(0x24010 + 9, 0, io_group=2),
+                        mock.call(0x24020 + 9, 28000, io_group=2),
+                        mock.call(0x24010 + 9, 52000, io_group=2),
+                        mock.call(0x10, 512, io_group=2),
+                    ])
+                self.assertEqual(json.loads(Path('.default_asic_configs_.json').read_text()),
+                                 {'1': 'saved-one', '2': 'saved-two'})

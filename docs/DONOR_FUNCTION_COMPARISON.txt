@@ -1,0 +1,49 @@
+network_larpix.py vs a020244:network_larpix.py
+  identical:
+  changed: enforce_iterative, main
+  added: ; removed:
+
+configure_larpix.py vs 3ccef84:configure_larpix.py
+  identical:
+  changed: main
+  added: ; removed:
+
+base/network_base_FSD.py vs a020244:base/network_base_FSD.py
+  identical: network_ext_node, network_ext_node_from_tuple, configure_chip_id, configure_root_chip, setup_root, setup_root_chips, append_upstream_chip_ids, find_daughter_id, initial_network, initial_network_from_root, find_waitlist, find_potential_parents, iterate_waitlist, configure_asic_network_links, miso_us_chip_id_list
+  changed: write_network_to_file, network_v2b
+  added: _serialized_nodes; removed: network_v2a
+
+base/uart_base_FSD.py vs a020244:base/uart_base.py
+  identical: reset_uarts, setup_parent_piso, setup_daughter, enable_parent_piso_us, disable_parent_piso_us, enable_parent_posi, enable_daughter_posi, disable_parent_posi, enable_daughter_piso
+  changed:
+  added: ; removed:
+
+base/network_base_FSD_v3.py vs 4a8b40f:base/network_base_FSD_v3.py
+  identical: network_ext_node, network_ext_node_from_tuple, configure_chip_id, configure_root_chip, setup_root, append_upstream_chip_ids, find_daughter_id, read, initial_network, initial_network_from_root, find_waitlist, find_potential_parents, iterate_waitlist, configure_asic_network_links, miso_us_chip_id_list, write_network_to_file
+  changed: network_v3
+  added: ; removed: network_v2a
+
+base/uart_base.py vs 4a8b40f:base/uart_base.py
+  identical: reset_uarts
+  changed: setup_parent_piso, setup_daughter, enable_parent_piso_us, disable_parent_piso_us, enable_parent_posi, enable_daughter_posi, disable_parent_posi, enable_daughter_piso
+  added: ; removed:
+
+base/utility_base.py vs 4a8b40f:base/utility_base.py
+  identical: update_process_log, get_from_process_log, get_from_json, lock_file, unlock_file, update_json, flush_data, data_filename, reconcile_configuration_bool, reconcile_registers_bool, lsb, global_dac_step, ADC_to_mV, all_io_channels, all_chip_key_to_tile, chip_key_to_io_group, chip_key_to_io_channel, chip_key_to_chip_id, unique_to_chip_key, io_channel_to_tile, io_channel_list_to_tile, save_json, save_asic_config, unique, unique_channel_id, unique_channel_id_args, unique_to_channel_id, unique_to_chip_id, unique_to_io_channel, unique_to_io_group, chip_key_to_asic_id
+  changed: now, broadcast_disable, data, reconcile_configuration, reconcile_registers, partition_chip_keys_by_io_group_tile, partition_chip_keys_by_tile, iog_tile_to_iog_ioc_cid, tile_to_io_channel, io_channel_to_root_chip
+  added: ; removed: read
+
+base/asic_base.py vs 4a8b40f:base/asic_base.py
+  identical: update_chip, enable_io, toggle_global_dac, global_dac_from_file, enable_pedestal_config, disable_chip_csa_trigger, disable_channel_csa_trigger, set_ref_current_trim
+  changed: regulate_rate_fractional, regulate_rate, disable_io, toggle_pixel_trim_dac, enable_selftrigger_config, enable_pedestal_config_by_io_channel, enable_pedestal_adc_burst_config_by_io_channel, debug_enable_response_trigger_config_by_io_channel, debug_disable_response_trigger_config_by_io_channel, enable_fixed_register_trigger_config_by_io_channel, enable_fixed_target_trigger_config_by_io_channel, enable_response_trigger_config_by_io_channel, enable_leakage_current_config, enable_leakage_current_by_io_channel, disable_leakage_current_config, disable_pedestal_config, enable_periodic_triggering, enable_self_triggering, enable_periodic_triggering_by_io_channel, enable_self_triggering_by_io_channel, disable_periodic_triggering, enable_csa_trigger
+  added: ; removed: set_v_cm_lvds_tx
+
+base/enforce_parallel.py vs 3ccef84:base/enforce_parallel.py
+  identical: get_chips_by_io_group_io_channel, enforce_parallel
+  changed:
+  added: ; removed:
+
+base/config_loader.py vs 4a8b40f:base/config_loader.py
+  identical: datetime_now, write_config_to_file, parse_disabled_dict, parse_disabled_json, load_config_from_directory, load_config_from_file_existing_network, load_config_from_file
+  changed:
+  added: ; removed:

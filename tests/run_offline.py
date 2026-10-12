@@ -25,6 +25,7 @@ def main():
             import larpix.io
             import zmq
             import socket
+            print(f'Python: {sys.executable}; imported larpix: {larpix.__file__}', flush=True)
             blocked = AssertionError('Real hardware/network access forbidden in offline tests')
             with mock.patch.object(larpix.io, 'PACMAN_IO', side_effect=blocked), \
                  mock.patch.object(zmq, 'Context', side_effect=blocked), \

@@ -99,5 +99,53 @@ during export; those are not serialized. Tests compare the original graph with
 the reloaded output, rather than mistaking that mutated intermediate for the
 saved topology. No v2d serializer/map change is justified or made.
 
-Retry/lifecycle validation and final hardware gates are recorded below when
-complete; operator commands live in `CERN_HARDWARE_VALIDATION.md`.
+Discovery/API changes are committed as `5e6cc31`. The third change group restores
+targeted retry reconstruction and current-state invalidation. It preserves the
+electrical power sequence and original one-retry policy; the desired controller
+survives reconstruction and temporary masks/CSA settings are restored on failed
+returns and exceptions. A tile reset requires re-enforcement of earlier
+successful chips on that tile, not just the originally failed chip. Remaining
+unattempted work is also retained. Unknown/foreign retry keys fail explicitly.
+Even `ignore_diff=True` now collects mismatches without turning a later
+successful batch into success for the whole operation. Replay preflight checks
+also run at the underlying family-specific entry points before IO construction.
+
+Power-up invalidates current ASIC/network selections before its first register
+operation. This restores the donors' success-state contract and also leaves
+state invalid if a power operation fails partway through. Saved defaults and
+the other IOG's selections are retained. Mock assertions check the unchanged
+initial power/DAC order. Discovery likewise invalidates current v3 selections
+before reset. `runenv` and the three existing index schemas are unchanged.
+
+Final offline result: **51 passed, 0 failed, 0 errors, 0 skipped**, including the
+18 existing tests and 33 added tests. Command: `python -B tests/run_offline.py`.
+The final log is `/tmp/cern-preservation-l9i87a7m/tests-final.log`; earlier
+phase logs are alongside it. Twelve changed/test Python files passed
+compile-only checks, all four IOG wrappers passed `bash -n`, and
+`git diff --check` passed. No real PACMAN constructor, socket connection,
+register access, reset, power operation or acquisition occurred. The temporary
+wrapper copies invoked a PATH-injected stub instead of production Python.
+
+The complete baseline AST comparison is in `DONOR_FUNCTION_COMPARISON.txt`.
+Unreviewed acquisition, crawler, threshold and geometry differences remain
+outside this control-path repair. No register maps, library code, physical
+root IDs, raw-data format, donor files or runtime selections were changed.
+Final SHA-256 comparison confirms original endpoints, `.envrc`, hidden indexes,
+ASIC directories, generated topologies and logs are unchanged. Both donors'
+tracked patches/status still match the baseline; larpix-control remains clean.
+
+Remaining gates and exact approved-operation proposals are in
+`../CERN_HARDWARE_VALIDATION.md`: independently reproduce v2d discovery; complete
+v3 discovery; review fresh outputs; then for each IOG perform controlled
+power-down/up, normal saved-network replay, configure and full desired-state
+readback with no scratch bootstrap. Finally validate the two homogeneous
+processes together. These hardware operations remain unperformed and require
+explicit approval.
+
+Two limits must be carried into that review: the pinned library's
+`reset_tiles()` masks only tiles 1–8 (physical tile9/10 reset isolation is not
+established), and inherited final unmask writes are not themselves read back.
+The existing `--no_unmask_last` option is documented for a separately approved
+full desired-state readback after inspecting the selected trigger/mask settings.
+V3 discovery/replay analog/timing differences remain donor settings awaiting
+bench validation. Mixed raw acquisition stays deferred.

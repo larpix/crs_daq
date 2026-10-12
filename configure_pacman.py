@@ -8,7 +8,7 @@ import larpix
 import larpix.io
 
 from base.asic_family import control_io_settings
-from base import pacman_base
+from base import pacman_base, utility_base
 from runenv import runenv as RUN
 
 RESET_CYCLES = 4096
@@ -31,6 +31,10 @@ def main(verbose=False, pacman_config="io/pacman.json", settle=0.5):
     if verbose:
         print(f"IOG {io_group}: ASIC {asic_family!r}, packet family {packet_family}, tiles {tiles}")
 
+    # Reset/power changes invalidate current hardware state even if a later
+    # register operation fails. Saved default selections/files are retained.
+    utility_base.update_json(RUN.asic_config_paths_file_, io_group, None)
+    utility_base.update_json(RUN.network_config_paths_file_, io_group, None)
     pacman_base.disable_all_pacman_uart(io, io_group)
     io.set_reg(0x10, 0, io_group=io_group)
     io.set_reg(0x14, 0, io_group=io_group)

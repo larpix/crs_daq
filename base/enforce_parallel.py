@@ -1,8 +1,6 @@
 import larpix
 from tqdm import tqdm
-from base import pacman_base
 from base import utility_base
-import numpy as np
 from copy import deepcopy
 from base.asic_family import normalize_asic_family
 
@@ -73,10 +71,15 @@ def validate_configurations(c, network_keys, io_group, asic_family,
                 selected.append(candidates[0])
         resolved.append(selected)
     for key in c.chips:
-        if (key.io_group != io_group or
-                normalize_asic_family(c[key].asic_version) != asic_family):
+        try:
+            matches_family = normalize_asic_family(c[key].asic_version) == asic_family
+        except ValueError:
+            matches_family = False
+        if key.io_group != io_group or not matches_family:
             invalid.append(str(key))
     expected = {key for net in resolved for key in net}
+    if sum(len(net) for net in resolved) != len(expected):
+        ambiguous.append('multiple topology keys resolve to the same configured ASIC')
     extra = sorted(str(key) for key in c.chips if key not in expected)
     if missing or ambiguous or invalid or extra or not expected:
         raise ValueError(
@@ -88,75 +91,55 @@ def validate_configurations(c, network_keys, io_group, asic_family,
 
 
 def enforce_parallel(c, network_keys, unmask_last=True, pbar_position=0, pbar_desc='configuring...', ignore_diff=False):
-    
-    ichip = -1  
-    nchip = sum([len(net) for net in network_keys])
-    p_bar = tqdm(range(nchip), position=pbar_position, desc=pbar_desc, maxinterval=0.25, leave=False)
-    p_bar.refresh()
-    ok, diff = False, {}
-    masks={}
-    csas={}
-    ptmasks={}
-   
+    nchip = sum(len(net) for net in network_keys)
+    if not nchip:
+        raise ValueError('No ASICs selected for enforcement')
+    p_bar = tqdm(range(nchip), position=pbar_position, desc=pbar_desc,
+                 maxinterval=0.25, leave=False)
     unconfigured = deepcopy(network_keys)
-
-    while True:
-        current_chips = []
-        ichip += 1
-        working=False
-        for inet, net in enumerate(network_keys):
-            if ichip>=len(net): continue
-            working=True
-            current_chips.append(net[ichip])
-            unconfigured[inet].remove(net[ichip])
-
-        if unmask_last:
-            for chip in current_chips:
-                masks[str(chip)] = c[chip].config.channel_mask
-                c[chip].config.channel_mask = [1]*64
-               
-                ptmasks[str(chip)] = c[chip].config.periodic_trigger_mask
-                c[chip].config.periodic_trigger_mask = [1]*64
-
-                csas[str(chip)] = c[chip].config.csa_enable
-                c[chip].config.csa_enable = [0]*64
-
-        if not working: break
-
-        ok, diff = c.enforce_configuration(current_chips, timeout=0.03, connection_delay=0.02, n=5, n_verify=5)
-        if not ok:
-            if len(diff.keys()) < 20:
-                ok, diff = c.enforce_configuration(current_chips, timeout=0.025, connection_delay=0.01, n=10, n_verify=10)
-
-        if not ok: 
-            p_bar.update(len(current_chips) - len(diff.keys()))
-            p_bar.refresh() 
-            #ignore_diff=True
-            if not ignore_diff: return ok, diff, unconfigured
-        
-        p_bar.update(len(current_chips))
-        p_bar.refresh()
-
-    p_bar.close()
-
-    N_WRITE_UNMASK=10 
-
-    send = False
-    if unmask_last:
-        for chip in reversed(list(masks.keys())):
+    masks, csas, ptmasks = {}, {}, {}
+    all_diff = {}
+    try:
+        for ichip in range(max(len(net) for net in network_keys)):
+            current_chips = [net[ichip] for net in network_keys if ichip < len(net)]
+            for inet, net in enumerate(network_keys):
+                if ichip < len(net):
+                    unconfigured[inet].remove(net[ichip])
+            if unmask_last:
+                for chip in current_chips:
+                    masks[chip] = list(c[chip].config.channel_mask)
+                    ptmasks[chip] = list(c[chip].config.periodic_trigger_mask)
+                    csas[chip] = list(c[chip].config.csa_enable)
+                    c[chip].config.channel_mask = [1] * 64
+                    c[chip].config.periodic_trigger_mask = [1] * 64
+                    c[chip].config.csa_enable = [0] * 64
+            ok, diff = c.enforce_configuration(
+                current_chips, timeout=0.03, connection_delay=0.02, n=5, n_verify=5)
+            if not ok and len(diff) < 20:
+                ok, diff = c.enforce_configuration(
+                    current_chips, timeout=0.025, connection_delay=0.01, n=10, n_verify=10)
+            if not ok:
+                if not ignore_diff:
+                    return False, diff, unconfigured
+                # Continue gathering errors when requested, without reporting
+                # a later successful batch as success for the entire operation.
+                all_diff.update(diff or {key: {} for key in current_chips})
+            p_bar.update(len(current_chips))
+            p_bar.refresh()
+    finally:
+        # Restore software intent even on an exception or early failed return.
+        # On failure, no unmask packets are sent to incompletely configured ASICs.
+        for chip in masks:
             c[chip].config.channel_mask = masks[chip]
-            c[chip].config.csa_enable = csas[chip]
             c[chip].config.periodic_trigger_mask = ptmasks[chip]
-            if send==False:
-                if np.any( np.logical_not(masks[chip])): send=True
-        
-        if send:
-            if True:
-                for __ in range(N_WRITE_UNMASK):
-                    c.multi_write_configuration( [ (chip, list(range(131, 139))+list(range(66, 74))+list(range(155,163))) for chip in c.chips if chip.io_group in c.io._io_group_table.keys() ], connection_delay=0.001 )
-
-            else:
-                pass
-    return ok, diff, unconfigured
-
-
+            c[chip].config.csa_enable = csas[chip]
+        p_bar.close()
+    if all_diff:
+        return False, all_diff, unconfigured
+    if unmask_last and any(0 in mask for mask in masks.values()):
+        pairs = [(chip, sorted({reg for name in
+                  ('channel_mask', 'csa_enable', 'periodic_trigger_mask')
+                  for reg in c[chip].config.register_map[name]})) for chip in masks]
+        for _ in range(10):
+            c.multi_write_configuration(pairs, connection_delay=0.001)
+    return True, {}, unconfigured
