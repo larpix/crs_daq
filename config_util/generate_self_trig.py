@@ -1,6 +1,8 @@
 ######################################################################################
-# these settings configure the v3a larpix chips for a hot channel test. Additional configs
-# are set in /larpix-control/larpix//configs/chip/default_v3.py
+# These settings 
+#      - configure the v3a larpix chips to run in self-trigger mode. 
+#      - enable external sync
+# Additional configs are set in /larpix-control/larpix//configs/chip/default_v3.py
 #######################################################################################
 
 import larpix
