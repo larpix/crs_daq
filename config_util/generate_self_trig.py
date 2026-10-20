@@ -42,7 +42,7 @@ def main(input_files, verbose, \
             config['csa_enable'] = [1]*64
             config['dropped_packets'] = 15
             config['enable_data_stats'] = 0
-            config['enable_external_sync'] = 0
+            config['enable_external_sync'] = 1
             config['enable_external_trigger'] = 0            
             config['enable_hit_veto']=1
             config['enable_periodic_reset']=1
