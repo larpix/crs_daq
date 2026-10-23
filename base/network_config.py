@@ -121,10 +121,18 @@ def validate_network_payload(payload, source="controller network"):
     return payload
 
 
+def network_output_prefix(prefix):
+    """Put bare Hydra output prefixes in configs; retain explicit directories."""
+    if prefix is not None and not os.path.dirname(prefix):
+        return os.path.join('configs', prefix)
+    return prefix
+
+
 def write_validated_network(payload, destination):
     """Atomically replace destination only after validation and JSON round-trip."""
     validate_network_payload(payload, source="generated controller network")
     directory = os.path.dirname(os.path.abspath(destination))
+    os.makedirs(directory, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=".hydra-network-", suffix=".json", dir=directory)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as output:

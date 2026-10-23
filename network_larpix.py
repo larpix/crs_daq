@@ -83,6 +83,9 @@ def main(verbose,
     with open(controller_config) as infile:
         configs = json.load(infile)
     topology = configs[str(io_group)]
+    if not os.path.dirname(topology):
+        topology = os.path.join('configs', topology)
+    configs[str(io_group)] = topology
     validate_control_network(topology, io_group, asic_family)
     tiles = None if io_group_tiles is None else io_group_tiles.get(io_group)
     if io_group_tiles is not None and io_group not in io_group_tiles:
@@ -128,8 +131,8 @@ def main(verbose,
         nc.io, io_group, sorted({chip.io_channel for chip in nc.chips}))
     pos, tag = 0, 'networking...'
     if pid_logged:
-        tag = utility_base.get_from_process_log(os.getpid())
-        pos = enforce_parallel.tag_to_config_map[tag]
+        tag = utility_base.get_from_process_log(os.getpid()) or f'IOG{io_group}'
+        pos = enforce_parallel.tag_to_config_map.get(tag, io_group - 1)
     ok, diff, unconfigured = enforce_iterative(
         nc, all_network_keys, configs=configs, pbar_desc=tag, pbar_position=pos,
         pacman_config=pacman_config)

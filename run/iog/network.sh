@@ -1,19 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-selection="${1:-all}"
-case "$selection" in
-  all) iogs=(1 2) ;;
-  1|2) iogs=("$selection") ;;
-  *) echo "usage: $0 [all|1|2] [--update_default]" >&2; exit 2 ;;
-esac
+[[ $# -ge 1 && $# -le 2 ]] || { echo "usage: $0 N[,M...] [--update_default]" >&2; exit 2; }
 extra_args=()
 if [[ "${2:-}" == "--update_default" && $# -le 2 ]]; then
   extra_args+=(--update_default)
 elif [[ $# -gt 1 ]]; then
-  echo "usage: $0 [all|1|2] [--update_default]" >&2
+  echo "usage: $0 N[,M...] [--update_default]" >&2
   exit 2
 fi
+source "$(dirname "$0")/common.sh"
+select_iogs "$1"
 
 mkdir -p log
 stamp=$(date +%Y_%m_%d_%H_%M_%S_%Z)
@@ -28,7 +25,7 @@ for iog in "${iogs[@]}"; do
     >"log/network-iog${iog}-${stamp}.log" 2>&1 &
   pid=$!
   pids+=("$pid")
-  sed -i "s/IOG${iog}_PID=[0-9]*/IOG${iog}_PID=${pid}/" .envrc
+  log_pid "$iog" "$pid"
   echo "IOG ${iog}: PID ${pid}, log/network-iog${iog}-${stamp}.log"
 done
 

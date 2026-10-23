@@ -14,7 +14,8 @@ from base import asic_base
 import json
 import time
 from base import pacman_base
-from base.network_config import validate_control_network, write_validated_network
+from base.network_config import (validate_control_network, write_validated_network,
+                                 network_output_prefix)
 from base.asic_family import control_io_settings
 import numpy as np
 # from timebudget import timebudget
@@ -676,6 +677,7 @@ def miso_us_chip_id_list(chip2chip_pair, miso_us):
 
 def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
                           layout="2.5.1", asic_version='3'):
+    file_prefix = network_output_prefix(file_prefix)
 
     d = dict()
     d["_config_type"] = "controller"
@@ -694,9 +696,14 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
         for ioc in io_channels:
             if pacman_base.convert_io_channel_to_uart(ioc) is None:
                 continue
+            # Failed or excluded roots have no channel graph to replay.
+            if ioc not in c.network[iog]:
+                continue
             d["network"][iog][ioc] = {}
             d["network"][iog][ioc]["nodes"] = []
             for node in list(c.network[iog][ioc]['miso_us']):
+                if node != 'ext' and larpix.Key(iog, ioc, node) not in c.chips:
+                    raise ValueError(f'IOG {iog} channel {ioc}: graph contains undiscovered ASIC {node}')
                 temp = {}
                 temp["chip_id"] = node
                 miso_us = [None]*4
@@ -728,7 +735,7 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
     if file_prefix != None:
         fname = file_prefix+'-hydra-network.json'
     if file_prefix == None:
-        fname = 'network-'+now+'.json' 
+        fname = 'configs/network-'+now+'.json'
     write_validated_network(d, fname)
     print('network JSON: ', fname)
 

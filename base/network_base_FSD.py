@@ -12,7 +12,8 @@ from base import asic_base
 import json
 import time
 from base import pacman_base
-from base.network_config import UART_MAPS, validate_control_network, write_validated_network
+from base.network_config import (UART_MAPS, validate_control_network,
+                                 write_validated_network, network_output_prefix)
 from base.asic_family import control_io_settings
 import numpy as np
 # from timebudget import timebudget
@@ -711,6 +712,7 @@ def _serialized_nodes(graphs):
 
 def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
                           layout="2.5.1", asic_version='2b'):
+    file_prefix = network_output_prefix(file_prefix)
 
     d = dict()
     d["_config_type"] = "controller"
@@ -756,7 +758,7 @@ def write_network_to_file(c, file_prefix, io_group_pacman_tile, unconfigured,
     if file_prefix != None:
         fname = file_prefix+'-hydra-network.json'
     if file_prefix == None:
-        fname = 'network-'+now+'.json'
+        fname = 'configs/network-'+now+'.json'
     write_validated_network(d, fname)
     print('network JSON: ', fname)
 

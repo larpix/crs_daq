@@ -23,7 +23,7 @@ HEADER = struct.Struct('<cLxH')
 WORD_SIZE = 16
 FAMILIES = {1: 'v2d', 2: 'v3a'}
 TRIGGERS = {0: 'normal', 1: 'external', 2: 'cross', 3: 'periodic'}
-# Fast bit-parity lookup that also works on dune01's Python 3.9.
+# Fast bit-parity lookup compatible with Python 3.9.
 BYTE_PARITY = tuple(bin(value).count('1') & 1 for value in range(256))
 
 

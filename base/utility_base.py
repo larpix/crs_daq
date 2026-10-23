@@ -36,8 +36,11 @@ def update_process_log(logfile='.envrc', status=0):
     return pid
    
 def get_from_process_log(pid, logfile='.envrc'):
-    with open(logfile, 'r') as f:
-        data=f.read()
+    try:
+        with open(logfile, 'r') as f:
+            data=f.read()
+    except FileNotFoundError:
+        return None
     pid=str(pid)
     if pid in data:
         lines=data.split('\n')

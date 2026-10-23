@@ -105,7 +105,10 @@ def main(io_group, file_prefix=_default_file_prefix, \
                         parse_root_map(physical_root_map), live_channels)
                     print('using operator-confirmed physical root assignment:', root_ids)
                 else:
-                    root_ids = V2D_DONOR_ROOT_IDS
+                    # Repeat the donor connector order on each tile; retain
+                    # its programmed IDs, including the third connector's 101.
+                    root_ids = {channel: V2D_DONOR_ROOT_IDS[25 + (channel - 1) % 4]
+                                for channel in live_channels}
                     print('using donor-programmed root IDs (not verified physical positions):', root_ids)
                 for io_channel in io_channels:
                     if io_channel in pacman_base.DEAD_LOGICAL_CHANNELS:

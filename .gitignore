@@ -28,6 +28,13 @@ __pycache__/
 *.csv
 
 # --- Runtime state / logs / temp ---
+.envrc
+*.log
+data/
+monitor/
+config_history/
+disabled_list_log.json
+asic_config_log.json
 log/
 tmp/
 .daq.pid
@@ -91,6 +98,7 @@ threshold_run1/
 # --- Root-level generated hydra/config artifacts ---
 /iog-*-pacman-tile-*-hydra-network.json
 /iog_*-tile_*-hydra-network.json
+/configs/*-hydra-network.json
 /initial_disabled_list-combined-*.json
 /input_disabled_list.json
 

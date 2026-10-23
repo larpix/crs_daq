@@ -81,8 +81,8 @@ def main(verbose, \
         tag='configuring...'
         if pid_logged:
             pid = os.getpid()
-            tag = utility_base.get_from_process_log(pid)
-            pos = enforce_parallel.tag_to_config_map[tag]
+            tag = utility_base.get_from_process_log(pid) or f'IOG{io_group}'
+            pos = enforce_parallel.tag_to_config_map.get(tag, io_group - 1)
 
         #enforce all configurations in parallel (one chip per io channel per cycle)
         ok, diff, unconfigured = enforce_parallel.enforce_parallel(c, all_network_keys, unmask_last=unmask_last, pbar_desc=tag, pbar_position=pos)

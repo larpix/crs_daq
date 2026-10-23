@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-selection="${1:-all}"
+[[ $# -ge 1 && $# -le 2 ]] || { echo "usage: $0 N[,M...] [asic-config-directory]" >&2; exit 2; }
 config_dir="${2:-}"
-case "$selection" in
-  all) iogs=(1 2) ;;
-  1|2) iogs=("$selection") ;;
-  *) echo "usage: $0 [all|1|2] [asic-config-directory]" >&2; exit 2 ;;
-esac
+source "$(dirname "$0")/common.sh"
+select_iogs "$1"
 
 mkdir -p log
 stamp=$(date +%Y_%m_%d_%H_%M_%S_%Z)
@@ -21,7 +18,7 @@ for iog in "${iogs[@]}"; do
     >"log/configure-iog${iog}-${stamp}.log" 2>&1 &
   pid=$!
   pids+=("$pid")
-  sed -i "s/IOG${iog}_PID=[0-9]*/IOG${iog}_PID=${pid}/" .envrc
+  log_pid "$iog" "$pid"
   echo "IOG ${iog}: PID ${pid}, log/configure-iog${iog}-${stamp}.log"
 done
 
