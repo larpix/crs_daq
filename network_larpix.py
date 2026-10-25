@@ -69,8 +69,9 @@ def enforce_iterative(nc, all_network_keys, n=1, configs=None, pbar_desc='p',
                            pacman_config=pacman_config, packet_family=packet_family)
         if recovered.io is not None:
             recovered.io.cleanup()
+        # This helper replaces the whole RX mask, including successful tiles.
         pacman_base.enable_pacman_uart_from_io_channel(
-            nc.io, io_group, sorted({key.io_channel for net in pending for key in net}))
+            nc.io, io_group, sorted({key.io_channel for key in nc.chips}))
 
 def main(verbose,
          controller_config,

@@ -74,7 +74,9 @@ def main(verbose, \
         #ensure UARTs are enable on pacman to receive configuration packets
         for io_group_ip_pair in pacman_configs['io_group']:
             io_group = io_group_ip_pair[0]
-            pacman_base.enable_all_pacman_uart_from_io_group(c.io, io_group)
+            pacman_base.enable_pacman_uart_from_io_channel(
+                c.io, io_group, sorted({key.io_channel for key in c.chips
+                                       if key.io_group == io_group}))
        
 
         pos=0

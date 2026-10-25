@@ -4,6 +4,8 @@ import json
 import os
 import tempfile
 
+import larpix.configs
+
 from base.asic_family import normalize_asic_family
 from base.hijinks import logical_to_physical_uart
 
@@ -47,10 +49,41 @@ def root_only_network(io_group, io_channel, chip_id, name, asic_version,
 
 def validate_external_roots(config_path):
     """Reject malformed root graphs before larpix ``init_network`` runs."""
-    with open(config_path, encoding="utf-8") as infile:
-        payload = json.load(infile)
+    payload = larpix.configs.load(config_path, config_type="controller")
     validate_network_payload(payload, source=str(config_path))
+    _validate_network_sources(config_path, payload["asic_version"], {})
     return payload
+
+
+def _validate_network_sources(config_path, asic_version, channel_sources):
+    """Audit declarations that native inheritance could silently overwrite.
+
+    Only LArPix expands configurations. Read source JSON here to retain channel
+    ownership and the include tree, which are lost after inheritance merges.
+    """
+    source = os.fspath(config_path)
+    if not os.path.isfile(source):
+        # Match larpix.configs.load's fallback to its packaged configurations.
+        source = os.path.join(os.path.dirname(larpix.configs.__file__), source)
+    with open(source, encoding="utf-8") as infile:
+        document = json.load(infile)
+    for io_group, channels in document.get("network", {}).items():
+        if not str(io_group).isdigit():
+            continue
+        for io_channel in channels:
+            key = (int(io_group), int(io_channel))
+            if key in channel_sources:
+                raise ValueError(
+                    f"{config_path}: duplicate IO channel {io_group}-{io_channel}; "
+                    f"also defined in {channel_sources[key]}"
+                )
+            channel_sources[key] = str(config_path)
+    for included in document.get("_include", []):
+        payload = larpix.configs.load(included, config_type="controller")
+        validate_network_payload(payload, source=included)
+        if payload["asic_version"] != asic_version:
+            raise ValueError(f"{included}: ASIC family differs from {config_path}")
+        _validate_network_sources(included, asic_version, channel_sources)
 
 
 def validate_control_network(config_path, io_group, asic_family):

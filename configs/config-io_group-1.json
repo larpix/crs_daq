@@ -1,0 +1,6 @@
+{
+    "_config_type": "controller",
+    "_include": [
+        "configs/iog_1-tile_7-hydra-network.json"
+    ]
+}
