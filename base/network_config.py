@@ -87,15 +87,27 @@ def _validate_network_sources(config_path, asic_version, channel_sources):
 
 
 def validate_control_network(config_path, io_group, asic_family):
-    """Check a saved topology before a homogeneous control process opens IO."""
-    payload = validate_external_roots(config_path)
-    if normalize_asic_family(payload['asic_version']) != asic_family:
-        raise ValueError(f'{config_path}: ASIC family does not match IOG {io_group} ({asic_family!r})')
-    groups = {int(key) for key in payload['network'] if str(key).isdigit()}
+    """Load donor configuration and verify IO-group/ASIC compatibility."""
+    payload = larpix.configs.load(
+        config_path, config_type="controller"
+    )
+
+    if normalize_asic_family(payload["asic_version"]) != asic_family:
+        raise ValueError(
+            f"{config_path}: ASIC family mismatch for IOG {io_group}"
+        )
+
+    groups = {
+        int(key) for key in payload["network"]
+        if str(key).isdigit()
+    }
+
     if groups != {io_group}:
-        raise ValueError(f'{config_path}: expected only IOG {io_group}, found {sorted(groups)}')
-    for channel in payload['network'][str(io_group)]:
-        logical_to_physical_uart(channel)
+        raise ValueError(
+            f"{config_path}: expected IOG {io_group}, "
+            f"found {sorted(groups)}"
+        )
+
     return payload
 
 
