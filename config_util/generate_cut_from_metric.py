@@ -57,7 +57,7 @@ def parse_file(filename, max_entries=-1):
     chips = f['packets']['chip_id'][mask][:max_entries]
 
     print("Number of packets in parsed files =", len(unique_id))
-    for chip in tqdm.tqdm(range(11, 111), desc='parsing data...'):
+    for chip in tqdm.tqdm(range(11, 171), desc='parsing data...'):
         _iomask = chips==chip
         _adc = adc[_iomask]
         _unique_id = unique_id[_iomask]
@@ -112,7 +112,7 @@ def apply_cut_generate_disabled(d, metric, cut, polarity, file):
             for key in d_keys:
                 channel_id = unique_to_channel_id(key)
                 chip_id = unique_to_chip_id(key)
-                if chip_id not in range(11,111): continue
+                if chip_id not in range(11,171): continue
                 if channel_id not in range(64): continue
                 weight = d[key][metric]
                 if (weight>cut and not polarity) or (weight<cut and polarity): 

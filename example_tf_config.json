@@ -1,0 +1,17 @@
+{
+    "target_thresholds_ke" : [3, 4, 5, 7, 10],
+
+    "asic_version" : 3,
+    "VDDA"         : 1910,
+    "vref_dac"     : 180, 
+    "vcm_dac"      : 90,
+    
+    "pedestal_file"    : "/data/v3/FSDCube/Oct2026/cold_commissioning_processed/convert_to_packet/binary-cold_com_peds_30s-2026_10_15_17_47_48_PDT.hdf5",
+    "ptd_leakage_dict" : {
+        "31" : "/data/v3/FSDCube/Oct2026/cold_commissioning_processed/convert_to_packet/binary-leakage_gt18_ptd31-2026_10_15_13_14_16_PDT.hdf5",
+        "24" : "/data/v3/FSDCube/Oct2026/cold_commissioning_processed/convert_to_packet/binary-leakage_gt18_ptd24-2026_10_15_13_20_44_PDT.hdf5",
+        "20" : "/data/v3/FSDCube/Oct2026/cold_commissioning_processed/convert_to_packet/binary-leakage_gt18_ptd20-2026_10_15_13_28_04_PDT.hdf5",
+        "16" : "/data/v3/FSDCube/Oct2026/cold_commissioning_processed/convert_to_packet/binary-leakage_gt18_ptd16-2026_10_15_13_35_10_PDT.hdf5",
+        "12" : "/data/v3/FSDCube/Oct2026/cold_commissioning_processed/convert_to_packet/binary-leakage_gt18_ptd12-2026_10_15_13_52_51_PDT.hdf5"  
+    }
+}
